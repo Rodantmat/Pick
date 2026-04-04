@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.3.4</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.3.5</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -195,8 +195,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.3.4</h1>
-          <p id="analysisVersion">Version: v5.3.4</p>
+          <h1 id="analysisTitle">Run Analysis v5.3.5</h1>
+          <p id="analysisVersion">Version: v5.3.5</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -629,6 +629,20 @@ function bestSearchEvidence(results, kind, playerName='', opponent='') {
 
 
 
+
+function recentSourceAllowedForField(source, fieldKey) {
+  const s = canon(source || '');
+  if (['last5','last10','last20'].includes(fieldKey) && s.includes('preview')) return false;
+  return true;
+}
+
+function oddsEvidenceHasRealPricing(blob) {
+  const cblob = canon(blob || '');
+  const hasOddsTerms = ['odds','sportsbook','betting','moneyline','bookmakers'].some(t => cblob.includes(canon(t)));
+  const hasNumericOdds = /(?:\+\d{3}|\-\d{3}|\b\d+\.\d{2}\b)/.test(blob || '');
+  return hasOddsTerms && (hasNumericOdds || cblob.includes('best odds') || cblob.includes('compare the latest tennis odds'));
+}
+
 function blobHasNoResults(blob) {
   const cblob = canon(blob || '');
   const phrases = [
@@ -706,8 +720,9 @@ function validateResultsForKind(results, kind, playerName='', opponent='') {
   }
   if (kind === 'career') {
     const good = cblob.includes('overview') || cblob.includes('profile') || cblob.includes('career') || cblob.includes('rank') || cblob.includes('bio');
+    const sourceGood = cblob.includes('atp') || cblob.includes('tennisabstract') || cblob.includes('flashscore');
     const bad = cblob.includes('phillies') || cblob.includes('pitcher') || cblob.includes('shortstop') || cblob.includes('baseball') || cblob.includes('mlb');
-    return good && !bad;
+    return good && sourceGood && !bad;
   }
   if (kind === 'h2h') {
     return blobHasOpponent(blob, opponent) && (cblob.includes('head to head') || cblob.includes('h2h') || cblob.includes('preview'));
@@ -718,7 +733,7 @@ function validateResultsForKind(results, kind, playerName='', opponent='') {
   if (kind === 'odds') {
     return blobHasOpponent(blob, opponent) &&
       !blobHasNoResults(blob) &&
-      (cblob.includes('odds') || cblob.includes('sportsbook') || cblob.includes('betting') || cblob.includes('moneyline'));
+      oddsEvidenceHasRealPricing(blob);
   }
   return true;
 }
@@ -773,6 +788,7 @@ function factorSourcePlans(row) {
       { source: 'ATP', q: `site:atptour.com "${e}" overview tennis player ATP` },
       { source: 'Tennis Abstract', q: `site:tennisabstract.com "${e}" tennis abstract ATP` },
       { source: 'Flashscore', q: `site:flashscore.com "${e}" tennis player profile` },
+      { source: 'ATP Profile', q: `site:atptour.com "${e}" player profile tennis` },
       { source: 'ESPN', q: `site:espn.com "${e}" tennis bio stats ATP` }
     ],
     h2h: [
@@ -787,9 +803,9 @@ function factorSourcePlans(row) {
     ],
     odds: [
       { source: 'OddsPortal', q: `site:oddsportal.com "${e}" "${o}" tennis odds oddsportal` },
-      { source: 'Sportsbook', q: `"${e}" "${o}" tennis sportsbook odds moneyline` },
       { source: 'FanDuel', q: `"${e}" "${o}" fanduel tennis odds moneyline` },
-      { source: 'Generic Odds', q: `"${e}" "${o}" tennis betting odds` }
+      { source: 'Sportsbook', q: `"${e}" "${o}" tennis sportsbook odds moneyline` },
+      { source: 'Generic Odds', q: `"${e}" "${o}" tennis betting odds compare latest odds` }
     ],
     schedule: [
       { source: 'Sofascore', q: `site:sofascore.com "${e}" tennis player` },
@@ -1042,13 +1058,20 @@ async function mineTennisRow(row) {
           schedule: 'Recent match timing evidence found',
           form: 'Recent form evidence found'
         };
-        result[k] = {
+        const allowed = recentSourceAllowedForField(recentResult.source || recentResult.provider, k);
+        result[k] = allowed ? {
           ...result[k],
           status:'ready',
           statusLabel:'Search evidence found',
           sourcesLabel: `${result[k].sourcesLabel} • winner: ${recentResult.source || recentResult.provider} • attempts: ${recentResult.attempts}`,
           parsedResult: labels[k],
           evidence
+        } : {
+          ...result[k],
+          status:'failed',
+          statusLabel:'Probe failed',
+          parsedResult:'Source not allowed for this field.',
+          evidence:`${recentResult.source || recentResult.provider} is not allowed as a success source for ${k}.`
         };
       });
     } else {
@@ -1227,7 +1250,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.3.4`,
+    `Version: v5.3.5`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
