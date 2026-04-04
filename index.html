@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.3.0</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.4.0</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -195,8 +195,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.3.0</h1>
-          <p id="analysisVersion">Version: v5.3.0</p>
+          <h1 id="analysisTitle">Run Analysis v5.4.0</h1>
+          <p id="analysisVersion">Version: v5.4.0</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -665,6 +665,30 @@ function bestSearchEvidence(results, kind, playerName='', opponent='') {
   };
 }
 
+
+function recentFieldEvidenceLooksNoisy(text, playerName='') {
+  const blob = canon(text || '');
+  const player = canon(playerName || '');
+  const playerParts = player.split(' ').filter(Boolean);
+  const hasPlayer = playerParts.every(p => p.length < 2 || blob.includes(p));
+  const tennisSignals = ['tennis','atp','wta','flashscore','sofascore','espn','match history','results','draws','ranking','tournament'];
+  const tennisHit = tennisSignals.some(x => blob.includes(canon(x)));
+  const bannedSignals = [
+    'physiotherapy','interventions','guidelines evaluating physiotherapy','shop the official pedro',
+    'bags & accessories','footballer','serie a','lazio','winger','pedro us'
+  ];
+  const bannedHit = bannedSignals.some(x => blob.includes(canon(x)));
+  return bannedHit || !hasPlayer || !tennisHit;
+}
+
+function cleanRecentResults(results, playerName='') {
+  const filtered = (results || []).filter(r => {
+    const blob = `${r.title || ''} ${r.snippet || ''}`;
+    return !recentFieldEvidenceLooksNoisy(blob, playerName);
+  });
+  return filtered;
+}
+
 async function ddgSearch(query) {
   const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
   const html = await withTimeout(proxiedFetchText(url), 7000, 'search timeout');
@@ -1007,7 +1031,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.3.0`,
+    `Version: v5.4.0`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
