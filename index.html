@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.3.8</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.4.0</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -156,7 +156,7 @@ thead th { background:#121d35; position:sticky; top:0; }
         <div class="btn-row">
           <button id="ingestBtn">Ingest</button>
         </div>
-        <div id="ingestMessage" class="message"></div>
+        <div id="ingestMessage" class="message ingest-status"></div>
       </section>
 
       <section class="card">
@@ -170,33 +170,13 @@ thead th { background:#121d35; position:sticky; top:0; }
           <button id="runBtn" class="run-btn">Run</button>
         </div>
       </section>
-
-      <section class="card">
-        <h2>5. Clean Pool Preview</h2>
-        <div id="resultsMessage" class="message"></div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Sport</th>
-                <th>League</th>
-                <th>Player / Entity</th>
-                <th>Team</th>
-                <th>Line</th>
-                <th>Type</th>
-              </tr>
-            </thead>
-            <tbody id="resultsBody"></tbody>
-          </table>
-        </div>
-      </section>
-    </section>
+</section>
 
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.3.8</h1>
-          <p id="analysisVersion">Version: v5.3.8</p>
+          <h1 id="analysisTitle">Run Analysis v5.4.0</h1>
+          <p id="analysisVersion">Version: v5.4.0</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -293,14 +273,21 @@ function defaultState() {
   return { dayScope:'Today', selectedLeagueIds:[], cleanedRows:[], lastMessage:'', ran:false, activeRowId:null };
 }
 function loadState() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    return parsed ? { ...defaultState(), ...parsed } : defaultState();
-  } catch {
-    return defaultState();
+  return defaultState();
+}
+function saveState() { /* intentionally disabled for clean no-cache test flow */ }
+
+function resetToEmptyIntake(keepMessage='') {
+  Object.assign(state, defaultState());
+  runtimeMiningCache && Object.keys(runtimeMiningCache).forEach(k => delete runtimeMiningCache[k]);
+  const box = document.getElementById('boardInput');
+  if (box) box.value = '';
+  const msg = document.getElementById('ingestMessage');
+  if (msg) {
+    msg.classList.remove('ok');
+    msg.textContent = keepMessage || '';
   }
 }
-function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
 const runtimeMiningCache = {};
 
@@ -463,11 +450,7 @@ function bindRowSelection(tbodyId) {
 }
 
 function renderResults() {
-  const body = document.getElementById('resultsBody');
-  const msg = document.getElementById('resultsMessage');
-  msg.textContent = state.ran ? `${state.cleanedRows.length} clean rows ready.` : 'Run after ingesting to view the clean pool.';
-  body.innerHTML = resultsRowsHtml(state.cleanedRows, false);
-  bindRowSelection('resultsBody');
+  return;
 }
 
 
@@ -1416,7 +1399,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.3.8`,
+    `Version: v5.4.0`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1712,19 +1695,19 @@ function ingestText(text) {
 function bindActions() {
   document.getElementById('clearBoxBtn').onclick = () => { document.getElementById('boardInput').value = ''; };
   document.getElementById('resetAllBtn').onclick = () => {
-    const keepDay = state.dayScope;
-    Object.assign(state, defaultState());
-    state.dayScope = keepDay;
-    saveState();
-    document.getElementById('boardInput').value = '';
-    document.getElementById('ingestMessage').textContent = 'Reset done.';
+    resetToEmptyIntake('Reset done.');
     window.location.hash = '#intake';
     render();
   };
   document.getElementById('ingestBtn').onclick = () => {
     const text = document.getElementById('boardInput').value;
     const res = ingestText(text);
-    document.getElementById('ingestMessage').textContent = res.message;
+    const msg = document.getElementById('ingestMessage');
+    if (msg) {
+      msg.textContent = res.added > 0 ? `✅ ${res.message}` : res.message;
+      msg.classList.toggle('ok', res.added > 0);
+    }
+    if (res.added > 0) document.getElementById('boardInput').value = '';
     render();
   };
   document.getElementById('runBtn').onclick = () => {
@@ -1735,6 +1718,7 @@ function bindActions() {
     render();
   };
   document.getElementById('backBtn').onclick = () => {
+    resetToEmptyIntake('');
     window.location.hash = '#intake';
     render();
   };
@@ -1753,6 +1737,7 @@ function bindActions() {
   window.addEventListener('hashchange', applyScreen);
 }
 
+resetToEmptyIntake('');
 render();
 bindActions();
 
