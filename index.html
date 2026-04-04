@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.3.2.2</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.3.3</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -195,8 +195,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.3.2.2</h1>
-          <p id="analysisVersion">Version: v5.3.2.2</p>
+          <h1 id="analysisTitle">Run Analysis v5.3.3</h1>
+          <p id="analysisVersion">Version: v5.3.3</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -606,54 +606,15 @@ function parseRecentHistoryEvidence(results, playerName) {
 }
 
 function bestSearchEvidence(results, kind, playerName='', opponent='') {
-  let filtered = (results || []).slice();
+  let filtered = (results || []).slice().filter(r => {
+    const blob = `${r.title || ''} ${r.snippet || ''}`;
+    return validateResultsForKind([r], kind, playerName, opponent);
+  });
 
-  const p = canon(playerName || '');
-  const o = canon(opponent || '');
-
-  if (kind === 'surface') {
-    filtered = filtered.filter(r => {
-      const blob = canon(`${r.title || ''} ${r.snippet || ''}`);
-      const bad = ['pedro us','lazio','footballer','shoes','bags','accessories'];
-      const badHit = bad.some(x => blob.includes(canon(x)));
-      const tennisHit = blob.includes('tennis') || blob.includes('atp') || blob.includes('surface') || blob.includes('hard') || blob.includes('clay') || blob.includes('grass');
-      return !badHit && tennisHit && p.split(' ').every(part => part.length < 2 || blob.includes(part));
-    });
-  }
-
-  if (kind === 'h2h') {
-    filtered = filtered.filter(r => {
-      const blob = canon(`${r.title || ''} ${r.snippet || ''}`);
-      return (blob.includes('head to head') || blob.includes('h2h')) &&
-             p.split(' ').some(part => part.length > 2 && blob.includes(part)) &&
-             o.split(' ').some(part => part.length > 2 && blob.includes(part));
-    });
-  }
-
-  if (kind === 'season') {
-    filtered = filtered.filter(r => {
-      const blob = canon(`${r.title || ''} ${r.snippet || ''}`);
-      return p.split(' ').every(part => part.length < 2 || blob.includes(part)) &&
-             (blob.includes('stats') || blob.includes('results') || blob.includes('tournament') || blob.includes('season'));
-    });
-  }
-
-  if (kind === 'career') {
-    filtered = filtered.filter(r => {
-      const blob = canon(`${r.title || ''} ${r.snippet || ''}`);
-      return p.split(' ').every(part => part.length < 2 || blob.includes(part)) &&
-             (blob.includes('overview') || blob.includes('profile') || blob.includes('career') || blob.includes('win-loss') || blob.includes('rank'));
-    });
-  }
-
-  if (kind === 'odds') {
-    filtered = filtered.filter(r => {
-      const blob = canon(`${r.title || ''} ${r.snippet || ''}`);
-      return (blob.includes('odds') || blob.includes('sportsbook') || blob.includes('betting')) &&
-             p.split(' ').some(part => part.length > 2 && blob.includes(part)) &&
-             o.split(' ').some(part => part.length > 2 && blob.includes(part));
-    });
-  }
+  if (!filtered.length) filtered = (results || []).slice().filter(r => {
+    const blob = `${r.title || ''} ${r.snippet || ''}`;
+    return blobHasPlayer(blob, playerName) && !blobHasNoise(blob) && blobLooksTennis(blob);
+  });
 
   if (!filtered.length) filtered = (results || []).slice();
   const top = filtered.slice(0, 2);
@@ -666,63 +627,151 @@ function bestSearchEvidence(results, kind, playerName='', opponent='') {
 }
 
 
+
+function globalNoiseTerms() {
+  return [
+    'phillies','pitcher','shortstop','baseball','mlb',
+    'footballer','soccer','serie a','lazio','winger',
+    'physiotherapy','interventions','guidelines evaluating physiotherapy',
+    'shop the official pedro','bags','accessories','pedro us'
+  ];
+}
+
+function blobHasPlayer(blob, playerName='') {
+  const cblob = canon(blob || '');
+  const parts = canon(playerName || '').split(' ').filter(Boolean).filter(p => p.length > 2);
+  return !!parts.length && parts.every(p => cblob.includes(p));
+}
+
+function blobHasOpponent(blob, opponent='') {
+  const cblob = canon(blob || '');
+  const parts = canon(opponent || '').split(' ').filter(Boolean).filter(p => p.length > 2);
+  return !parts.length || parts.some(p => cblob.includes(p));
+}
+
+function blobLooksTennis(blob) {
+  const cblob = canon(blob || '');
+  const tennisTerms = [
+    'tennis','atp','wta','flashscore','sofascore','tennis explorer','tennisexplorer',
+    'oddsportal','player activity','match history','results','draws','surface','head to head','h2h'
+  ];
+  return tennisTerms.some(t => cblob.includes(canon(t)));
+}
+
+function blobHasNoise(blob) {
+  const cblob = canon(blob || '');
+  return globalNoiseTerms().some(t => cblob.includes(canon(t)));
+}
+
+function resultsBlob(results) {
+  return cleanSnippet((results || []).map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • '));
+}
+
+function validateResultsForKind(results, kind, playerName='', opponent='') {
+  const blob = resultsBlob(results);
+  const cblob = canon(blob);
+  if (!blobHasPlayer(blob, playerName)) return false;
+  if (blobHasNoise(blob)) return false;
+  if (!blobLooksTennis(blob)) return false;
+
+  if (kind === 'recent') {
+    const hasStructure = recentFieldStructuredEnough(blob, opponent) || cblob.includes('preview') || cblob.includes('match history') || cblob.includes('player activity');
+    return hasStructure;
+  }
+  if (kind === 'season') {
+    return cblob.includes('results') || cblob.includes('tournament') || cblob.includes('season') || cblob.includes('match records');
+  }
+  if (kind === 'career') {
+    return cblob.includes('overview') || cblob.includes('profile') || cblob.includes('career') || cblob.includes('rank') || cblob.includes('bio');
+  }
+  if (kind === 'h2h') {
+    return blobHasOpponent(blob, opponent) && (cblob.includes('head to head') || cblob.includes('h2h') || cblob.includes('preview'));
+  }
+  if (kind === 'surface') {
+    return cblob.includes('surface') || cblob.includes('clay') || cblob.includes('hard') || cblob.includes('grass') || cblob.includes('stats');
+  }
+  if (kind === 'odds') {
+    return blobHasOpponent(blob, opponent) && (cblob.includes('odds') || cblob.includes('sportsbook') || cblob.includes('betting') || cblob.includes('moneyline'));
+  }
+  return true;
+}
+
+async function runValidatedQueryList(queries, kind, playerName='', opponent='') {
+  let attempts = 0;
+  for (const item of (queries || [])) {
+    const q = typeof item === 'string' ? item : item.q;
+    const source = typeof item === 'string' ? '' : (item.source || '');
+    attempts += 1;
+    try {
+      const searched = await withTimeout(multiSearch(q), 10000, 'search timeout');
+      if (searched.results && searched.results.length) {
+        const valid = validateResultsForKind(searched.results, kind, playerName, opponent);
+        if (valid) {
+          return { ok: true, provider: searched.provider, source, results: searched.results, query: q, attempts };
+        }
+      }
+    } catch (err) {}
+  }
+  return { ok: false, provider: '', source: '', results: [], query: '', attempts };
+}
+
 function factorSourcePlans(row) {
   const e = row?.entity || '';
   const o = row?.opponent || '';
   return {
     last5: [
-      { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${e}" tennis explorer player` },
-      { source: 'Flashscore', q: `site:flashscore.com "${e}" tennis results flashscore` },
-      { source: 'ATP Activity', q: `site:atptour.com "${e}" player activity tennis` },
+      { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${e}" "${o}" tennis explorer player results` },
+      { source: 'Flashscore', q: `site:flashscore.com "${e}" "${o}" tennis results flashscore` },
+      { source: 'ATP Activity', q: `site:atptour.com "${e}" tennis player activity` },
       { source: 'Preview', q: `"${e}" "${o}" tennis preview` }
     ],
     last10: [
-      { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${e}" tennis explorer player` },
-      { source: 'Flashscore', q: `site:flashscore.com "${e}" tennis results flashscore` },
-      { source: 'ATP Activity', q: `site:atptour.com "${e}" player activity tennis` },
+      { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${e}" "${o}" tennis explorer player results` },
+      { source: 'Flashscore', q: `site:flashscore.com "${e}" "${o}" tennis results flashscore` },
+      { source: 'ATP Activity', q: `site:atptour.com "${e}" tennis player activity` },
       { source: 'Preview', q: `"${e}" "${o}" tennis preview` }
     ],
     last20: [
-      { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${e}" tennis explorer player` },
-      { source: 'Flashscore', q: `site:flashscore.com "${e}" tennis results flashscore` },
-      { source: 'ATP Activity', q: `site:atptour.com "${e}" player activity tennis` },
+      { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${e}" "${o}" tennis explorer player results` },
+      { source: 'Flashscore', q: `site:flashscore.com "${e}" "${o}" tennis results flashscore` },
+      { source: 'ATP Activity', q: `site:atptour.com "${e}" tennis player activity` },
       { source: 'Preview', q: `"${e}" "${o}" tennis preview` }
     ],
     season: [
-      { source: 'ATP', q: `site:atptour.com "${e}" results tennis player profile` },
-      { source: 'ESPN', q: `site:espn.com "${e}" tennis results stats` },
+      { source: 'ATP', q: `site:atptour.com "${e}" tennis player profile results` },
+      { source: 'ESPN', q: `site:espn.com "${e}" tennis stats results ATP` },
       { source: 'Flashscore', q: `site:flashscore.com "${e}" tennis results season` }
     ],
     career: [
-      { source: 'ATP', q: `site:atptour.com "${e}" overview tennis player` },
-      { source: 'Tennis Abstract', q: `site:tennisabstract.com "${e}" tennis abstract` },
+      { source: 'ATP', q: `site:atptour.com "${e}" overview tennis player ATP` },
+      { source: 'Tennis Abstract', q: `site:tennisabstract.com "${e}" tennis abstract ATP` },
       { source: 'ESPN', q: `site:espn.com "${e}" tennis bio stats` }
     ],
     h2h: [
-      { source: 'ATP H2H', q: `site:atptour.com "${e}" "${o}" head to head tennis` },
+      { source: 'ATP H2H', q: `site:atptour.com "${e}" "${o}" head to head tennis ATP` },
       { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${e}" "${o}" h2h tennis` },
       { source: 'Preview', q: `"${e}" "${o}" preview head to head tennis` }
     ],
     surface: [
-      { source: 'ATP Stats', q: `site:atptour.com "${e}" player stats surface tennis` },
+      { source: 'ATP Stats', q: `site:atptour.com "${e}" surface stats tennis ATP` },
       { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${e}" surface stats tennis` },
       { source: 'Flashscore', q: `site:flashscore.com "${e}" tennis surface record` }
     ],
     odds: [
-      { source: 'OddsPortal', q: `site:oddsportal.com "${e}" "${o}" tennis odds` },
+      { source: 'OddsPortal', q: `site:oddsportal.com "${e}" "${o}" tennis odds oddsportal` },
       { source: 'Sportsbook', q: `"${e}" "${o}" tennis sportsbook odds` },
       { source: 'FanDuel', q: `"${e}" "${o}" fanduel tennis odds` }
     ],
     schedule: [
       { source: 'Sofascore', q: `site:sofascore.com "${e}" tennis player` },
       { source: 'Flashscore Fixtures', q: `site:flashscore.com "${e}" tennis fixtures` },
-      { source: 'ATP Activity', q: `site:atptour.com "${e}" player activity tennis` },
+      { source: 'ATP Activity', q: `site:atptour.com "${e}" tennis player activity` },
       { source: 'Preview', q: `"${e}" "${o}" tennis preview` }
     ],
     form: [
-      { source: 'Tennis Abstract', q: `site:tennisabstract.com "${e}" tennis abstract` },
+      { source: 'Tennis Abstract', q: `site:tennisabstract.com "${e}" tennis abstract ATP` },
       { source: 'RotoWire', q: `site:rotowire.com "${e}" tennis` },
-      { source: 'Flashscore', q: `site:flashscore.com "${e}" tennis results flashscore` },
+      { source: 'Flashscore', q: `site:flashscore.com "${e}" "${o}" tennis results flashscore` },
       { source: 'Preview', q: `"${e}" "${o}" tennis preview` }
     ]
   };
@@ -937,7 +986,7 @@ async function mineTennisRow(row) {
     };
   });
 
-  const recentResult = await runQueryList(plans.last5);
+  const recentResult = await runValidatedQueryList(plans.last5, 'recent', row.entity, row.opponent);
   if (recentResult.ok) {
     const cleaned = cleanRecentResults(recentResult.results, row.entity);
     const evidenceBlob = cleaned.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
@@ -979,7 +1028,7 @@ async function mineTennisRow(row) {
           status:'failed',
           statusLabel:'Probe failed',
           parsedResult:'Recent-match evidence rejected as noisy.',
-          evidence:`Search results were noisy, unstructured, or unrelated to the tennis player. Winner: ${recentResult.source || recentResult.provider}. Attempts: ${recentResult.attempts}.`
+          evidence:`Source-gated recent probes did not return clean tennis evidence. Winner tried: ${recentResult.source || recentResult.provider}. Attempts: ${recentResult.attempts}.`
         };
       });
     }
@@ -990,7 +1039,7 @@ async function mineTennisRow(row) {
         status:'failed',
         statusLabel:'Probe failed',
         parsedResult:'No structured recent-match feed parsed.',
-        evidence:`No clean recent-match source returned usable evidence. Attempts: ${plans.last5.length}.`
+        evidence:`No clean recent-match source returned usable tennis evidence. Attempts: ${plans.last5.length}.`
       };
     });
   }
@@ -1004,7 +1053,7 @@ async function mineTennisRow(row) {
   };
 
   for (const key of ['season','career','h2h','surface','odds']) {
-    const tried = await runQueryList(queryMap[key]);
+    const tried = await runValidatedQueryList(queryMap[key], key, row.entity, row.opponent);
     if (tried.ok) {
       const snap = bestSearchEvidence(tried.results, key, row.entity, row.opponent);
       const parsedLabelMap = {
@@ -1148,7 +1197,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.3.2.2`,
+    `Version: v5.3.3`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
