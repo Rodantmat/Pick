@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PickCalc Prompt 1 Intake</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <section id="intakeScreen">
+      <header class="hero">
+        <h1>Prompt 1 Intake <span class="version-pill">v4.5.2</span></h1>
+        <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
+      </header>
+
+      <section class="card">
+        <h2>1. Day Scope</h2>
+        <div id="dayScope" class="radio-row">
+          <label><input type="radio" name="dayScope" value="Today"> Today</label>
+          <label><input type="radio" name="dayScope" value="Tomorrow"> Tomorrow</label>
+          <label><input type="radio" name="dayScope" value="Today and Tomorrow"> Today and Tomorrow</label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>2. Sports / Leagues</h2>
+        <div id="leagueChecklist" class="league-grid"></div>
+      </section>
+
+      <section class="card">
+        <h2>3. Paste Board Text</h2>
+        <div class="btn-row top-gap">
+          <button id="clearBoxBtn" class="secondary">Clear box</button>
+        </div>
+        <textarea id="boardInput" rows="6" placeholder="Paste PrizePicks-style board text here..."></textarea>
+        <div class="btn-row">
+          <button id="ingestBtn">Ingest</button>
+        </div>
+        <div id="ingestMessage" class="message"></div>
+      </section>
+
+      <section class="card">
+        <h2>4. Feed Status</h2>
+        <div class="btn-row top-gap">
+          <button id="resetAllBtn" class="danger">Reset all</button>
+        </div>
+        <div id="runSummary" class="summary-pills"></div>
+        <div id="feedStatus"></div>
+        <div class="btn-row run-row">
+          <button id="runBtn" class="run-btn">Run</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>5. Clean Pool Preview</h2>
+        <div id="resultsMessage" class="message"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Sport</th>
+                <th>League</th>
+                <th>Player / Entity</th>
+                <th>Team</th>
+                <th>Line</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section id="analysisScreen" class="hidden">
+      <header class="hero hero-inline">
+        <div>
+          <h1>Run Analysis</h1>
+          <p>Tennis-first debug screen for external data-mining wiring.</p>
+        </div>
+        <div class="btn-row no-top-gap">
+          <button id="backBtn" class="secondary">Back</button>
+          <button id="copyBtn" class="secondary">Copy</button>
+        </div>
+      </header>
+
+      <section class="card">
+        <h2>Run Snapshot</h2>
+        <div id="analysisSummary" class="summary-pills"></div>
+        <div id="analysisHint" class="message"></div>
+      </section>
+
+      <section class="card">
+        <h2>Selected Test Row</h2>
+        <div id="analysisRowCard"></div>
+      </section>
+
+      <section class="card">
+        <h2>Tennis Data-Mining Matrix</h2>
+        <p class="mini-muted">This screen is the external-data debug scaffold. It shows what the system should mine for one tennis row. Live source wiring can plug into these slots next.</p>
+        <div id="miningGrid" class="mining-grid"></div>
+      </section>
+
+      <section class="card">
+        <h2>Current Clean Pool</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Sport</th>
+                <th>League</th>
+                <th>Player / Entity</th>
+                <th>Team</th>
+                <th>Line</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody id="analysisResultsBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
