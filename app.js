@@ -17,7 +17,7 @@ const LEAGUES = [
   { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
 ];
 
-const STORAGE_KEY = 'pickcalc-prompt1-v5-1-0';
+const STORAGE_KEY = 'pickcalc-prompt1-v5-0-1';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -101,9 +101,9 @@ function activeRow() {
 
 function forceAnalysisVersion() {
   const title = document.getElementById('analysisTitle');
-  if (title) title.textContent = 'Run Analysis v5.1.0';
+  if (title) title.textContent = 'Run Analysis v5.0.1';
   const version = document.getElementById('analysisVersion');
-  if (version) version.textContent = 'Version: v5.1.0';
+  if (version) version.textContent = 'Version: v5.0.1';
 }
 
 function displayTeam(row) {
@@ -338,45 +338,7 @@ function flattenSearchResults(obj) {
   return out;
 }
 
-async 
-function parseRecentHistoryEvidence(results, playerName) {
-  const snippets = (results || []).map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
-  const text = cleanSnippet(snippets);
-  const dateMatches = [...text.matchAll(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2}\b/gi)].map(m => m[0]).slice(0, 5);
-  const oppMatches = [...text.matchAll(/\bvs\.?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/g)].map(m => m[1]).slice(0, 5);
-  const parts = [];
-  if (dateMatches.length) parts.push(`Dates: ${dateMatches.join(', ')}`);
-  if (oppMatches.length) parts.push(`Opponents: ${oppMatches.join(', ')}`);
-  return {
-    parsedResult: parts.length ? 'Structured search history found' : 'Search-based recent history found',
-    evidence: parts.length ? parts.join(' • ') : text.slice(0, 380)
-  };
-}
-
-function isGoodSurfaceResult(item, playerName) {
-  const blob = canon(`${item.title || ''} ${item.snippet || ''}`);
-  const p = canon(playerName);
-  const needs = ['tennis', 'surface'];
-  const hasPlayer = p.split(' ').every(part => part.length > 1 ? blob.includes(part) : true);
-  const hasNeed = needs.some(x => blob.includes(x));
-  const bad = ['pedro us', 'lazio', 'footballer', 'shoes', 'bags', 'accessories'];
-  const badHit = bad.some(x => blob.includes(canon(x)));
-  return !badHit && blob.includes(p.split(' ')[0]) && hasNeed;
-}
-
-function bestSearchEvidence(results, kind, playerName='') {
-  let filtered = results || [];
-  if (kind === 'surface') {
-    filtered = filtered.filter(r => isGoodSurfaceResult(r, playerName));
-  }
-  if (!filtered.length) filtered = results || [];
-  const top = filtered.slice(0, 2);
-  return {
-    summary: top[0]?.title || 'Search result found',
-    evidence: top.map(r => cleanSnippet(r.snippet || r.title)).filter(Boolean).join(' • ')
-  };
-}
-function ddgSearch(query) {
+async function ddgSearch(query) {
   const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
   const html = await withTimeout(proxiedFetchText(url), 5000, 'search timeout');
   const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -557,14 +519,13 @@ async function mineTennisRow(row) {
     }
     if (recentSearchResults.length) {
       const snap = summarizeSearchMatches(recentSearchResults, 3);
-      const structuredRecent = parseRecentHistoryEvidence(recentSearchResults, row.entity);
       ['last5','last10','last20'].forEach((k, idx) => {
         result[k] = {
           ...result[k],
           status:'ready',
           statusLabel:'Search evidence found',
-          parsedResult: idx === 0 ? structuredRecent.parsedResult : idx === 1 ? 'Structured short history found' : 'Structured larger history found',
-          evidence: structuredRecent.evidence || snap.evidence || snap.summary
+          parsedResult: idx === 0 ? 'Search-based recent history found' : idx === 1 ? 'Search-based short history found' : 'Search-based larger history found',
+          evidence: snap.evidence || snap.summary
         };
       });
       result.schedule = {
@@ -572,14 +533,14 @@ async function mineTennisRow(row) {
         status:'ready',
         statusLabel:'Search evidence found',
         parsedResult:'Recent match timing evidence found',
-        evidence: structuredRecent.evidence || snap.evidence || snap.summary
+        evidence: snap.evidence || snap.summary
       };
       result.form = {
         ...result.form,
         status:'ready',
         statusLabel:'Search evidence found',
         parsedResult:'Recent form evidence found',
-        evidence: structuredRecent.evidence || snap.evidence || snap.summary
+        evidence: snap.evidence || snap.summary
       };
     } else {
       ['last5','last10','last20','schedule','form'].forEach(k => {
@@ -606,19 +567,12 @@ async function mineTennisRow(row) {
       const searched = await withTimeout(multiSearch(query), 8000, `${key} timeout`);
       const res = searched.results;
       if (res.length) {
-        const snap = bestSearchEvidence(res, key, row.entity);
-        const parsedLabelMap = {
-          season: 'Season evidence found',
-          career: 'Career baseline found',
-          h2h: 'Head-to-head evidence found',
-          surface: 'Surface evidence found',
-          odds: 'Market odds evidence found'
-        };
+        const snap = summarizeSearchMatches(res, 2);
         result[key] = {
           ...result[key],
           status:'ready',
           statusLabel:'Search evidence found',
-          parsedResult: parsedLabelMap[key] || snap.summary,
+          parsedResult: snap.summary,
           evidence: snap.evidence || `Provider: ${searched.provider}`
         };
       } else {
@@ -626,25 +580,6 @@ async function mineTennisRow(row) {
       }
     } catch (err) {
       result[key] = { ...result[key], status:'failed', statusLabel:'Probe failed', parsedResult:'Search request failed.', evidence:String(err && err.message || err) };
-    }
-  }
-
-
-  if (result.surface && result.surface.status === 'ready') {
-    const surfaceBlob = canon(`${result.surface.parsedResult || ''} ${result.surface.evidence || ''}`);
-    const playerParts = canon(row.entity).split(' ').filter(Boolean);
-    const badWords = ['pedro us','lazio','footballer','shoes','bags','accessories'];
-    const playerOk = playerParts.every(p => p.length < 2 || surfaceBlob.includes(p));
-    const badHit = badWords.some(x => surfaceBlob.includes(canon(x)));
-    const sportOk = surfaceBlob.includes('tennis') || surfaceBlob.includes('atp') || surfaceBlob.includes('surface');
-    if (!playerOk || badHit || !sportOk) {
-      result.surface = {
-        ...result.surface,
-        status:'failed',
-        statusLabel:'Probe failed',
-        parsedResult:'Surface evidence rejected',
-        evidence:'Search results were noisy or unrelated to the tennis player.'
-      };
     }
   }
 
@@ -746,7 +681,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.1.0`,
+    `Version: v5.0.1`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
