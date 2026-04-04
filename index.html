@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.2.0</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.3.0</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -195,8 +195,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.2.0</h1>
-          <p id="analysisVersion">Version: v5.2.0</p>
+          <h1 id="analysisTitle">Run Analysis v5.3.0</h1>
+          <p id="analysisVersion">Version: v5.3.0</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -491,7 +491,7 @@ async function proxiedFetchText(url) {
   let lastErr = null;
   for (const target of tries) {
     try {
-      const res = await withTimeout(fetch(target, { method:'GET' }), 4500, 'fetch timeout');
+      const res = await withTimeout(fetch(target, { method:'GET' }), 7000, 'fetch timeout');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.text();
     } catch (err) {
@@ -502,7 +502,7 @@ async function proxiedFetchText(url) {
 }
 
 async function proxiedFetchJson(url) {
-  const txt = await withTimeout(proxiedFetchText(url), 5000, 'json timeout');
+  const txt = await withTimeout(proxiedFetchText(url), 7000, 'json timeout');
   try {
     return JSON.parse(txt);
   } catch {
@@ -576,9 +576,98 @@ function flattenSearchResults(obj) {
   return out;
 }
 
+
+function extractOddsNumbers(text) {
+  const matches = [...String(text || '').matchAll(/\b(?:\d+\.\d+|\+\d+|-\d+)\b/g)].map(m => m[0]);
+  return matches.slice(0, 6);
+}
+
+function parseRecentHistoryEvidence(results, playerName) {
+  const snippets = (results || []).map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
+  const text = cleanSnippet(snippets);
+  const dateMatches = [...text.matchAll(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2}\b/gi)].map(m => m[0]).slice(0, 6);
+  const oppPatterns = [
+    /\bvs\.?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/g,
+    /\bagainst\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/g,
+    /\bPedro Martinez\s*[-–—]\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/g
+  ];
+  const opps = [];
+  for (const pat of oppPatterns) {
+    for (const m of text.matchAll(pat)) opps.push(m[1]);
+  }
+  const uniqOpps = [...new Set(opps)].slice(0, 6);
+  const parts = [];
+  if (dateMatches.length) parts.push(`Dates: ${dateMatches.join(', ')}`);
+  if (uniqOpps.length) parts.push(`Opponents: ${uniqOpps.join(', ')}`);
+  return {
+    parsedResult: parts.length ? 'Structured search history found' : 'Search-based recent history found',
+    evidence: parts.length ? parts.join(' • ') : text.slice(0, 420)
+  };
+}
+
+function bestSearchEvidence(results, kind, playerName='', opponent='') {
+  let filtered = (results || []).slice();
+
+  const p = canon(playerName || '');
+  const o = canon(opponent || '');
+
+  if (kind === 'surface') {
+    filtered = filtered.filter(r => {
+      const blob = canon(`${r.title || ''} ${r.snippet || ''}`);
+      const bad = ['pedro us','lazio','footballer','shoes','bags','accessories'];
+      const badHit = bad.some(x => blob.includes(canon(x)));
+      const tennisHit = blob.includes('tennis') || blob.includes('atp') || blob.includes('surface') || blob.includes('hard') || blob.includes('clay') || blob.includes('grass');
+      return !badHit && tennisHit && p.split(' ').every(part => part.length < 2 || blob.includes(part));
+    });
+  }
+
+  if (kind === 'h2h') {
+    filtered = filtered.filter(r => {
+      const blob = canon(`${r.title || ''} ${r.snippet || ''}`);
+      return (blob.includes('head to head') || blob.includes('h2h')) &&
+             p.split(' ').some(part => part.length > 2 && blob.includes(part)) &&
+             o.split(' ').some(part => part.length > 2 && blob.includes(part));
+    });
+  }
+
+  if (kind === 'season') {
+    filtered = filtered.filter(r => {
+      const blob = canon(`${r.title || ''} ${r.snippet || ''}`);
+      return p.split(' ').every(part => part.length < 2 || blob.includes(part)) &&
+             (blob.includes('stats') || blob.includes('results') || blob.includes('tournament') || blob.includes('season'));
+    });
+  }
+
+  if (kind === 'career') {
+    filtered = filtered.filter(r => {
+      const blob = canon(`${r.title || ''} ${r.snippet || ''}`);
+      return p.split(' ').every(part => part.length < 2 || blob.includes(part)) &&
+             (blob.includes('overview') || blob.includes('profile') || blob.includes('career') || blob.includes('win-loss') || blob.includes('rank'));
+    });
+  }
+
+  if (kind === 'odds') {
+    filtered = filtered.filter(r => {
+      const blob = canon(`${r.title || ''} ${r.snippet || ''}`);
+      return (blob.includes('odds') || blob.includes('sportsbook') || blob.includes('betting')) &&
+             p.split(' ').some(part => part.length > 2 && blob.includes(part)) &&
+             o.split(' ').some(part => part.length > 2 && blob.includes(part));
+    });
+  }
+
+  if (!filtered.length) filtered = (results || []).slice();
+  const top = filtered.slice(0, 2);
+  const joined = top.map(r => cleanSnippet(r.snippet || r.title)).filter(Boolean).join(' • ');
+  return {
+    summary: top[0]?.title || 'Search result found',
+    evidence: joined,
+    oddsNumbers: kind === 'odds' ? extractOddsNumbers(`${top[0]?.title || ''} ${top[0]?.snippet || ''} ${top[1]?.snippet || ''}`) : []
+  };
+}
+
 async function ddgSearch(query) {
   const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-  const html = await withTimeout(proxiedFetchText(url), 5000, 'search timeout');
+  const html = await withTimeout(proxiedFetchText(url), 7000, 'search timeout');
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const results = [];
   doc.querySelectorAll('.result').forEach((el) => {
@@ -649,10 +738,10 @@ function summarizeEvents(events, n) {
 
 function buildRecentFallbackFromSearch(playerName) {
   return [
-    `${playerName} recent tennis results`,
-    `${playerName} last matches tennis`,
-    `${playerName} flashscore tennis results`,
-    `${playerName} sofascore tennis results`
+    `${playerName} recent tennis results last matches`,
+    `${playerName} flashscore tennis results match history`,
+    `${playerName} sofascore tennis last matches`,
+    `${playerName} ESPN tennis results recent`
   ];
 }
 
@@ -703,7 +792,7 @@ async function mineTennisRow(row) {
 
   try {
     const searchUrl = `https://api.sofascore.com/api/v1/search/all/${encodeURIComponent(row.entity)}`;
-    const searchData = await withTimeout(proxiedFetchJson(searchUrl), 5500, 'json timeout');
+    const searchData = await withTimeout(proxiedFetchJson(searchUrl), 7500, 'json timeout');
     const variants = tennisNameVariants(row.entity);
     const items = flattenSearchResults(searchData)
       .map(x => ({...x, matchScore: Math.max(...variants.map(v => scoreTennisPlayerCandidate(x.name, v)))}))
@@ -720,7 +809,7 @@ async function mineTennisRow(row) {
       ];
       for (const url of candidates) {
         try {
-          const eventsData = await withTimeout(proxiedFetchJson(url), 5500, 'json timeout');
+          const eventsData = await withTimeout(proxiedFetchJson(url), 7500, 'json timeout');
           playerEvents = parseSofaEvents(eventsData, row.entity);
           if (playerEvents.length) break;
         } catch {}
@@ -747,7 +836,7 @@ async function mineTennisRow(row) {
     let recentProvider = '';
     for (const q of buildRecentFallbackFromSearch(row.entity)) {
       try {
-        const searched = await withTimeout(multiSearch(q), 7000, 'recent search timeout');
+        const searched = await withTimeout(multiSearch(q), 9000, 'recent search timeout');
         if (searched.results.length) {
           recentSearchResults = searched.results;
           recentProvider = searched.provider;
@@ -794,15 +883,15 @@ async function mineTennisRow(row) {
   }
 
   const searches = [
-    ['h2h', `${row.entity} ${row.opponent} head to head tennis`],
-    ['surface', `${row.entity} tennis surface record`],
-    ['season', `${row.entity} tennis season stats`],
-    ['career', `${row.entity} ATP profile career win loss`],
-    ['odds', `${row.entity} ${row.opponent} odds tennis`]
+    ['h2h', `${row.entity} ${row.opponent} head to head tennis ATP`],
+    ['surface', `${row.entity} ATP player stats surface tennis`],
+    ['season', `${row.entity} tennis tournament results stats ESPN ATP`],
+    ['career', `${row.entity} ATP overview profile career win loss tennis`],
+    ['odds', `${row.entity} ${row.opponent} odds tennis sportsbook`]
   ];
   for (const [key, query] of searches) {
     try {
-      const searched = await withTimeout(multiSearch(query), 8000, `${key} timeout`);
+      const searched = await withTimeout(multiSearch(query), 10000, `${key} timeout`);
       const res = searched.results;
       if (res.length) {
         const snap = summarizeSearchMatches(res, 2);
@@ -918,7 +1007,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.2.0`,
+    `Version: v5.3.0`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
