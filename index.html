@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.3.6</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.3.8</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -195,8 +195,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.3.6</h1>
-          <p id="analysisVersion">Version: v5.3.6</p>
+          <h1 id="analysisTitle">Run Analysis v5.3.8</h1>
+          <p id="analysisVersion">Version: v5.3.8</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -640,8 +640,33 @@ async function findTennisExplorerProfile(row) {
   for (const item of queries) {
     try {
       const searched = await withTimeout(multiSearch(item.q), 10000, 'search timeout');
-      const picked = (searched.results || []).find(r => /tennisexplorer\.com\/player\//i.test(r.href || ''));
-      if (picked) return { ok:true, source:item.source, provider:searched.provider, href:picked.href, title:picked.title || '', snippet:picked.snippet || '' };
+      for (const r of (searched.results || [])) {
+        const href = normalizeSearchHref(r.href || '');
+        const blob = cleanSnippet(`${r.title || ''} ${r.snippet || ''} ${href}`);
+        const cblob = canon(blob);
+        const playerOk = blobHasPlayer(blob, row.entity);
+        const teOk = cblob.includes('tennisexplorer') || cblob.includes('tennis explorer');
+        if (playerOk && teOk && (/tennisexplorer\.com\/player\//i.test(href) || teOk)) {
+          return { ok:true, source:item.source, provider:searched.provider, href, title:r.title || '', snippet:r.snippet || '' };
+        }
+      }
+    } catch (err) {}
+  }
+  const slugCandidates = [];
+  const parts = canon(row.entity).split(' ').filter(Boolean);
+  if (parts.length >= 2) {
+    slugCandidates.push(`${parts[parts.length-1]}-${parts[0]}`);
+    slugCandidates.push(`${parts[0]}-${parts[parts.length-1]}`);
+    slugCandidates.push(parts[parts.length-1]);
+  }
+  for (const slug of slugCandidates) {
+    const href = `https://www.tennisexplorer.com/player/${slug}/`;
+    try {
+      const txt = await withTimeout(proxiedFetchText(href), 10000, 'te slug timeout');
+      const ctxt = canon(txt.slice(0, 4000));
+      if (ctxt.includes(parts[0] || '') && ctxt.includes(parts[parts.length-1] || '') && ctxt.includes('played matches')) {
+        return { ok:true, source:'Tennis Explorer', provider:'direct', href, title:'', snippet:'' };
+      }
     } catch (err) {}
   }
   return { ok:false, source:'Tennis Explorer', provider:'', href:'', title:'', snippet:'' };
@@ -727,7 +752,8 @@ function oddsEvidenceHasRealPricing(blob) {
   const cblob = canon(blob || '');
   const hasOddsTerms = ['odds','sportsbook','betting','moneyline','bookmakers'].some(t => cblob.includes(canon(t)));
   const hasNumericOdds = /(?:\+\d{3}|\-\d{3}|\b\d+\.\d{2}\b)/.test(blob || '');
-  return hasOddsTerms && (hasNumericOdds || cblob.includes('best odds') || cblob.includes('compare the latest tennis odds'));
+  const weakPredictionOnly = cblob.includes('prediction') && !hasNumericOdds && !cblob.includes('best odds') && !cblob.includes('compare the latest tennis odds');
+  return hasOddsTerms && !weakPredictionOnly && (hasNumericOdds || cblob.includes('best odds') || cblob.includes('compare the latest tennis odds') || cblob.includes('sportsbook'));
 }
 
 function blobHasNoResults(blob) {
@@ -996,6 +1022,26 @@ async function runQueryList(queries) {
   return { ok: false, provider: '', source: '', results: [], query: '', attempts };
 }
 
+
+function normalizeSearchHref(href='') {
+  try {
+    if (!href) return '';
+    const u = new URL(href, 'https://dummy.local');
+    const host = (u.hostname || '').toLowerCase();
+    if (host.includes('duckduckgo.com')) {
+      const uddg = u.searchParams.get('uddg');
+      if (uddg) return decodeURIComponent(uddg);
+    }
+    if (host.includes('bing.com') || host.includes('www.bing.com')) {
+      const target = u.searchParams.get('u') || u.searchParams.get('url') || u.searchParams.get('r');
+      if (target) return decodeURIComponent(target);
+    }
+    return href;
+  } catch (err) {
+    return href || '';
+  }
+}
+
 async function ddgSearch(query) {
   const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
   const html = await withTimeout(proxiedFetchText(url), 7000, 'search timeout');
@@ -1004,7 +1050,7 @@ async function ddgSearch(query) {
   doc.querySelectorAll('.result').forEach((el) => {
     const title = cleanSnippet(el.querySelector('.result__title')?.textContent || el.querySelector('a')?.textContent || '');
     const snippet = cleanSnippet(el.querySelector('.result__snippet')?.textContent || '');
-    const href = el.querySelector('a')?.href || '';
+    const href = normalizeSearchHref(el.querySelector('a')?.href || '');
     if (title || snippet) results.push({ title, snippet, href });
   });
   return results.slice(0, 5);
@@ -1019,7 +1065,7 @@ async function bingSearch(query) {
   doc.querySelectorAll('li.b_algo').forEach((el) => {
     const title = cleanSnippet(el.querySelector('h2')?.textContent || el.querySelector('a')?.textContent || '');
     const snippet = cleanSnippet(el.querySelector('.b_caption')?.textContent || el.textContent || '');
-    const href = el.querySelector('a')?.href || '';
+    const href = normalizeSearchHref(el.querySelector('a')?.href || '');
     if (title || snippet) results.push({ title, snippet, href });
   });
   return results.slice(0, 5);
@@ -1370,7 +1416,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.3.6`,
+    `Version: v5.3.8`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1442,9 +1488,15 @@ function parsePhoneTennisBlock(block, selectedIds) {
   if (!/ - Player$/i.test(lines[0])) return null;
 
   const entity = norm(lines[1] || lines[0].replace(/\s*-\s*Player\s*$/i,''));
-  const oppLine = norm(lines[2] || '');
-  const lineNum = (lines[3] || '').match(/(\d+(?:\.\d+)?)/)?.[1] || '';
-  const prop = norm(lines[4] || '');
+  const canonicalEntity = canon(entity);
+
+  // Some phone blocks repeat the player name on its own line before the opponent line.
+  let idx = 2;
+  while (idx < lines.length && canon(lines[idx]) === canonicalEntity) idx += 1;
+
+  const oppLine = norm(lines[idx] || '');
+  const lineNum = (lines[idx + 1] || '').match(/(\d+(?:\.\d+)?)/)?.[1] || '';
+  const prop = norm(lines[idx + 2] || '');
   if (!entity || !oppLine || !lineNum || !prop) return null;
   if (!/\b(vs|@)\b/i.test(oppLine)) return null;
 
