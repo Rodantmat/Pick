@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.4.0</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.3.1</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -195,8 +195,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.4.0</h1>
-          <p id="analysisVersion">Version: v5.4.0</p>
+          <h1 id="analysisTitle">Run Analysis v5.3.1</h1>
+          <p id="analysisVersion">Version: v5.3.1</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -666,6 +666,83 @@ function bestSearchEvidence(results, kind, playerName='', opponent='') {
 }
 
 
+function factorSourcePlans(row) {
+  const e = row?.entity || '';
+  const o = row?.opponent || '';
+  return {
+    last5: [
+      `${e} flashscore tennis results match history`,
+      `${e} ATP results tennis recent matches`,
+      `${e} ESPN tennis results recent`
+    ],
+    last10: [
+      `${e} flashscore tennis results match history`,
+      `${e} ATP results tennis recent matches`,
+      `${e} ESPN tennis results recent`
+    ],
+    last20: [
+      `${e} flashscore tennis results match history`,
+      `${e} ATP results tennis recent matches`,
+      `${e} ESPN tennis results recent`
+    ],
+    season: [
+      `${e} ATP tournament results season tennis`,
+      `${e} ESPN tennis results stats`,
+      `${e} flashscore tennis results season`
+    ],
+    career: [
+      `${e} ATP overview profile career win loss tennis`,
+      `${e} tennis wikipedia career ranking`,
+      `${e} ESPN tennis bio stats`
+    ],
+    h2h: [
+      `${e} ${o} head to head tennis ATP`,
+      `${e} ${o} H2H tennis explorer`,
+      `${e} ${o} preview head to head tennis`
+    ],
+    surface: [
+      `${e} ATP player stats surface tennis`,
+      `${e} tennis explorer surface stats`,
+      `${e} flashscore tennis record surface`
+    ],
+    odds: [
+      `${e} ${o} odds tennis sportsbook`,
+      `${e} ${o} oddsportal tennis`,
+      `${e} ${o} fanduel tennis odds`
+    ],
+    schedule: [
+      `${e} flashscore tennis results match history`,
+      `${e} ATP activity tennis`,
+      `${e} ESPN tennis results recent`
+    ],
+    form: [
+      `${e} flashscore tennis results match history`,
+      `${e} sofascore tennis results`,
+      `${e} ESPN tennis recent results`
+    ]
+  };
+}
+
+function extractDates(text) {
+  return [...String(text || '').matchAll(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\s+\d{1,2}\b/gi)].map(m => m[0]).slice(0, 8);
+}
+
+function extractOpponents(text) {
+  const pats = [
+    /\bvs\.?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})/g,
+    /\bagainst\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})/g
+  ];
+  const out = [];
+  pats.forEach(p => { for (const m of String(text||'').matchAll(p)) out.push(m[1]); });
+  return [...new Set(out)].slice(0, 8);
+}
+
+function recentFieldStructuredEnough(text) {
+  const dates = extractDates(text);
+  const opps = extractOpponents(text);
+  return dates.length > 0 || opps.length > 0;
+}
+
 function recentFieldEvidenceLooksNoisy(text, playerName='') {
   const blob = canon(text || '');
   const player = canon(playerName || '');
@@ -682,11 +759,24 @@ function recentFieldEvidenceLooksNoisy(text, playerName='') {
 }
 
 function cleanRecentResults(results, playerName='') {
-  const filtered = (results || []).filter(r => {
+  return (results || []).filter(r => {
     const blob = `${r.title || ''} ${r.snippet || ''}`;
     return !recentFieldEvidenceLooksNoisy(blob, playerName);
   });
-  return filtered;
+}
+
+async function runQueryList(queries) {
+  let attempts = 0;
+  for (const q of (queries || [])) {
+    attempts += 1;
+    try {
+      const searched = await withTimeout(multiSearch(q), 10000, 'search timeout');
+      if (searched.results && searched.results.length) {
+        return { ok: true, provider: searched.provider, results: searched.results, query: q, attempts };
+      }
+    } catch (err) {}
+  }
+  return { ok: false, provider: '', results: [], query: '', attempts };
 }
 
 async function ddgSearch(query) {
@@ -799,6 +889,7 @@ function parseSofaEvents(data, playerName) {
 
 async function mineTennisRow(row) {
   const result = {};
+  const plans = factorSourcePlans(row);
   TENNIS_MINING_FACTORS.forEach(f => {
     result[f.key] = {
       ...f,
@@ -810,127 +901,110 @@ async function mineTennisRow(row) {
     };
   });
 
-  let playerEvents = [];
-  let playerFound = null;
-  let playerSearchReason = '';
-
-  try {
-    const searchUrl = `https://api.sofascore.com/api/v1/search/all/${encodeURIComponent(row.entity)}`;
-    const searchData = await withTimeout(proxiedFetchJson(searchUrl), 7500, 'json timeout');
-    const variants = tennisNameVariants(row.entity);
-    const items = flattenSearchResults(searchData)
-      .map(x => ({...x, matchScore: Math.max(...variants.map(v => scoreTennisPlayerCandidate(x.name, v)))}))
-      .filter(x => (String(x.sport).includes('tennis') || String(x.type).includes('player')))
-      .sort((a,b) => (b.matchScore||0) - (a.matchScore||0));
-    playerFound = items.find(x => (x.matchScore||0) >= 45) || items[0] || null;
-
-    if (!playerFound?.id) {
-      playerSearchReason = 'No player match found.';
-    } else {
-      const candidates = [
-        `https://api.sofascore.com/api/v1/player/${playerFound.id}/events/last/0`,
-        `https://api.sofascore.com/api/v1/player/${playerFound.id}/events/last/20`
-      ];
-      for (const url of candidates) {
-        try {
-          const eventsData = await withTimeout(proxiedFetchJson(url), 7500, 'json timeout');
-          playerEvents = parseSofaEvents(eventsData, row.entity);
-          if (playerEvents.length) break;
-        } catch {}
-      }
-      if (!playerEvents.length) playerSearchReason = `No usable recent events returned${playerFound?.name ? ` for ${playerFound.name}` : ''}.`;
-    }
-  } catch (err) {
-    playerSearchReason = String(err && err.message || err);
-  }
-
-  if (playerEvents.length) {
-    const s5 = summarizeEvents(playerEvents, 5);
-    const s10 = summarizeEvents(playerEvents, 10);
-    const s20 = summarizeEvents(playerEvents, 20);
-    result.last5 = { ...result.last5, status:'ready', statusLabel:'Live data found', parsedResult:s5.summary, evidence:s5.evidence };
-    result.last10 = { ...result.last10, status:'ready', statusLabel:'Live data found', parsedResult:s10.summary, evidence:s10.evidence };
-    result.last20 = { ...result.last20, status:'ready', statusLabel:'Live data found', parsedResult:s20.summary, evidence:s20.evidence };
-    const dates = playerEvents.slice(0,4).map(x => x.date).filter(Boolean);
-    result.schedule = { ...result.schedule, status:'ready', statusLabel:'Live data found', parsedResult:`Recent dates parsed: ${dates.length}`, evidence: dates.join(' • ') || 'Recent event dates parsed.' };
-    result.form = { ...result.form, status:'ready', statusLabel:'Live data found', parsedResult:'Recent match sequence parsed', evidence: playerEvents.slice(0,3).map(x => `${x.date} vs ${x.opponent}`).join(' • ') };
-  } else {
-    // fallback search-based recent history
-    let recentSearchResults = [];
-    let recentProvider = '';
-    for (const q of buildRecentFallbackFromSearch(row.entity)) {
-      try {
-        const searched = await withTimeout(multiSearch(q), 9000, 'recent search timeout');
-        if (searched.results.length) {
-          recentSearchResults = searched.results;
-          recentProvider = searched.provider;
-          break;
-        }
-      } catch {}
-    }
-    if (recentSearchResults.length) {
-      const snap = summarizeSearchMatches(recentSearchResults, 3);
-      ['last5','last10','last20'].forEach((k, idx) => {
+  const recentResult = await runQueryList(plans.last5);
+  if (recentResult.ok) {
+    const cleaned = cleanRecentResults(recentResult.results, row.entity);
+    const evidenceBlob = cleaned.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
+    if (cleaned.length && !recentFieldEvidenceLooksNoisy(evidenceBlob, row.entity) && recentFieldStructuredEnough(evidenceBlob)) {
+      const dates = extractDates(evidenceBlob);
+      const opps = extractOpponents(evidenceBlob);
+      const evidence = [
+        dates.length ? `Dates: ${dates.slice(0,5).join(', ')}` : '',
+        opps.length ? `Opponents: ${opps.slice(0,5).join(', ')}` : ''
+      ].filter(Boolean).join(' • ') || evidenceBlob.slice(0, 420);
+      ['last5','last10','last20','schedule','form'].forEach((k) => {
+        const labels = {
+          last5: 'Recent 5-match evidence found',
+          last10: 'Recent 10-match evidence found',
+          last20: 'Recent 20-match evidence found',
+          schedule: 'Recent match timing evidence found',
+          form: 'Recent form evidence found'
+        };
         result[k] = {
           ...result[k],
           status:'ready',
           statusLabel:'Search evidence found',
-          parsedResult: idx === 0 ? 'Search-based recent history found' : idx === 1 ? 'Search-based short history found' : 'Search-based larger history found',
-          evidence: snap.evidence || snap.summary
+          sourcesLabel: `${result[k].sourcesLabel} • winner: ${recentResult.provider}`,
+          parsedResult: labels[k],
+          evidence
         };
       });
-      result.schedule = {
-        ...result.schedule,
-        status:'ready',
-        statusLabel:'Search evidence found',
-        parsedResult:'Recent match timing evidence found',
-        evidence: snap.evidence || snap.summary
-      };
-      result.form = {
-        ...result.form,
-        status:'ready',
-        statusLabel:'Search evidence found',
-        parsedResult:'Recent form evidence found',
-        evidence: snap.evidence || snap.summary
-      };
     } else {
       ['last5','last10','last20','schedule','form'].forEach(k => {
         result[k] = {
           ...result[k],
           status:'failed',
           statusLabel:'Probe failed',
-          parsedResult:'No structured recent-match feed parsed.',
-          evidence: playerSearchReason || 'Live probe failed.'
+          parsedResult:'Recent-match evidence rejected as noisy.',
+          evidence:'Search results were noisy, unstructured, or unrelated to the tennis player.'
         };
       });
     }
+  } else {
+    ['last5','last10','last20','schedule','form'].forEach(k => {
+      result[k] = {
+        ...result[k],
+        status:'failed',
+        statusLabel:'Probe failed',
+        parsedResult:'No structured recent-match feed parsed.',
+        evidence:'No clean recent-match source returned usable evidence.'
+      };
+    });
   }
 
-  const searches = [
-    ['h2h', `${row.entity} ${row.opponent} head to head tennis ATP`],
-    ['surface', `${row.entity} ATP player stats surface tennis`],
-    ['season', `${row.entity} tennis tournament results stats ESPN ATP`],
-    ['career', `${row.entity} ATP overview profile career win loss tennis`],
-    ['odds', `${row.entity} ${row.opponent} odds tennis sportsbook`]
-  ];
-  for (const [key, query] of searches) {
-    try {
-      const searched = await withTimeout(multiSearch(query), 10000, `${key} timeout`);
-      const res = searched.results;
-      if (res.length) {
-        const snap = summarizeSearchMatches(res, 2);
-        result[key] = {
-          ...result[key],
-          status:'ready',
-          statusLabel:'Search evidence found',
-          parsedResult: snap.summary,
-          evidence: snap.evidence || `Provider: ${searched.provider}`
-        };
-      } else {
-        result[key] = { ...result[key], status:'failed', statusLabel:'Probe failed', parsedResult:'No search evidence found.', evidence:'No usable snippets returned.' };
-      }
-    } catch (err) {
-      result[key] = { ...result[key], status:'failed', statusLabel:'Probe failed', parsedResult:'Search request failed.', evidence:String(err && err.message || err) };
+  const queryMap = {
+    season: plans.season,
+    career: plans.career,
+    h2h: plans.h2h,
+    surface: plans.surface,
+    odds: plans.odds
+  };
+
+  for (const key of ['season','career','h2h','surface','odds']) {
+    const tried = await runQueryList(queryMap[key]);
+    if (tried.ok) {
+      const snap = bestSearchEvidence(tried.results, key, row.entity, row.opponent);
+      const parsedLabelMap = {
+        season: 'Season evidence found',
+        career: 'Career baseline found',
+        h2h: 'Head-to-head evidence found',
+        surface: 'Surface evidence found',
+        odds: snap.oddsNumbers && snap.oddsNumbers.length ? `Market odds parsed: ${snap.oddsNumbers.join(', ')}` : 'Market odds evidence found'
+      };
+      result[key] = {
+        ...result[key],
+        status:'ready',
+        statusLabel:'Search evidence found',
+        sourcesLabel: `${result[key].sourcesLabel} • winner: ${tried.provider}`,
+        parsedResult: parsedLabelMap[key] || snap.summary,
+        evidence: snap.evidence || 'Search evidence found.'
+      };
+    } else {
+      result[key] = {
+        ...result[key],
+        status:'failed',
+        statusLabel:'Probe failed',
+        parsedResult:'Search request failed.',
+        evidence:`No usable source returned for ${key}.`
+      };
+    }
+  }
+
+  if (result.surface && result.surface.status === 'ready') {
+    const surfaceBlob = canon(`${result.surface.parsedResult || ''} ${result.surface.evidence || ''}`);
+    const playerParts = canon(row.entity).split(' ').filter(Boolean);
+    const badWords = ['pedro us','lazio','footballer','shoes','bags','accessories'];
+    const playerOk = playerParts.every(p => p.length < 2 || surfaceBlob.includes(p));
+    const badHit = badWords.some(x => surfaceBlob.includes(canon(x)));
+    const sportOk = surfaceBlob.includes('tennis') || surfaceBlob.includes('atp') || surfaceBlob.includes('surface');
+    if (!playerOk || badHit || !sportOk) {
+      result.surface = {
+        ...result.surface,
+        status:'failed',
+        statusLabel:'Probe failed',
+        parsedResult:'Surface evidence rejected',
+        evidence:'Search results were noisy or unrelated to the tennis player.'
+      };
     }
   }
 
@@ -1031,7 +1105,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.4.0`,
+    `Version: v5.3.1`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
