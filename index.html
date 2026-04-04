@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.3.5</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.3.6</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -195,8 +195,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.3.5</h1>
-          <p id="analysisVersion">Version: v5.3.5</p>
+          <h1 id="analysisTitle">Run Analysis v5.3.6</h1>
+          <p id="analysisVersion">Version: v5.3.6</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -630,6 +630,93 @@ function bestSearchEvidence(results, kind, playerName='', opponent='') {
 
 
 
+
+async function findTennisExplorerProfile(row) {
+  const queries = [
+    { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${row.entity}" tennis explorer player` },
+    { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${row.entity}" tennisexplorer` },
+    { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${row.entity}" "${row.opponent}" tennis` }
+  ];
+  for (const item of queries) {
+    try {
+      const searched = await withTimeout(multiSearch(item.q), 10000, 'search timeout');
+      const picked = (searched.results || []).find(r => /tennisexplorer\.com\/player\//i.test(r.href || ''));
+      if (picked) return { ok:true, source:item.source, provider:searched.provider, href:picked.href, title:picked.title || '', snippet:picked.snippet || '' };
+    } catch (err) {}
+  }
+  return { ok:false, source:'Tennis Explorer', provider:'', href:'', title:'', snippet:'' };
+}
+
+function parseTennisExplorerRecentRowsFromPage(htmlText, playerName) {
+  const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+  const raw = (doc.body?.textContent || '').replace(/\r/g,'');
+  const lines = raw.split('\n').map(x => x.replace(/\u00a0/g,' ').trim()).filter(Boolean);
+  const start = lines.findIndex(x => /Played matches\s*-\s*20\d{2}\s*-\s*singles/i.test(x));
+  if (start === -1) return [];
+  const out = [];
+  let event = '';
+  const isDate = s => /^\d{2}\.\d{2}\.$/.test(s);
+  const roundTokens = ['1R','2R','3R','R16','R32','R64','QF','SF','F','Q1','Q2','Q3','RR'];
+  for (let i = start + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (/Injuries/i.test(line)) break;
+    if (/No matches\./i.test(line)) break;
+    if (/Round Result H A$/i.test(line) || /Round Result H\s*A$/i.test(line)) {
+      event = line.replace(/\s*Round Result H A$/i,'').trim();
+      continue;
+    }
+    if (!isDate(line.slice(0,6))) continue;
+    let rest = line.slice(6).trim();
+    // strip trailing decimal odds
+    rest = rest.replace(/\s+\d+\.\d+\s+\d+\.\d+\s*$/,'').trim();
+    let round = '';
+    for (const tok of roundTokens) {
+      const m = rest.match(new RegExp(`\\s${tok}\\s`));
+      if (m) { round = tok; break; }
+    }
+    if (!round) continue;
+    const parts = rest.split(new RegExp(`\\s${round}\\s`));
+    if (parts.length !== 2) continue;
+    const matchup = parts[0].trim();
+    const score = parts[1].trim();
+    const sides = matchup.split(/\s+-\s+/);
+    if (sides.length !== 2) continue;
+    const playerCanon = canon(playerName || '');
+    const a = sides[0].trim(), b = sides[1].trim();
+    const aC = canon(a), bC = canon(b);
+    const playerLast = playerCanon.split(' ').filter(Boolean).slice(-1)[0] || '';
+    const playerFirstInitial = (playerCanon.split(' ')[0] || '')[0] || '';
+    const looksPlayer = (c, raw) => (playerLast && c.includes(playerLast)) && (!playerFirstInitial || canon(raw).includes(playerFirstInitial));
+    const aIsPlayer = looksPlayer(aC, a);
+    const bIsPlayer = looksPlayer(bC, b);
+    const opponent = aIsPlayer && !bIsPlayer ? b : (!aIsPlayer && bIsPlayer ? a : (a.includes('Martinez') ? b : a));
+    out.push({
+      date: line.slice(0,6),
+      event,
+      opponent,
+      round,
+      score,
+      raw: line
+    });
+  }
+  return out;
+}
+
+function rowsToRecentEvidence(rows, n) {
+  const picked = (rows || []).slice(0, n);
+  return picked.map(r => `${r.date} ${r.event} vs ${r.opponent} ${r.round} ${r.score}`).join(' • ');
+}
+
+function rowsToScheduleEvidence(rows) {
+  const picked = (rows || []).slice(0, 5);
+  return picked.map(r => r.date).join(', ');
+}
+
+function rowsToFormEvidence(rows) {
+  const picked = (rows || []).slice(0, 5);
+  return picked.map(r => `${r.date} vs ${r.opponent}`).join(' • ');
+}
+
 function recentSourceAllowedForField(source, fieldKey) {
   const s = canon(source || '');
   if (['last5','last10','last20'].includes(fieldKey) && s.includes('preview')) return false;
@@ -1031,70 +1118,103 @@ async function mineTennisRow(row) {
     };
   });
 
-  const recentResult = await runValidatedQueryList(plans.last5, 'recent', row.entity, row.opponent);
-  if (recentResult.ok) {
-    const cleaned = cleanRecentResults(recentResult.results, row.entity);
-    const evidenceBlob = cleaned.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
-    const accepted = cleaned.length &&
-      sourceSpecificRecentAccept(cleaned, row.entity, recentResult.source) &&
-      !recentFieldEvidenceLooksNoisy(evidenceBlob, row.entity) &&
-      !blobHasNoResults(evidenceBlob) &&
-      looksLikeStructuredRecentBlob(evidenceBlob, row.opponent) &&
-      recentFieldExactEnough(evidenceBlob, row.entity);
-    if (accepted) {
-      const dates = extractDates(evidenceBlob);
-      const opps = extractOpponents(evidenceBlob);
-      const oppEvidence = opps.length ? `Opponents: ${opps.slice(0,5).join(', ')}` : (row.opponent ? `Opponent signal: ${row.opponent}` : '');
-      const evidence = [
-        recentResult.source ? `Source: ${recentResult.source}` : '',
-        dates.length ? `Dates: ${dates.slice(0,5).join(', ')}` : '',
-        oppEvidence
-      ].filter(Boolean).join(' • ') || evidenceBlob.slice(0, 420);
-      ['last5','last10','last20','schedule','form'].forEach((k) => {
-        const labels = {
-          last5: 'Recent 5-match evidence found',
-          last10: 'Recent 10-match evidence found',
-          last20: 'Recent 20-match evidence found',
-          schedule: 'Recent match timing evidence found',
-          form: 'Recent form evidence found'
-        };
-        const allowed = recentSourceAllowedForField(recentResult.source || recentResult.provider, k);
-        result[k] = allowed ? {
-          ...result[k],
-          status:'ready',
-          statusLabel:'Search evidence found',
-          sourcesLabel: `${result[k].sourcesLabel} • winner: ${recentResult.source || recentResult.provider} • attempts: ${recentResult.attempts}`,
-          parsedResult: labels[k],
-          evidence
-        } : {
-          ...result[k],
-          status:'failed',
-          statusLabel:'Probe failed',
-          parsedResult:'Source not allowed for this field.',
-          evidence:`${recentResult.source || recentResult.provider} is not allowed as a success source for ${k}.`
-        };
-      });
-    } else {
-      ['last5','last10','last20','schedule','form'].forEach(k => {
-        result[k] = {
-          ...result[k],
-          status:'failed',
-          statusLabel:'Probe failed',
-          parsedResult:'Recent-match evidence rejected as noisy.',
-          evidence:`Source-gated recent probes did not return clean tennis evidence. Winner tried: ${recentResult.source || recentResult.provider}. Attempts: ${recentResult.attempts}.`
-        };
-      });
-    }
+  const teProfile = await findTennisExplorerProfile(row);
+  let teRows = [];
+  if (teProfile.ok && teProfile.href) {
+    try {
+      const teHtml = await withTimeout(proxiedFetchText(teProfile.href), 12000, 'te fetch timeout');
+      teRows = parseTennisExplorerRecentRowsFromPage(teHtml, row.entity);
+    } catch (err) {}
+  }
+
+  if (teRows.length >= 5) {
+    result.last5 = {
+      ...result.last5,
+      status:'ready',
+      statusLabel:'Structured row extraction found',
+      sourcesLabel: `${result.last5.sourcesLabel} • winner: Tennis Explorer • attempts: 1`,
+      parsedResult:`Recent 5-match evidence found`,
+      evidence: rowsToRecentEvidence(teRows, 5)
+    };
+    result.last10 = {
+      ...result.last10,
+      status: teRows.length >= 10 ? 'ready' : 'failed',
+      statusLabel: teRows.length >= 10 ? 'Structured row extraction found' : 'Probe failed',
+      sourcesLabel: `${result.last10.sourcesLabel} • winner: Tennis Explorer • attempts: 1`,
+      parsedResult: teRows.length >= 10 ? 'Recent 10-match evidence found' : 'Not enough rows found.',
+      evidence: teRows.length >= 10 ? rowsToRecentEvidence(teRows, 10) : `Only ${teRows.length} structured rows found.`
+    };
+    result.last20 = {
+      ...result.last20,
+      status: teRows.length >= 20 ? 'ready' : 'failed',
+      statusLabel: teRows.length >= 20 ? 'Structured row extraction found' : 'Probe failed',
+      sourcesLabel: `${result.last20.sourcesLabel} • winner: Tennis Explorer • attempts: 1`,
+      parsedResult: teRows.length >= 20 ? 'Recent 20-match evidence found' : 'Not enough rows found.',
+      evidence: teRows.length >= 20 ? rowsToRecentEvidence(teRows, 20) : `Only ${teRows.length} structured rows found.`
+    };
+    result.schedule = {
+      ...result.schedule,
+      status:'ready',
+      statusLabel:'Structured row extraction found',
+      sourcesLabel: `${result.schedule.sourcesLabel} • winner: Tennis Explorer • attempts: 1`,
+      parsedResult:'Recent match timing evidence found',
+      evidence:`Recent match dates: ${rowsToScheduleEvidence(teRows)}`
+    };
+    result.form = {
+      ...result.form,
+      status:'ready',
+      statusLabel:'Structured row extraction found',
+      sourcesLabel: `${result.form.sourcesLabel} • winner: Tennis Explorer • attempts: 1`,
+      parsedResult:'Recent form evidence found',
+      evidence: rowsToFormEvidence(teRows)
+    };
   } else {
-    ['last5','last10','last20','schedule','form'].forEach(k => {
+    ['last5','last10','last20'].forEach(k => {
       result[k] = {
         ...result[k],
         status:'failed',
         statusLabel:'Probe failed',
         parsedResult:'No clean structured recent-match source found.',
-        evidence:`No clean recent-match source returned usable tennis evidence. Attempts: ${plans.last5.length}.`
+        evidence: teProfile.ok ? `Tennis Explorer rows found: ${teRows.length}.` : 'Tennis Explorer profile not found.'
       };
     });
+    const recentResult = await runValidatedQueryList(plans.schedule, 'recent', row.entity, row.opponent);
+    if (recentResult.ok) {
+      const cleaned = cleanRecentResults(recentResult.results, row.entity);
+      const evidenceBlob = cleaned.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
+      const accepted = cleaned.length &&
+        sourceSpecificRecentAccept(cleaned, row.entity, recentResult.source) &&
+        !recentFieldEvidenceLooksNoisy(evidenceBlob, row.entity) &&
+        !blobHasNoResults(evidenceBlob) &&
+        looksLikeStructuredRecentBlob(evidenceBlob, row.opponent) &&
+        recentFieldExactEnough(evidenceBlob, row.entity);
+      ['schedule','form'].forEach((k) => {
+        result[k] = accepted && recentSourceAllowedForField(recentResult.source || recentResult.provider, k) ? {
+          ...result[k],
+          status:'ready',
+          statusLabel:'Search evidence found',
+          sourcesLabel: `${result[k].sourcesLabel} • winner: ${recentResult.source || recentResult.provider} • attempts: ${recentResult.attempts}`,
+          parsedResult: k === 'schedule' ? 'Recent match timing evidence found' : 'Recent form evidence found',
+          evidence: evidenceBlob.slice(0, 420)
+        } : {
+          ...result[k],
+          status:'failed',
+          statusLabel:'Probe failed',
+          parsedResult:'No clean structured recent-match source found.',
+          evidence:'No clean schedule/form source returned usable tennis evidence.'
+        };
+      });
+    } else {
+      ['schedule','form'].forEach(k => {
+        result[k] = {
+          ...result[k],
+          status:'failed',
+          statusLabel:'Probe failed',
+          parsedResult:'No clean structured recent-match source found.',
+          evidence:'No clean schedule/form source returned usable tennis evidence.'
+        };
+      });
+    }
   }
 
   const queryMap = {
@@ -1250,7 +1370,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.3.5`,
+    `Version: v5.3.6`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
