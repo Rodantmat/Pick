@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.3.1</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.3.2</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -195,8 +195,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.3.1</h1>
-          <p id="analysisVersion">Version: v5.3.1</p>
+          <h1 id="analysisTitle">Run Analysis v5.3.2</h1>
+          <p id="analysisVersion">Version: v5.3.2</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -671,19 +671,19 @@ function factorSourcePlans(row) {
   const o = row?.opponent || '';
   return {
     last5: [
-      `${e} flashscore tennis results match history`,
-      `${e} ATP results tennis recent matches`,
-      `${e} ESPN tennis results recent`
+      `"${e}" tennis flashscore results match history`,
+      `"${e}" tennis ATP results recent matches`,
+      `"${e}" tennis ESPN results recent`
     ],
     last10: [
-      `${e} flashscore tennis results match history`,
-      `${e} ATP results tennis recent matches`,
-      `${e} ESPN tennis results recent`
+      `"${e}" tennis flashscore results match history`,
+      `"${e}" tennis ATP results recent matches`,
+      `"${e}" tennis ESPN results recent`
     ],
     last20: [
-      `${e} flashscore tennis results match history`,
-      `${e} ATP results tennis recent matches`,
-      `${e} ESPN tennis results recent`
+      `"${e}" tennis flashscore results match history`,
+      `"${e}" tennis ATP results recent matches`,
+      `"${e}" tennis ESPN results recent`
     ],
     season: [
       `${e} ATP tournament results season tennis`,
@@ -711,14 +711,14 @@ function factorSourcePlans(row) {
       `${e} ${o} fanduel tennis odds`
     ],
     schedule: [
-      `${e} flashscore tennis results match history`,
-      `${e} ATP activity tennis`,
-      `${e} ESPN tennis results recent`
+      `"${e}" tennis flashscore results match history`,
+      `"${e}" ATP activity tennis`,
+      `"${e}" ESPN tennis results recent`
     ],
     form: [
-      `${e} flashscore tennis results match history`,
-      `${e} sofascore tennis results`,
-      `${e} ESPN tennis recent results`
+      `"${e}" tennis flashscore results match history`,
+      `"${e}" sofascore tennis results`,
+      `"${e}" ESPN tennis recent results`
     ]
   };
 }
@@ -737,6 +737,16 @@ function extractOpponents(text) {
   return [...new Set(out)].slice(0, 8);
 }
 
+
+function recentFieldExactEnough(text, playerName='') {
+  const blob = canon(text || '');
+  const player = canon(playerName || '');
+  const parts = player.split(' ').filter(Boolean);
+  const longParts = parts.filter(p => p.length > 2);
+  if (!longParts.length) return false;
+  return longParts.every(p => blob.includes(p));
+}
+
 function recentFieldStructuredEnough(text) {
   const dates = extractDates(text);
   const opps = extractOpponents(text);
@@ -748,7 +758,7 @@ function recentFieldEvidenceLooksNoisy(text, playerName='') {
   const player = canon(playerName || '');
   const playerParts = player.split(' ').filter(Boolean);
   const hasPlayer = playerParts.every(p => p.length < 2 || blob.includes(p));
-  const tennisSignals = ['tennis','atp','wta','flashscore','sofascore','espn','match history','results','draws','ranking','tournament'];
+  const tennisSignals = ['tennis','atp','wta','flashscore','sofascore','espn','match history','results','draws','ranking','tournament','player profile'];
   const tennisHit = tennisSignals.some(x => blob.includes(canon(x)));
   const bannedSignals = [
     'physiotherapy','interventions','guidelines evaluating physiotherapy','shop the official pedro',
@@ -905,7 +915,11 @@ async function mineTennisRow(row) {
   if (recentResult.ok) {
     const cleaned = cleanRecentResults(recentResult.results, row.entity);
     const evidenceBlob = cleaned.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
-    if (cleaned.length && !recentFieldEvidenceLooksNoisy(evidenceBlob, row.entity) && recentFieldStructuredEnough(evidenceBlob)) {
+    const accepted = cleaned.length &&
+      !recentFieldEvidenceLooksNoisy(evidenceBlob, row.entity) &&
+      recentFieldStructuredEnough(evidenceBlob) &&
+      recentFieldExactEnough(evidenceBlob, row.entity);
+    if (accepted) {
       const dates = extractDates(evidenceBlob);
       const opps = extractOpponents(evidenceBlob);
       const evidence = [
@@ -924,7 +938,7 @@ async function mineTennisRow(row) {
           ...result[k],
           status:'ready',
           statusLabel:'Search evidence found',
-          sourcesLabel: `${result[k].sourcesLabel} • winner: ${recentResult.provider}`,
+          sourcesLabel: `${result[k].sourcesLabel} • winner: ${recentResult.provider} • attempts: ${recentResult.attempts}`,
           parsedResult: labels[k],
           evidence
         };
@@ -936,7 +950,7 @@ async function mineTennisRow(row) {
           status:'failed',
           statusLabel:'Probe failed',
           parsedResult:'Recent-match evidence rejected as noisy.',
-          evidence:'Search results were noisy, unstructured, or unrelated to the tennis player.'
+          evidence:`Search results were noisy, unstructured, or unrelated to the tennis player. Attempts: ${recentResult.attempts}.`
         };
       });
     }
@@ -975,7 +989,7 @@ async function mineTennisRow(row) {
         ...result[key],
         status:'ready',
         statusLabel:'Search evidence found',
-        sourcesLabel: `${result[key].sourcesLabel} • winner: ${tried.provider}`,
+        sourcesLabel: `${result[key].sourcesLabel} • winner: ${tried.provider} • attempts: ${tried.attempts}`,
         parsedResult: parsedLabelMap[key] || snap.summary,
         evidence: snap.evidence || 'Search evidence found.'
       };
@@ -1105,7 +1119,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.3.1`,
+    `Version: v5.3.2`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
