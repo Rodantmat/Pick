@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.4.1</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.4.2</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -175,8 +175,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.4.1</h1>
-          <p id="analysisVersion">Version: v5.4.1</p>
+          <h1 id="analysisTitle">Run Analysis v5.4.2</h1>
+          <p id="analysisVersion">Version: v5.4.2</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -1372,9 +1372,9 @@ function renderAnalysis() {
     rowCard.innerHTML = '<div class="message">No row selected yet.</div>';
     miningGrid.innerHTML = '<div class="message">No data-mining matrix yet.</div>';
   } else if (row.leagueId !== 'tennis') {
-    hint.textContent = 'Tennis-first debug screen is wired. Your selected row parsed correctly, but live factor cards are only scaffolded for tennis right now.';
+    hint.textContent = 'Non-tennis row parsed correctly. League-specific live factor cards are not wired yet for this sport.';
     rowCard.innerHTML = rowCardHtml(row);
-    miningGrid.innerHTML = '<div class="message">Select or ingest a tennis row to see the factor matrix.</div>';
+    miningGrid.innerHTML = '<div class="message">NBA parsing is live. League-specific mining cards are not wired yet for NBA.</div>';
   } else {
     hint.textContent = 'Tennis live mining is now wired in debug mode. Some factors may succeed, others may fail, depending on source availability.';
     rowCard.innerHTML = rowCardHtml(row);
@@ -1399,7 +1399,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.4.1`,
+    `Version: v5.4.2`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1416,7 +1416,7 @@ function buildAnalysisCopyText(row) {
     `TYPE\n${row ? ((TYPE_META[row.type]?.icon || '⚪') + ' ' + (TYPE_META[row.type]?.label || row.type)) : ''}`,
     `RAW PARSE\n${row ? row.lineText : ''}`,
     '',
-    'Tennis Data-Mining Matrix'
+    row && row.leagueId === 'tennis' ? 'Tennis Data-Mining Matrix' : `${findLeague(row?.leagueId)?.label || row?.leagueId || 'League'} Data-Mining Matrix`
   ];
   if (matrix.length) {
     for (const card of matrix) {
@@ -1466,15 +1466,14 @@ function normalizePhoneTennisBlock(text) {
 
 function parsePhoneStatBlock(block, selectedIds) {
   const lines = block.replace(/\r/g,'').split(/\n+/).map(s => s.trim()).filter(Boolean);
-  if (lines.length < 5) return null;
+  if (lines.length < 6) return null;
 
   const first = norm(lines[0] || '');
-  const second = norm(lines[1] || '');
   const firstMatch = first.match(/^([A-Za-z0-9'.&\- ]+)\s-\s(?:Player|Attacker|Defender|Midfielder|Goalkeeper|Forward|Guard|Center|F|G|C|F-G|G-F|F-C|C-F|G-C)\b/i);
   if (!firstMatch) return null;
 
   const team = norm(firstMatch[1] || '');
-  const entity = second;
+  const entity = norm(lines[1] || '');
   if (!entity) return null;
 
   let idx = 2;
@@ -1491,8 +1490,9 @@ function parsePhoneStatBlock(block, selectedIds) {
   const leagueId = inferLeagueFromProp(prop, raw, selectedIds);
   if (!leagueId) return null;
 
-  const opp = oppLine.match(/\b(?:vs|@)\s+(.+?)(?:\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b|\s+\d+m|\s+\d+h|$)/i);
-  const opponent = opp ? norm(opp[1]) : '';
+  const opp = oppLine.match(/\b(?:vs|@)\s+(.+?)(?:\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b|\s+\d+:\d+(?:am|pm)\b|\s+\d+m|\s+\d+h|$)/i);
+  let opponent = opp ? norm(opp[1]) : '';
+  opponent = opponent.replace(/^([A-Z]{2,4})\b\s*/,'').trim();
 
   return makeRow({
     entity,
