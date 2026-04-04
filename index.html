@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.3.2.1</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.3.2.2</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -195,8 +195,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.3.2.1</h1>
-          <p id="analysisVersion">Version: v5.3.2.1</p>
+          <h1 id="analysisTitle">Run Analysis v5.3.2.2</h1>
+          <p id="analysisVersion">Version: v5.3.2.2</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -671,64 +671,59 @@ function factorSourcePlans(row) {
   const o = row?.opponent || '';
   return {
     last5: [
-      `"${e}" "tennis" "match history" flashscore`,
-      `"${e}" "tennis" "recent matches" ATP`,
-      `"${e}" "tennis" "recent results" ESPN`,
-      `"${e}" "${o}" tennis preview`
+      { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${e}" tennis explorer player` },
+      { source: 'Flashscore', q: `site:flashscore.com "${e}" tennis results flashscore` },
+      { source: 'ATP Activity', q: `site:atptour.com "${e}" player activity tennis` },
+      { source: 'Preview', q: `"${e}" "${o}" tennis preview` }
     ],
     last10: [
-      `"${e}" "tennis" "match history" flashscore`,
-      `"${e}" "tennis" "recent matches" ATP`,
-      `"${e}" "tennis" "recent results" ESPN`,
-      `"${e}" "${o}" tennis preview`
+      { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${e}" tennis explorer player` },
+      { source: 'Flashscore', q: `site:flashscore.com "${e}" tennis results flashscore` },
+      { source: 'ATP Activity', q: `site:atptour.com "${e}" player activity tennis` },
+      { source: 'Preview', q: `"${e}" "${o}" tennis preview` }
     ],
     last20: [
-      `"${e}" "tennis" "match history" flashscore`,
-      `"${e}" "tennis" "recent matches" ATP`,
-      `"${e}" "tennis" "recent results" ESPN`,
-      `"${e}" "${o}" tennis preview`
+      { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${e}" tennis explorer player` },
+      { source: 'Flashscore', q: `site:flashscore.com "${e}" tennis results flashscore` },
+      { source: 'ATP Activity', q: `site:atptour.com "${e}" player activity tennis` },
+      { source: 'Preview', q: `"${e}" "${o}" tennis preview` }
     ],
     season: [
-      `"${e}" ATP tournament results season tennis`,
-      `"${e}" ESPN tennis results stats`,
-      `"${e}" flashscore tennis results season`,
-      `"${e}" ATP player profile results`
+      { source: 'ATP', q: `site:atptour.com "${e}" results tennis player profile` },
+      { source: 'ESPN', q: `site:espn.com "${e}" tennis results stats` },
+      { source: 'Flashscore', q: `site:flashscore.com "${e}" tennis results season` }
     ],
     career: [
-      `"${e}" ATP overview profile career win loss tennis`,
-      `"${e}" tennis wikipedia career ranking`,
-      `"${e}" ESPN tennis bio stats`,
-      `"${e}" ATP player profile`
+      { source: 'ATP', q: `site:atptour.com "${e}" overview tennis player` },
+      { source: 'Tennis Abstract', q: `site:tennisabstract.com "${e}" tennis abstract` },
+      { source: 'ESPN', q: `site:espn.com "${e}" tennis bio stats` }
     ],
     h2h: [
-      `"${e}" "${o}" head to head tennis ATP`,
-      `"${e}" "${o}" H2H tennis explorer`,
-      `"${e}" "${o}" preview head to head tennis`,
-      `"${e}" "${o}" ATP h2h`
+      { source: 'ATP H2H', q: `site:atptour.com "${e}" "${o}" head to head tennis` },
+      { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${e}" "${o}" h2h tennis` },
+      { source: 'Preview', q: `"${e}" "${o}" preview head to head tennis` }
     ],
     surface: [
-      `"${e}" ATP player stats surface tennis`,
-      `"${e}" tennis explorer surface stats`,
-      `"${e}" flashscore tennis record surface`,
-      `"${e}" ATP surface stats`
+      { source: 'ATP Stats', q: `site:atptour.com "${e}" player stats surface tennis` },
+      { source: 'Tennis Explorer', q: `site:tennisexplorer.com "${e}" surface stats tennis` },
+      { source: 'Flashscore', q: `site:flashscore.com "${e}" tennis surface record` }
     ],
     odds: [
-      `"${e}" "${o}" odds tennis sportsbook`,
-      `"${e}" "${o}" oddsportal tennis`,
-      `"${e}" "${o}" fanduel tennis odds`,
-      `"${e}" "${o}" betting odds`
+      { source: 'OddsPortal', q: `site:oddsportal.com "${e}" "${o}" tennis odds` },
+      { source: 'Sportsbook', q: `"${e}" "${o}" tennis sportsbook odds` },
+      { source: 'FanDuel', q: `"${e}" "${o}" fanduel tennis odds` }
     ],
     schedule: [
-      `"${e}" "tennis" "match history" flashscore`,
-      `"${e}" ATP activity tennis`,
-      `"${e}" ESPN tennis results recent`,
-      `"${e}" "${o}" tennis preview`
+      { source: 'Sofascore', q: `site:sofascore.com "${e}" tennis player` },
+      { source: 'Flashscore Fixtures', q: `site:flashscore.com "${e}" tennis fixtures` },
+      { source: 'ATP Activity', q: `site:atptour.com "${e}" player activity tennis` },
+      { source: 'Preview', q: `"${e}" "${o}" tennis preview` }
     ],
     form: [
-      `"${e}" "tennis" "match history" flashscore`,
-      `"${e}" sofascore tennis results`,
-      `"${e}" ESPN tennis recent results`,
-      `"${e}" "${o}" tennis preview`
+      { source: 'Tennis Abstract', q: `site:tennisabstract.com "${e}" tennis abstract` },
+      { source: 'RotoWire', q: `site:rotowire.com "${e}" tennis` },
+      { source: 'Flashscore', q: `site:flashscore.com "${e}" tennis results flashscore` },
+      { source: 'Preview', q: `"${e}" "${o}" tennis preview` }
     ]
   };
 }
@@ -780,6 +775,23 @@ function recentFieldEvidenceLooksNoisy(text, playerName='') {
   return bannedHit || !hasPlayer || !tennisHit;
 }
 
+function sourceSpecificRecentAccept(results, playerName='', source='') {
+  const blob = cleanSnippet((results || []).map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • '));
+  const cblob = canon(blob);
+  const csource = canon(source);
+  const player = canon(playerName || '');
+  const parts = player.split(' ').filter(Boolean).filter(p => p.length > 2);
+  const hasPlayer = parts.every(p => cblob.includes(p));
+  if (!hasPlayer) return false;
+  if (csource.includes('tennis explorer')) return cblob.includes('tennis explorer') || cblob.includes('player') || cblob.includes('results');
+  if (csource.includes('flashscore')) return cblob.includes('flashscore') && (cblob.includes('results') || cblob.includes('fixtures') || cblob.includes('draws'));
+  if (csource.includes('atp')) return cblob.includes('atp') || cblob.includes('player activity') || cblob.includes('match records');
+  if (csource.includes('sofascore')) return cblob.includes('sofascore') || cblob.includes('player');
+  if (csource.includes('preview')) return cblob.includes('preview') || cblob.includes('head to head');
+  if (csource.includes('tennis abstract')) return cblob.includes('tennisabstract') || cblob.includes('elo');
+  return true;
+}
+
 function cleanRecentResults(results, playerName='') {
   return (results || []).filter(r => {
     const blob = `${r.title || ''} ${r.snippet || ''}`;
@@ -789,16 +801,18 @@ function cleanRecentResults(results, playerName='') {
 
 async function runQueryList(queries) {
   let attempts = 0;
-  for (const q of (queries || [])) {
+  for (const item of (queries || [])) {
+    const q = typeof item === 'string' ? item : item.q;
+    const source = typeof item === 'string' ? '' : (item.source || '');
     attempts += 1;
     try {
       const searched = await withTimeout(multiSearch(q), 10000, 'search timeout');
       if (searched.results && searched.results.length) {
-        return { ok: true, provider: searched.provider, results: searched.results, query: q, attempts };
+        return { ok: true, provider: searched.provider, source, results: searched.results, query: q, attempts };
       }
     } catch (err) {}
   }
-  return { ok: false, provider: '', results: [], query: '', attempts };
+  return { ok: false, provider: '', source: '', results: [], query: '', attempts };
 }
 
 async function ddgSearch(query) {
@@ -928,6 +942,7 @@ async function mineTennisRow(row) {
     const cleaned = cleanRecentResults(recentResult.results, row.entity);
     const evidenceBlob = cleaned.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
     const accepted = cleaned.length &&
+      sourceSpecificRecentAccept(cleaned, row.entity, recentResult.source) &&
       !recentFieldEvidenceLooksNoisy(evidenceBlob, row.entity) &&
       recentFieldStructuredEnough(evidenceBlob, row.opponent) &&
       recentFieldExactEnough(evidenceBlob, row.entity);
@@ -936,6 +951,7 @@ async function mineTennisRow(row) {
       const opps = extractOpponents(evidenceBlob);
       const oppEvidence = opps.length ? `Opponents: ${opps.slice(0,5).join(', ')}` : (row.opponent ? `Opponent signal: ${row.opponent}` : '');
       const evidence = [
+        recentResult.source ? `Source: ${recentResult.source}` : '',
         dates.length ? `Dates: ${dates.slice(0,5).join(', ')}` : '',
         oppEvidence
       ].filter(Boolean).join(' • ') || evidenceBlob.slice(0, 420);
@@ -951,7 +967,7 @@ async function mineTennisRow(row) {
           ...result[k],
           status:'ready',
           statusLabel:'Search evidence found',
-          sourcesLabel: `${result[k].sourcesLabel} • winner: ${recentResult.provider} • attempts: ${recentResult.attempts}`,
+          sourcesLabel: `${result[k].sourcesLabel} • winner: ${recentResult.source || recentResult.provider} • attempts: ${recentResult.attempts}`,
           parsedResult: labels[k],
           evidence
         };
@@ -963,7 +979,7 @@ async function mineTennisRow(row) {
           status:'failed',
           statusLabel:'Probe failed',
           parsedResult:'Recent-match evidence rejected as noisy.',
-          evidence:`Search results were noisy, unstructured, or unrelated to the tennis player. Attempts: ${recentResult.attempts}.`
+          evidence:`Search results were noisy, unstructured, or unrelated to the tennis player. Winner: ${recentResult.source || recentResult.provider}. Attempts: ${recentResult.attempts}.`
         };
       });
     }
@@ -974,7 +990,7 @@ async function mineTennisRow(row) {
         status:'failed',
         statusLabel:'Probe failed',
         parsedResult:'No structured recent-match feed parsed.',
-        evidence:'No clean recent-match source returned usable evidence.'
+        evidence:`No clean recent-match source returned usable evidence. Attempts: ${plans.last5.length}.`
       };
     });
   }
@@ -1002,7 +1018,7 @@ async function mineTennisRow(row) {
         ...result[key],
         status:'ready',
         statusLabel:'Search evidence found',
-        sourcesLabel: `${result[key].sourcesLabel} • winner: ${tried.provider} • attempts: ${tried.attempts}`,
+        sourcesLabel: `${result[key].sourcesLabel} • winner: ${tried.source || tried.provider} • attempts: ${tried.attempts}`,
         parsedResult: parsedLabelMap[key] || snap.summary,
         evidence: snap.evidence || 'Search evidence found.'
       };
@@ -1132,7 +1148,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.3.2.1`,
+    `Version: v5.3.2.2`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
