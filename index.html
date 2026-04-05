@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.6.0</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.6.1</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -175,8 +175,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.6.0</h1>
-          <p id="analysisVersion">Version: v5.6.0</p>
+          <h1 id="analysisTitle">Run Analysis v5.6.1</h1>
+          <p id="analysisVersion">Version: v5.6.1</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -277,7 +277,7 @@ const NBA_MINING_FACTORS = [
   { key:'projection', title:'Projection source', live:false, sources:['Model / manual projection'], note:'Needed later for 2A math.' },
   { key:'schedule', title:'Schedule / fatigue', live:true, sources:['Game log search','schedule search'], note:'Rest and prior game cadence.' },
   { key:'validation', title:'Prop-source validation', live:true, sources:['Ingested row'], note:'Parsed row identity and line are already grounded.' }
-]
+];
 
 const state = loadState();
 const PROP_LOOKUP = buildPropLookup();
@@ -1458,7 +1458,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.6.0`,
+    `Version: v5.6.1`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1563,6 +1563,19 @@ function extractStatTripleGeneric(text='') {
 
 function extractSeasonTriplesFromText(text='') {
   return extractStatTripleGeneric(text);
+}
+
+function numericOnly(value, digits=1) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '';
+  const n = Number(value);
+  return n.toFixed(digits).replace(/\.0$/, '.0');
+}
+
+function buildPraOnlyEvidence(label, triple, extra='') {
+  if (!triple) return extra || '';
+  const pra = typeof triple.pra === 'number' ? triple.pra : +(triple.points + triple.rebounds + triple.assists).toFixed(1);
+  const base = `${label} PRA ${pra}`;
+  return extra ? `${base} • ${extra}` : base;
 }
 
 function extractOddsPairFromText(text='') {
@@ -1680,43 +1693,49 @@ async function mineNbaRow(row) {
         const top = picks.slice(0, 2);
         const blob = top.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
         const recentTriples = extractPRAFromText(blob);
-        const genericTriples = extractStatTripleGeneric(blob);
-        const oddsPair = extractOddsPairFromText(blob);
+        const seasonTriples = extractSeasonTriplesFromText(blob);
+        const odds = extractOddsFromText(blob);
+        let parsedResult = {
+          last5:'Recent 5-game evidence found',
+          last10:'Recent 10-game evidence found',
+          season:'Season evidence found',
+          matchup:'Matchup evidence found',
+          odds:'Market odds evidence found',
+          schedule:'Schedule / fatigue evidence found'
+        }[key] || 'Evidence found';
+        let evidence = top.map(r => cleanSnippet(r.snippet || r.title)).filter(Boolean).join(' • ');
 
-        let parsedResult = '';
-        let evidence = '';
-
-        if (key === 'last5' && recentTriples) {
+        if ((key === 'last5' || key === 'last10' || key === 'last20') && recentTriples) {
           parsedResult = numericOnly(recentTriples.pra);
           evidence = numericOnly(recentTriples.pra);
-        } else if (key === 'last10' && recentTriples) {
-          parsedResult = numericOnly(recentTriples.pra);
-          evidence = numericOnly(recentTriples.pra);
-        } else if (key === 'last20' && recentTriples) {
-          parsedResult = numericOnly(recentTriples.pra);
-          evidence = numericOnly(recentTriples.pra);
-        } else if (key === 'season' && (genericTriples || recentTriples)) {
-          const t = genericTriples || recentTriples;
+        }
+        if (key === 'season' && (seasonTriples || recentTriples)) {
+          const t = seasonTriples || recentTriples;
           parsedResult = numericOnly(t.pra);
           evidence = numericOnly(t.pra);
-        } else if (key === 'career' && genericTriples) {
-          parsedResult = numericOnly(genericTriples.pra);
-          evidence = numericOnly(genericTriples.pra);
-        } else if (key === 'matchup' && (genericTriples || recentTriples)) {
-          const t = genericTriples || recentTriples;
+        }
+        if (key === 'career' && (seasonTriples || recentTriples || extractStatTripleGeneric(blob))) {
+          const t = extractStatTripleGeneric(blob) || seasonTriples || recentTriples;
           parsedResult = numericOnly(t.pra);
           evidence = numericOnly(t.pra);
-        } else if (key === 'odds' && oddsPair.length) {
-          parsedResult = oddsPair.join(', ');
-          evidence = oddsPair.join(', ');
-        } else if (key === 'schedule') {
+        }
+        if (key === 'matchup' && (seasonTriples || recentTriples || extractStatTripleGeneric(blob))) {
+          const t = extractStatTripleGeneric(blob) || seasonTriples || recentTriples;
+          parsedResult = numericOnly(t.pra);
+          evidence = numericOnly(t.pra);
+        }
+        if (key === 'odds') {
+          const pair = extractOddsPairFromText(blob);
+          if (!pair.length) continue;
+          parsedResult = pair.join(', ');
+          evidence = pair.join(', ');
+        }
+
+        if (key === 'schedule' && !parsedResult) {
           const dateMatch = blob.match(/([A-Z][a-z]+\s+\d{1,2},\s+\d{4})/);
           parsedResult = dateMatch ? dateMatch[1] : cleanSnippet(top[0]?.title || top[0]?.snippet || '');
           evidence = parsedResult;
-        } else {
-          continue;
         }
-
         finalCard = {
           ...result[key],
           status:'ready',
@@ -1746,7 +1765,6 @@ async function mineNbaRow(row) {
   }
 
   return result;
-};
 }
 
 async function ensureNbaMining(row) {
@@ -2130,10 +2148,4 @@ bindActions();
 
 </script>
 </body>
-</html>function numericOnly(value, digits=1) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return '';
-  const n = Number(value);
-  return Number.isInteger(n) ? String(n) : n.toFixed(digits).replace(/\.0$/, '.0');
-}
-
-
+</html>
