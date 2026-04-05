@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.7</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.8</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -175,8 +175,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.7</h1>
-          <p id="analysisVersion">Version: v5.7.7</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.8</h1>
+          <p id="analysisVersion">Version: v5.7.8</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -242,7 +242,7 @@ const LEAGUES = [
   { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
 ];
 
-const STORAGE_KEY = 'pickcalc-prompt1-v5-7-7';
+const STORAGE_KEY = 'pickcalc-prompt1-v5-7-8';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -365,6 +365,14 @@ function buildPropLookup() {
 function findLeague(id){ return LEAGUES.find(x=>x.id===id); }
 function selectedLeagues(){ return state.selectedLeagueIds.map(findLeague).filter(Boolean); }
 
+function canonicalCatalogPropKey(leagueId, prop='') {
+  const c = canon(prop);
+  const exact = PROP_LOOKUP.find(x => x.leagueId === leagueId && x.key === c);
+  if (exact) return canon(exact.prop);
+  if (['nba','wnba','cbb'].includes(leagueId)) return normalizeNbaPropFamily(prop);
+  return c;
+}
+
 function activeRow() {
   return state.cleanedRows.find(r => r.rowId === state.activeRowId) || state.cleanedRows[0] || null;
 }
@@ -436,7 +444,7 @@ function renderFeedStatus() {
   wrap.innerHTML = selectedLeagues().map(league => {
     const count = state.cleanedRows.filter(r => r.leagueId === league.id).length;
     const chips = league.propCatalog.map(prop => {
-      const key = canon(prop);
+      const key = canonicalCatalogPropKey(league.id, prop);
       const n = fed[league.id]?.[key] || 0;
       return `<div class="prop-chip ${n > 0 ? 'prop-fed':'prop-missing'}"><span>${n > 0 ? '✅':'❌'}</span><span>${escapeHtml(prop)}</span><small>${n}</small></div>`;
     }).join('');
@@ -491,6 +499,8 @@ function renderResults() {
   return;
 }
 
+const SEARCH_TIMEOUT_MS = 60000;
+const FETCH_TIMEOUT_MS = 60000;
 
 async function withTimeout(promise, ms, label='timeout') {
   let timer;
@@ -512,7 +522,7 @@ async function proxiedFetchText(url) {
   let lastErr = null;
   for (const target of tries) {
     try {
-      const res = await withTimeout(fetch(target, { method:'GET' }), 7000, 'fetch timeout');
+      const res = await withTimeout(fetch(target, { method:'GET' }), FETCH_TIMEOUT_MS, 'fetch timeout');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return await res.text();
     } catch (err) {
@@ -523,7 +533,7 @@ async function proxiedFetchText(url) {
 }
 
 async function proxiedFetchJson(url) {
-  const txt = await withTimeout(proxiedFetchText(url), 7000, 'json timeout');
+  const txt = await withTimeout(proxiedFetchText(url), FETCH_TIMEOUT_MS, 'json timeout');
   try {
     return JSON.parse(txt);
   } catch {
@@ -660,7 +670,7 @@ async function findTennisExplorerProfile(row) {
   ];
   for (const item of queries) {
     try {
-      const searched = await withTimeout(multiSearch(item.q), 10000, 'search timeout');
+      const searched = await withTimeout(multiSearch(item.q), SEARCH_TIMEOUT_MS, 'search timeout');
       for (const r of (searched.results || [])) {
         const href = normalizeSearchHref(r.href || '');
         const blob = cleanSnippet(`${r.title || ''} ${r.snippet || ''} ${href}`);
@@ -879,7 +889,7 @@ async function runValidatedQueryList(queries, kind, playerName='', opponent='') 
     const source = typeof item === 'string' ? '' : (item.source || '');
     attempts += 1;
     try {
-      const searched = await withTimeout(multiSearch(q), 10000, 'search timeout');
+      const searched = await withTimeout(multiSearch(q), SEARCH_TIMEOUT_MS, 'search timeout');
       if (searched.results && searched.results.length) {
         const valid = validateResultsForKind(searched.results, kind, playerName, opponent);
         if (valid) {
@@ -1034,7 +1044,7 @@ async function runQueryList(queries) {
     const source = typeof item === 'string' ? '' : (item.source || '');
     attempts += 1;
     try {
-      const searched = await withTimeout(multiSearch(q), 10000, 'search timeout');
+      const searched = await withTimeout(multiSearch(q), SEARCH_TIMEOUT_MS, 'search timeout');
       if (searched.results && searched.results.length) {
         return { ok: true, provider: searched.provider, source, results: searched.results, query: q, attempts };
       }
@@ -1065,7 +1075,7 @@ function normalizeSearchHref(href='') {
 
 async function ddgSearch(query) {
   const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-  const html = await withTimeout(proxiedFetchText(url), 4500, 'search timeout');
+  const html = await withTimeout(proxiedFetchText(url), SEARCH_TIMEOUT_MS, 'search timeout');
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const results = [];
   doc.querySelectorAll('.result').forEach((el) => {
@@ -1080,7 +1090,7 @@ async function ddgSearch(query) {
 
 async function bingSearch(query) {
   const url = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
-  const html = await withTimeout(proxiedFetchText(url), 4500, 'search timeout');
+  const html = await withTimeout(proxiedFetchText(url), SEARCH_TIMEOUT_MS, 'search timeout');
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const results = [];
   doc.querySelectorAll('li.b_algo').forEach((el) => {
@@ -1190,7 +1200,7 @@ async function mineTennisRow(row) {
   let teRows = [];
   if (teProfile.ok && teProfile.href) {
     try {
-      const teHtml = await withTimeout(proxiedFetchText(teProfile.href), 12000, 'te fetch timeout');
+      const teHtml = await withTimeout(proxiedFetchText(teProfile.href), SEARCH_TIMEOUT_MS, 'te fetch timeout');
       teRows = parseTennisExplorerRecentRowsFromPage(teHtml, row.entity);
     } catch (err) {}
   }
@@ -1474,7 +1484,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.7`,
+    `Version: v5.7.8`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1779,6 +1789,34 @@ function normalizeNbaPropFamily(prop='') {
   return map[c] || c;
 }
 
+function validateNbaMetricRange(prop='', value=null, key='') {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return null;
+  const family = normalizeNbaPropFamily(prop);
+  const maxMap = {
+    'points': 80,
+    'rebounds': 30,
+    'assists': 20,
+    'pts+rebs': 95,
+    'pts+asts': 95,
+    'rebs+asts': 45,
+    'pra': 115,
+    '3pt made': 10,
+    'fantasy score': 90,
+    'blocks': 8,
+    'steals': 8,
+    'blks+stls': 12,
+    'turnovers': 10
+  };
+  let maxAllowed = maxMap[family] || 120;
+  if (key === 'projection') maxAllowed *= 1.1;
+  if (key === 'career') maxAllowed *= 1.15;
+  if (key === 'matchup') maxAllowed *= 1.15;
+  if (family === '3pt made' && ['season','career','last5','last10','last20','matchup','projection'].includes(key) && n > 8) return null;
+  if (family === 'turnovers' && n > 8) return null;
+  if (n > maxAllowed) return null;
+  return +n.toFixed(1);
+}
 
 const NBA_PROP_ALIAS_MAP = {
   'points': ['points?', 'pts'],
@@ -1921,7 +1959,7 @@ function extractNumericMetric(text='', key='', row={}) {
   } else if (prop === 'assists') {
     direct = triple ? triple.assists : (extractAverageStatValue(src, ['assists?', 'asts?']) ?? extractSingleStatValue(src, ['assists?', 'asts?']));
   } else if (prop === '3pt made') {
-    direct = extractAverageStatValue(src, ['3ptm','3pm','3-pointers?','three-pointers?','threes?','3pt made']) ?? extractSingleStatValue(src, ['3ptm','3pm','3-pointers?','three-pointers?','threes?','3pt made']);
+    direct = extractAverageStatValue(src, ['3ptm','3pm','3pt made','3-point(?:ers)? made','3-pointers? made','three-pointers? made','threes? made','threes?']) ?? extractSingleStatValue(src, ['3ptm','3pm','3pt made','3-point(?:ers)? made','3-pointers? made','three-pointers? made','threes? made','threes?']);
   } else if (prop === 'blocks') {
     const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+blocks?/i) || src.match(/(?:blocks?|blks?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
     if (m) direct = parseFloat(m[1]);
@@ -2103,7 +2141,7 @@ async function mineNbaRow(row, onUpdate) {
     let finalCard = null;
     for (const query of queries) {
       try {
-        const searched = await withTimeout(multiSearch(query), ['odds','injury','starters','matchup'].includes(key) ? 9500 : 8000, `${key} timeout`);
+        const searched = await withTimeout(multiSearch(query), SEARCH_TIMEOUT_MS, `${key} timeout`);
         const picks = bestNbaResults(searched.results || [], row, key === 'projection' ? '' : key);
         if (!picks.length) continue;
         const top = picks.slice(0, 2);
@@ -2207,6 +2245,7 @@ async function mineNbaRow(row, onUpdate) {
       parsedResult:'No clean validated source found.',
       evidence:'No usable NBA evidence returned.'
     };
+    if (typeof onUpdate === 'function') onUpdate(key, result[key], result);
   }
 
   const gemini = geminiNbaFallbackForRow(row);
@@ -2270,6 +2309,7 @@ async function mineNbaRow(row, onUpdate) {
     applyCard('teammates', gemini.teammates_score || '50', gemini.source_map.teammates || 'Gemini');
     applyCard('homeaway', gemini.homeaway_score || '50', gemini.source_map.homeaway || 'Gemini');
     applyCard('role', gemini.role_score || '50', gemini.source_map.role || 'Gemini');
+    if (typeof onUpdate === 'function') { Object.keys(result).forEach(k => onUpdate(k, result[k], result)); }
   }
 
   result.coverage = {
@@ -2280,6 +2320,7 @@ async function mineNbaRow(row, onUpdate) {
     parsedResult: buildCoverageText(row.propFamily),
     evidence: buildCoverageText(row.propFamily)
   };
+  if (typeof onUpdate === 'function') onUpdate('coverage', result.coverage, result);
 
   return result;
 }
@@ -2574,7 +2615,7 @@ function makeRow({ entity, team, opponent='', prop, line, leagueId, type, raw })
     team: norm(team),
     opponent: norm(opponent),
     propFamily: displayProp,
-    propKey: canon(displayProp),
+    propKey: canonicalCatalogPropKey(leagueId, displayProp),
     line,
     lineText,
     type,
