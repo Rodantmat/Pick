@@ -136,7 +136,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.11</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.12</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -182,8 +182,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.11</h1>
-          <p id="analysisVersion">Version: v5.7.11</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.12</h1>
+          <p id="analysisVersion">Version: v5.7.12</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -244,9 +244,9 @@ thead th { background:#121d35; position:sticky; top:0; }
   </div>
   <script>
 const LEAGUES = [
-  { id:'nba', label:'NBA', sport:'NBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
-  { id:'wnba', label:'WNBA', sport:'WNBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
-  { id:'cbb', label:'CBB', sport:'CBB', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
+  { id:'nba', label:'NBA', sport:'NBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','3PTM','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
+  { id:'wnba', label:'WNBA', sport:'WNBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','3PTM','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
+  { id:'cbb', label:'CBB', sport:'CBB', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','3PTM','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
   { id:'nfl', label:'NFL', sport:'NFL', propCatalog:['Passing Yards','Rushing Yards','Receiving Yards','Receptions','Rush Attempts','Touchdowns'] },
   { id:'cfb', label:'CFB', sport:'CFB', propCatalog:['Passing Yards','Rushing Yards','Receiving Yards','Receptions','Rush Attempts','Touchdowns'] },
   { id:'mlb', label:'MLB', sport:'MLB', propCatalog:['Hits','Total Bases','Pitcher Strikeouts','Runs','RBIs','Outs Recorded','Home Runs','Hits Allowed'] },
@@ -262,7 +262,7 @@ const LEAGUES = [
   { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
 ];
 
-const STORAGE_KEY = 'pickcalc-prompt1-v5-7-11';
+const STORAGE_KEY = 'pickcalc-prompt1-v5-7-12';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -311,7 +311,7 @@ const NBA_MINING_FACTORS = [
 ];
 
 const DISPLAY_PROP_ALIASES = {
-  '3PT Made':['3pt made','3ptm','3pm','3pt','3-pointers made','three-pointers made','threes'],
+  '3PTM':['3pt made','3ptm','3pm','3pt','3-pointers made','three-pointers made','threes'],
   'Pts+Rebs+Asts':['pts+rebs+asts','pra'],
   'Pts+Rebs':['pts+rebs','points+rebounds','pts rebounds'],
   'Pts+Asts':['pts+asts','points+assists','pts assists'],
@@ -1411,8 +1411,8 @@ async function ensureTennisMining(row) {
 
 
 
-const SEARCH_TIMEOUT_MS = 9000;
-const FETCH_TIMEOUT_MS = 9000;
+const SEARCH_TIMEOUT_MS = 2500;
+const FETCH_TIMEOUT_MS = 3000;
 
 function ensureDiagState(cacheEntry) {
   if (!cacheEntry.diagnostics) cacheEntry.diagnostics = { startedAt: Date.now(), endedAt: null, entries: [] };
@@ -1576,7 +1576,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.11`,
+    `Version: v5.7.12`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -2210,25 +2210,25 @@ async function mineNbaRow(row, onUpdate) {
   const teamFull = expandNbaTeamAbbr(row.team || '');
   const propTerm = primaryNbaPropSearchTerm(row.propFamily);
   const queryPlans = {
-    last5: [`${row.entity} last 5 games ${propTerm} statmuse nba`, `${row.entity} last 5 games points rebounds assists statmuse nba`, `${row.entity} game log last 5 espn nba`],
-    last10: [`${row.entity} last 10 games ${propTerm} statmuse nba`, `${row.entity} last 10 games points rebounds assists statmuse nba`, `${row.entity} game log last 10 espn nba`],
-    last20: [`${row.entity} last 20 games ${propTerm} statmuse nba`, `${row.entity} last 20 games points rebounds assists statmuse nba`, `${row.entity} game log last 20 espn nba`],
-    season: [`${row.entity} season ${propTerm} statmuse nba`, `${row.entity} season averages points rebounds assists nba`, `${row.entity} season stats ${propTerm} espn nba`],
-    career: [`${row.entity} career ${propTerm} statmuse nba`, `${row.entity} career averages points rebounds assists nba`, `${row.entity} career stats ${propTerm} espn nba`],
-    matchup: [`${row.entity} vs ${oppFull || row.opponent} ${propTerm} statmuse nba`, `${row.entity} ${oppFull || row.opponent} ${propTerm} nba`, `${row.entity} ${oppFull || row.opponent} statmuse nba`, `${row.entity} ${oppFull || row.opponent} record nba`],
-    odds: [`${teamFull || row.team} vs ${oppFull || row.opponent} odds nba sportsbook`, `${teamFull || row.team} ${oppFull || row.opponent} betting odds nba`, `${teamFull || row.team} ${oppFull || row.opponent} draftkings moneyline`, `${teamFull || row.team} ${oppFull || row.opponent} fanduel moneyline`, `${teamFull || row.team} ${oppFull || row.opponent} oddschecker covers`],
-    projection: [`${row.entity} ${propTerm} projection today`, `${row.entity} projected ${propTerm} tonight nba`, `${row.entity} fantasy projection ${propTerm} nba`],
-    minutes: [`${row.entity} projected minutes tonight`, `${row.entity} minutes projection nba`, `${row.entity} expected minutes nba`],
-    injury: [`${row.entity} injury report today nba`, `${row.entity} status today nba`, `${row.entity} probable questionable out nba`, `${teamFull || row.team} injury report nba today`, `${row.entity} nba official injury report`],
-    starters: [`${teamFull || row.team} starting lineup today nba`, `${row.entity} starting tonight nba`, `${teamFull || row.team} starters nba today`, `${teamFull || row.team} projected lineup nba`, `${row.entity} first five starter tonight nba`, `${teamFull || row.team} rotowire lineup nba`],
-    schedule: [`${row.entity} recent games rest days nba`, `${row.entity} game log espn nba`, `${row.entity} schedule last games nba`],
-    pace: [`${teamFull || row.team} vs ${oppFull || row.opponent} pace nba`, `${teamFull || row.team} ${oppFull || row.opponent} possessions pace`, `${teamFull || row.team} team pace nba`, `${teamFull || row.team} pace teamrankings`, `${oppFull || row.opponent} pace teamrankings`],
-    blowout: [`${teamFull || row.team} vs ${oppFull || row.opponent} spread nba`, `${teamFull || row.team} ${oppFull || row.opponent} moneyline spread`, `${teamFull || row.team} ${oppFull || row.opponent} betting line nba`],
-    oppdef: [`${oppFull || row.opponent} defense vs ${propTerm} nba`, `${oppFull || row.opponent} defensive rating nba`, `${oppFull || row.opponent} allowed ${propTerm} nba`, `${oppFull || row.opponent} defense teamrankings nba`, `${oppFull || row.opponent} points allowed nba`],
-    position: [`${oppFull || row.opponent} vs ${row.entity} position ${propTerm} nba`, `${oppFull || row.opponent} vs position ${propTerm} nba`, `${oppFull || row.opponent} guards forwards centers allowed nba`],
-    teammates: [`${teamFull || row.team} injury report today nba teammates`, `${teamFull || row.team} starting lineup injuries nba`, `${row.entity} teammate injuries usage nba`],
-    homeaway: [`${row.entity} home away splits ${propTerm} nba`, `${row.entity} at home on road ${propTerm} nba`, `${row.entity} split stats ${propTerm} nba`],
-    role: [`${row.entity} role usage rate nba`, `${row.entity} rotation role tonight nba`, `${row.entity} starter bench usage nba`]
+    last5: [`${row.entity} last 5 games ${propTerm} statmuse nba`, `${row.entity} game log last 5 espn nba`],
+    last10: [`${row.entity} last 10 games ${propTerm} statmuse nba`, `${row.entity} game log last 10 espn nba`],
+    last20: [`${row.entity} last 20 games ${propTerm} statmuse nba`, `${row.entity} game log last 20 espn nba`],
+    season: [`${row.entity} season ${propTerm} statmuse nba`, `${row.entity} season stats ${propTerm} espn nba`],
+    career: [`${row.entity} career ${propTerm} statmuse nba`, `${row.entity} career stats ${propTerm} espn nba`],
+    matchup: [`${row.entity} vs ${oppFull || row.opponent} ${propTerm} statmuse nba`, `${row.entity} ${oppFull || row.opponent} statmuse nba`],
+    odds: [`${teamFull || row.team} vs ${oppFull || row.opponent} draftkings moneyline spread nba`, `${teamFull || row.team} ${oppFull || row.opponent} oddschecker covers nba`],
+    projection: [`${row.entity} ${propTerm} projection today nba`, `${row.entity} fantasy projection ${propTerm} nba`],
+    minutes: [`${row.entity} projected minutes tonight nba`, `${row.entity} expected minutes nba`],
+    injury: [`${row.entity} injury report today nba`, `${teamFull || row.team} injury report nba today`],
+    starters: [`${teamFull || row.team} starting lineup today nba`, `${teamFull || row.team} projected lineup nba`],
+    schedule: [`${row.entity} game log espn nba`, `${teamFull || row.team} schedule back to back nba`],
+    pace: [`${teamFull || row.team} pace teamrankings nba`, `${oppFull || row.opponent} pace teamrankings nba`],
+    blowout: [`${teamFull || row.team} vs ${oppFull || row.opponent} spread nba`, `${teamFull || row.team} ${oppFull || row.opponent} betting line nba`],
+    oppdef: [`${oppFull || row.opponent} defensive rating nba`, `${oppFull || row.opponent} defense vs ${propTerm} nba`],
+    position: [`${oppFull || row.opponent} vs position ${propTerm} nba`, `${oppFull || row.opponent} guards forwards centers allowed nba`],
+    teammates: [`${teamFull || row.team} injury report nba today teammates`, `${teamFull || row.team} starting lineup injuries nba`],
+    homeaway: [`${row.entity} home away splits ${propTerm} nba`, `${row.entity} split stats ${propTerm} nba`],
+    role: [`${row.entity} role usage rate nba`, `${row.entity} rotation role tonight nba`]
   };
 
   for (const [key, queries] of Object.entries(queryPlans)) {
