@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.5</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.6</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -175,8 +175,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.5</h1>
-          <p id="analysisVersion">Version: v5.7.5</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.6</h1>
+          <p id="analysisVersion">Version: v5.7.6</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -242,7 +242,7 @@ const LEAGUES = [
   { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
 ];
 
-const STORAGE_KEY = 'pickcalc-prompt1-v5-7-5';
+const STORAGE_KEY = 'pickcalc-prompt1-v5-7-6';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -279,9 +279,27 @@ const NBA_MINING_FACTORS = [
   { key:'injury', title:'Injury report score', live:true, sources:['injury report search','Gemini structured fallback'], note:'Availability / usage context score.' },
   { key:'starters', title:'Starting lineup score', live:true, sources:['starting lineup search','Gemini structured fallback'], note:'Starter / lineup context score.' },
   { key:'schedule', title:'Schedule / fatigue', live:true, sources:['Game log search','schedule search','Gemini structured fallback'], note:'Rest and prior game cadence.' },
+  { key:'pace', title:'Pace score', live:true, sources:['TeamRankings search','pace search','Gemini structured fallback'], note:'Tempo / possession environment score.' },
+  { key:'blowout', title:'Blowout risk score', live:true, sources:['Spread search','odds search','Gemini structured fallback'], note:'Spread-based game-script pressure score.' },
+  { key:'oppdef', title:'Opponent defense score', live:true, sources:['Defense search','NBA.com search','Gemini structured fallback'], note:'Opponent defensive resistance score.' },
+  { key:'position', title:'Vs-position score', live:true, sources:['Vs position search','StatMuse search','Gemini structured fallback'], note:'Position-specific opponent softness / toughness.' },
+  { key:'teammates', title:'Teammate impact score', live:true, sources:['Injury report search','lineup search','Gemini structured fallback'], note:'Teammate injuries / vacancy / usage-transfer score.' },
+  { key:'homeaway', title:'Home-away split score', live:true, sources:['Split stats search','StatMuse splits','Gemini structured fallback'], note:'Home / road split score.' },
+  { key:'role', title:'Role / usage score', live:true, sources:['Usage search','rotation search','Gemini structured fallback'], note:'Current role / usage / rotation score.' },
   { key:'coverage', title:'Factor coverage', live:false, sources:['Internal factor map'], note:'Which NBA factors are wired vs pending.' },
   { key:'validation', title:'Prop-source validation', live:true, sources:['Ingested row'], note:'Parsed row identity and line are already grounded.' }
-]
+];
+
+const DISPLAY_PROP_ALIASES = {
+  '3PT Made':['3pt made','3ptm','3pm','3pt','3-pointers made','three-pointers made','threes'],
+  'Pts+Rebs+Asts':['pts+rebs+asts','pra'],
+  'Pts+Rebs':['pts+rebs','points+rebounds','pts rebounds'],
+  'Pts+Asts':['pts+asts','points+assists','pts assists'],
+  'Rebs+Asts':['rebs+asts','rebounds+assists','rebs assists'],
+  'Blks+Stls':['blks+stls','stocks','blocks+steals'],
+  'Fantasy Score':['fantasy score','fantasy points','fantasy'],
+  'Turnovers':['turnovers','tos']
+};
 
 const state = loadState();
 const PROP_LOOKUP = buildPropLookup();
@@ -334,10 +352,13 @@ function buildPropLookup() {
   const entries = [];
   for (const league of LEAGUES) {
     for (const prop of league.propCatalog) {
-      entries.push({ leagueId: league.id, prop, key: canon(prop) });
+      const aliasKeys = [canon(prop), ...((DISPLAY_PROP_ALIASES[prop] || []).map(canon))];
+      [...new Set(aliasKeys)].forEach((key) => {
+        entries.push({ leagueId: league.id, prop, key });
+      });
     }
   }
-  entries.sort((a,b)=> b.prop.length - a.prop.length);
+  entries.sort((a,b)=> b.key.length - a.key.length || b.prop.length - a.prop.length);
   return entries;
 }
 
@@ -1453,7 +1474,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.5`,
+    `Version: v5.7.6`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1623,10 +1644,13 @@ function parseScheduleValue(text='') {
   if (!c) return null;
   if (/back[- ]to[- ]back|second night of a back[- ]to[- ]back|played yesterday/.test(c)) return 0;
   const restMatch = c.match(/(\d+)\s*(?:day|days)\s*rest/);
-  if (restMatch) return Math.min(parseInt(restMatch[1], 10), 4);
+  if (restMatch) return Math.min(parseInt(restMatch[1], 10), 5);
   if (/two days off|two days rest/.test(c)) return 2;
   if (/one day off|one day rest/.test(c)) return 1;
   if (/three days off|three days rest/.test(c)) return 3;
+  if (/four days off|four days rest/.test(c)) return 4;
+  if (/five days off|five days rest/.test(c)) return 5;
+  if (/tonight/.test(c) && /yesterday|last night/.test(c)) return 0;
   return null;
 }
 
@@ -1681,16 +1705,34 @@ function normalizeNbaPropFamily(prop='') {
     'rebounds':'rebounds',
     'assists':'assists',
     'pts+rebs':'pts+rebs',
+    'points+rebounds':'pts+rebs',
+    'pts rebounds':'pts+rebs',
     'pts+asts':'pts+asts',
+    'points+assists':'pts+asts',
+    'pts assists':'pts+asts',
     'rebs+asts':'rebs+asts',
+    'rebounds+assists':'rebs+asts',
+    'rebs assists':'rebs+asts',
     'pra':'pra',
     'pts+rebs+asts':'pra',
+    'points+rebounds+assists':'pra',
     '3pt made':'3pt made',
+    '3ptm':'3pt made',
+    '3pm':'3pt made',
+    '3pt':'3pt made',
+    '3-pointers made':'3pt made',
+    'three-pointers made':'3pt made',
+    'threes':'3pt made',
     'fantasy score':'fantasy score',
+    'fantasy points':'fantasy score',
+    'fantasy':'fantasy score',
     'blocks':'blocks',
     'steals':'steals',
     'blks+stls':'blks+stls',
-    'turnovers':'turnovers'
+    'stocks':'blks+stls',
+    'blocks+steals':'blks+stls',
+    'turnovers':'turnovers',
+    'tos':'turnovers'
   };
   return map[c] || c;
 }
@@ -1838,7 +1880,7 @@ function extractNumericMetric(text='', key='', row={}) {
     direct = triple ? triple.assists : (extractAverageStatValue(src, ['assists?', 'asts?']) ?? extractSingleStatValue(src, ['assists?', 'asts?']));
   } else if (prop === '3pt made') {
     const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+(?:3-pointers?|three-pointers?|threes?)\s*(?:made)?/i)
-      || src.match(/(?:3-pointers?|three-pointers?|threes?|3pt made)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
+      || src.match(/(?:3ptm|3pm|3-pointers?|three-pointers?|threes?|3pt made)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
     if (m) direct = parseFloat(m[1]);
   } else if (prop === 'blocks') {
     const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+blocks?/i) || src.match(/(?:blocks?|blks?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
@@ -1903,12 +1945,18 @@ function bestNbaResults(results, row, kind='') {
     const c = canon(blob);
     if (!parts.every(p => c.includes(p))) return false;
     if (nbaSearchNoise(blob)) return false;
-    const trustedGeneral = c.includes('nba') || c.includes('espn') || c.includes('statmuse') || c.includes('basketball') || c.includes('reference');
+    const trustedGeneral = c.includes('nba') || c.includes('espn') || c.includes('statmuse') || c.includes('basketball') || c.includes('reference') || c.includes('rotowire') || c.includes('stokastic') || c.includes('numberfire') || c.includes('fantasy');
     const trustedOdds = c.includes('odds') || c.includes('sportsbook') || c.includes('covers') || c.includes('oddschecker') || c.includes('action network') || c.includes('draftkings') || c.includes('fanduel');
     if (!(trustedGeneral || (kind === 'odds' && trustedOdds))) return false;
     if (kind === 'matchup' && row.opponent) {
       const oppOkay = c.includes(canon(row.opponent)) || canon(oppFull).split(' ').some(p => p.length > 2 && c.includes(p));
       if (!oppOkay) return false;
+    }
+    if (kind === 'projection') {
+      if (!(c.includes('projection') || c.includes('projected') || c.includes('fantasy') || c.includes('rotowire') || c.includes('stokastic') || c.includes('numberfire'))) return false;
+    }
+    if (kind === 'minutes') {
+      if (!(c.includes('minutes') || c.includes('projected') || c.includes('expected'))) return false;
     }
     if (kind === 'odds') {
       if (!(c.includes('odds') || c.includes('sportsbook') || c.includes('betting') || c.includes('moneyline'))) return false;
@@ -1999,8 +2047,8 @@ async function mineNbaRow(row) {
     odds: [`${teamFull || row.team} vs ${oppFull || row.opponent} odds nba sportsbook`, `${teamFull || row.team} ${oppFull || row.opponent} betting odds nba`, `${teamFull || row.team} ${oppFull || row.opponent} draftkings moneyline`, `${teamFull || row.team} ${oppFull || row.opponent} fanduel moneyline`, `${teamFull || row.team} ${oppFull || row.opponent} oddschecker covers`],
     projection: [`${row.entity} ${row.propFamily} projection today`, `${row.entity} projected ${row.propFamily} tonight nba`, `${row.entity} fantasy projection ${row.propFamily} nba`],
     minutes: [`${row.entity} projected minutes tonight`, `${row.entity} minutes projection nba`, `${row.entity} expected minutes nba`],
-    injury: [`${row.entity} injury report today nba`, `${row.entity} status today nba`, `${row.entity} probable questionable out nba`],
-    starters: [`${teamFull || row.team} starting lineup today nba`, `${row.entity} starting tonight nba`, `${teamFull || row.team} starters nba today`],
+    injury: [`${row.entity} injury report today nba`, `${row.entity} status today nba`, `${row.entity} probable questionable out nba`, `${teamFull || row.team} injury report nba today`, `${row.entity} nba official injury report`],
+    starters: [`${teamFull || row.team} starting lineup today nba`, `${row.entity} starting tonight nba`, `${teamFull || row.team} starters nba today`, `${teamFull || row.team} projected lineup nba`, `${row.entity} first five starter tonight nba`],
     schedule: [`${row.entity} recent games rest days nba`, `${row.entity} game log espn nba`, `${row.entity} schedule last games nba`],
     pace: [`${teamFull || row.team} vs ${oppFull || row.opponent} pace nba`, `${teamFull || row.team} ${oppFull || row.opponent} possessions pace`, `${teamFull || row.team} team pace nba`],
     blowout: [`${teamFull || row.team} vs ${oppFull || row.opponent} spread nba`, `${teamFull || row.team} ${oppFull || row.opponent} moneyline spread`, `${teamFull || row.team} ${oppFull || row.opponent} betting line nba`],
@@ -2051,9 +2099,46 @@ async function mineNbaRow(row) {
           parsedResult = chosen.join(', ');
           evidence = chosen.join(', ');
         } else if (key === 'schedule') {
-          const num = blob.match(/\b([0-9]+)\b/);
-          parsedResult = num ? num[1] : cleanSnippet(top[0]?.title || top[0]?.snippet || '');
-          evidence = parsedResult;
+          const val = parseScheduleValue(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
+        } else if (key === 'pace') {
+          const val = parsePaceScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
+        } else if (key === 'blowout') {
+          const spread = extractSpreadNumber(blob);
+          const val = spreadToBlowoutScore(spread);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = spread != null ? 'spread ' + spread : String(val);
+        } else if (key === 'oppdef') {
+          const val = parseOpponentDefenseScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
+        } else if (key === 'position') {
+          const val = parsePositionScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
+        } else if (key === 'teammates') {
+          const val = parseTeammateImpactScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
+        } else if (key === 'homeaway') {
+          const val = parseHomeAwayScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
+        } else if (key === 'role') {
+          const val = parseRoleScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
         }
 
         finalCard = {
