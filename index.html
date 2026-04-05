@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.1</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.2</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -175,8 +175,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.1</h1>
-          <p id="analysisVersion">Version: v5.7.1</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.2</h1>
+          <p id="analysisVersion">Version: v5.7.2</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -1462,7 +1462,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.1`,
+    `Version: v5.7.2`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1832,8 +1832,8 @@ async function mineNbaRow(row) {
   };
 
   return result;
-};
 }
+
 
 async function ensureNbaMining(row) {
   if (!row || row.leagueId !== 'nba') return;
