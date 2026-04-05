@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.5.2</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.5.3</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -175,8 +175,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.5.2</h1>
-          <p id="analysisVersion">Version: v5.5.2</p>
+          <h1 id="analysisTitle">Run Analysis v5.5.3</h1>
+          <p id="analysisVersion">Version: v5.5.3</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -1456,7 +1456,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.5.2`,
+    `Version: v5.5.3`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1542,6 +1542,22 @@ function extractPRAFromText(text='') {
   return { points:p, rebounds:r, assists:a, pra:(p+r+a) };
 }
 
+function extractSeasonTriplesFromText(text='') {
+  const src = String(text || '');
+  const patterns = [
+    /averag(?:ed|es)?\s+([0-9]+(?:\.[0-9]+)?)\s+points?,\s+([0-9]+(?:\.[0-9]+)?)\s+rebounds?\s+and\s+([0-9]+(?:\.[0-9]+)?)\s+assists?/i,
+    /([0-9]+(?:\.[0-9]+)?)\s+points?,\s+([0-9]+(?:\.[0-9]+)?)\s+rebounds?\s+and\s+([0-9]+(?:\.[0-9]+)?)\s+assists?/i
+  ];
+  for (const rx of patterns) {
+    const m = src.match(rx);
+    if (m) {
+      const p = parseFloat(m[1]), r = parseFloat(m[2]), a = parseFloat(m[3]);
+      return { points:p, rebounds:r, assists:a, pra: +(p+r+a).toFixed(1) };
+    }
+  }
+  return null;
+}
+
 function extractOddsFromText(text='') {
   const nums = [...String(text || '').matchAll(/(?:\\+\\d{3}|\\-\\d{3}|\\b\\d+\\.\\d{2}\\b)/g)].map(m => m[0]);
   return [...new Set(nums)].slice(0, 4);
@@ -1555,7 +1571,9 @@ function bestNbaResults(results, row, kind='') {
     const c = canon(blob);
     if (!parts.every(p => c.includes(p))) return false;
     if (nbaSearchNoise(blob)) return false;
-    if (!(c.includes('nba') || c.includes('espn') || c.includes('statmuse') || c.includes('basketball') || c.includes('reference'))) return false;
+    const trustedGeneral = c.includes('nba') || c.includes('espn') || c.includes('statmuse') || c.includes('basketball') || c.includes('reference');
+    const trustedOdds = c.includes('odds') || c.includes('sportsbook') || c.includes('covers') || c.includes('oddschecker') || c.includes('action network') || c.includes('draftkings') || c.includes('fanduel');
+    if (!(trustedGeneral || (kind === 'odds' && trustedOdds))) return false;
     if (kind === 'matchup' && row.opponent) {
       const oppOkay = c.includes(canon(row.opponent)) || canon(oppFull).split(' ').some(p => p.length > 2 && c.includes(p));
       if (!oppOkay) return false;
@@ -1584,66 +1602,103 @@ async function mineNbaRow(row) {
   });
 
   const oppFull = expandNbaTeamAbbr(row.opponent || '');
-  const queryMap = {
-    last5: `${row.entity} last 5 games points rebounds assists statmuse nba`,
-    last10: `${row.entity} last 10 games points rebounds assists statmuse nba`,
-    season: `${row.entity} season stats points rebounds assists nba`,
-    matchup: `${row.entity} ${oppFull || row.opponent} matchup nba statmuse`,
-    odds: `${row.entity} ${oppFull || row.opponent} odds sportsbook nba`,
-    schedule: `${row.entity} recent games rest days nba`
+  const teamFull = expandNbaTeamAbbr(row.team || '');
+  const queryPlans = {
+    last5: [
+      `${row.entity} last 5 games points rebounds assists statmuse nba`,
+      `${row.entity} game log last 5 espn nba`,
+      `${row.entity} last 5 basketball reference game log`
+    ],
+    last10: [
+      `${row.entity} last 10 games points rebounds assists statmuse nba`,
+      `${row.entity} game log last 10 espn nba`,
+      `${row.entity} last 10 basketball reference game log`
+    ],
+    season: [
+      `${row.entity} season averages points rebounds assists nba`,
+      `${row.entity} season stats points rebounds assists espn nba`,
+      `${row.entity} basketball reference per game nba`
+    ],
+    matchup: [
+      `${row.entity} ${oppFull || row.opponent} matchup nba statmuse`,
+      `${row.entity} vs ${oppFull || row.opponent} nba stats`,
+      `${row.entity} ${oppFull || row.opponent} record nba`
+    ],
+    odds: [
+      `${teamFull || row.team} ${oppFull || row.opponent} odds sportsbook nba`,
+      `${teamFull || row.team} vs ${oppFull || row.opponent} odds nba`,
+      `${teamFull || row.team} ${oppFull || row.opponent} draftkings fanduel odds`,
+      `${row.entity} ${teamFull || row.team} ${oppFull || row.opponent} odds nba`
+    ],
+    schedule: [
+      `${row.entity} recent games rest days nba`,
+      `${row.entity} game log espn nba`,
+      `${row.entity} schedule last games nba`
+    ]
   };
 
-  for (const [key, query] of Object.entries(queryMap)) {
-    try {
-      const searched = await withTimeout(multiSearch(query), 10000, `${key} timeout`);
-      const picks = bestNbaResults(searched.results || [], row, key);
-      if (!picks.length) {
-        result[key] = {
+  for (const [key, queries] of Object.entries(queryPlans)) {
+    let finalCard = null;
+    for (const query of queries) {
+      try {
+        const searched = await withTimeout(multiSearch(query), 10000, `${key} timeout`);
+        const picks = bestNbaResults(searched.results || [], row, key);
+        if (!picks.length) continue;
+        const top = picks.slice(0, 2);
+        const blob = top.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
+        const recentTriples = extractPRAFromText(blob);
+        const seasonTriples = extractSeasonTriplesFromText(blob);
+        const odds = extractOddsFromText(blob);
+        let parsedResult = {
+          last5:'Recent 5-game evidence found',
+          last10:'Recent 10-game evidence found',
+          season:'Season evidence found',
+          matchup:'Matchup evidence found',
+          odds:'Market odds evidence found',
+          schedule:'Schedule / fatigue evidence found'
+        }[key] || 'Evidence found';
+        let evidence = top.map(r => cleanSnippet(r.snippet || r.title)).filter(Boolean).join(' • ');
+
+        if ((key === 'last5' || key === 'last10') && recentTriples) {
+          parsedResult = `${key === 'last5' ? 'Last 5' : 'Last 10'} numeric signals found`;
+          evidence = `Points ${recentTriples.points} • Rebounds ${recentTriples.rebounds} • Assists ${recentTriples.assists} • PRA ${recentTriples.pra}` + (evidence ? ` • ${evidence}` : '');
+        }
+        if (key === 'season' && (seasonTriples || recentTriples)) {
+          const t = seasonTriples || recentTriples;
+          parsedResult = 'Season numeric signals found';
+          evidence = `Points ${t.points} • Rebounds ${t.rebounds} • Assists ${t.assists} • PRA ${t.pra}` + (evidence ? ` • ${evidence}` : '');
+        }
+        if (key === 'odds') {
+          if (!odds.length) continue;
+          parsedResult = `Market odds parsed: ${odds.slice(0,4).join(', ')}`;
+        }
+
+        finalCard = {
+          ...result[key],
+          status:'ready',
+          statusLabel:'Search evidence found',
+          sourcesLabel: `${result[key].sourcesLabel} • winner: ${searched.provider}`,
+          parsedResult,
+          evidence
+        };
+        break;
+      } catch (err) {
+        finalCard = {
           ...result[key],
           status:'failed',
           statusLabel:'Probe failed',
-          parsedResult:'No clean validated source found.',
-          evidence:'No usable NBA evidence returned.'
+          parsedResult:'Search request failed.',
+          evidence:String(err && err.message || err)
         };
-        continue;
       }
-      const top = picks.slice(0, 2);
-      const blob = top.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
-      const pra = extractPRAFromText(blob);
-      const odds = extractOddsFromText(blob);
-      let parsedResult = {
-        last5:'Recent 5-game evidence found',
-        last10:'Recent 10-game evidence found',
-        season:'Season evidence found',
-        matchup:'Matchup evidence found',
-        odds:'Market odds evidence found',
-        schedule:'Schedule / fatigue evidence found'
-      }[key] || 'Evidence found';
-      let evidence = top.map(r => cleanSnippet(r.snippet || r.title)).filter(Boolean).join(' • ');
-      if ((key === 'last5' || key === 'last10' || key === 'season') && pra) {
-        parsedResult = `${key === 'season' ? 'Season' : key === 'last5' ? 'Last 5' : 'Last 10'} numeric signals found`;
-        evidence = `Points ${pra.points} • Rebounds ${pra.rebounds} • Assists ${pra.assists} • PRA ${pra.pra}` + (evidence ? ` • ${evidence}` : '');
-      }
-      if (key === 'odds' && odds.length) {
-        parsedResult = `Market odds parsed: ${odds.join(', ')}`;
-      }
-      result[key] = {
-        ...result[key],
-        status:'ready',
-        statusLabel:'Search evidence found',
-        sourcesLabel: `${result[key].sourcesLabel} • winner: ${searched.provider}`,
-        parsedResult,
-        evidence
-      };
-    } catch (err) {
-      result[key] = {
-        ...result[key],
-        status:'failed',
-        statusLabel:'Probe failed',
-        parsedResult:'Search request failed.',
-        evidence:String(err && err.message || err)
-      };
     }
+    result[key] = finalCard || {
+      ...result[key],
+      status:'failed',
+      statusLabel:'Probe failed',
+      parsedResult:'No clean validated source found.',
+      evidence:'No usable NBA evidence returned.'
+    };
   }
 
   return result;
