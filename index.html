@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.5.1</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.5.2</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -175,8 +175,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.5.1</h1>
-          <p id="analysisVersion">Version: v5.5.1</p>
+          <h1 id="analysisTitle">Run Analysis v5.5.2</h1>
+          <p id="analysisVersion">Version: v5.5.2</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -267,13 +267,13 @@ const TENNIS_MINING_FACTORS = [
 ];
 
 const NBA_MINING_FACTORS = [
-  { key:'last5', title:'Last 5 games', live:false, sources:['NBA game log source'], note:'Recent game-log block.' },
-  { key:'last10', title:'Last 10 games', live:false, sources:['NBA game log source'], note:'Short sample trend block.' },
-  { key:'season', title:'Season history', live:false, sources:['NBA season stats source'], note:'Season-long splits.' },
-  { key:'matchup', title:'Matchup context', live:false, sources:['Opponent/team source'], note:'Opponent-specific context.' },
-  { key:'odds', title:'Market odds', live:false, sources:['Sportsbook / odds source'], note:'Moneyline / game context.' },
+  { key:'last5', title:'Last 5 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 5-game numeric block.' },
+  { key:'last10', title:'Last 10 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 10-game numeric block.' },
+  { key:'season', title:'Season history', live:true, sources:['NBA.com search','ESPN search','Basketball-Reference search'], note:'Season-long numeric splits.' },
+  { key:'matchup', title:'Matchup context', live:true, sources:['StatMuse matchup search','news search'], note:'Opponent-specific context.' },
+  { key:'odds', title:'Market odds', live:true, sources:['Odds search','sportsbook search'], note:'Moneyline / game context.' },
   { key:'projection', title:'Projection source', live:false, sources:['Model / manual projection'], note:'Needed later for 2A math.' },
-  { key:'schedule', title:'Schedule / fatigue', live:false, sources:['Game log / schedule source'], note:'Rest and prior game cadence.' },
+  { key:'schedule', title:'Schedule / fatigue', live:true, sources:['Game log search','schedule search'], note:'Rest and prior game cadence.' },
   { key:'validation', title:'Prop-source validation', live:true, sources:['Ingested row'], note:'Parsed row identity and line are already grounded.' }
 ];
 
@@ -1416,19 +1416,6 @@ function renderAnalysis() {
     rowCard.innerHTML = '<div class="message">No row selected yet.</div>';
     miningGrid.innerHTML = '<div class="message">No data-mining matrix yet.</div>';
   } else if (row.leagueId === 'nba') {
-    hint.textContent = 'NBA row parsed correctly. NBA factor cards are scaffolded for source wiring.';
-    rowCard.innerHTML = rowCardHtml(row);
-    ensureNbaMining(row);
-    miningGrid.innerHTML = buildMiningStatus(row).map(card => `
-      <div class="mining-card">
-        <h3>${escapeHtml(card.title)}</h3>
-        <div class="mining-status ${card.status}">${card.status === 'ready' ? '✅' : card.status === 'failed' ? '❌' : '🟡'} ${escapeHtml(card.statusLabel)}</div>
-        <div class="mining-meta"><b>Sources:</b> ${escapeHtml(card.sourcesLabel)}</div>
-        <div class="mining-meta"><b>Purpose:</b> ${escapeHtml(card.note)}</div>
-        <div class="mining-meta"><b>Parsed result:</b> ${escapeHtml(card.parsedResult || '—')}</div>
-        <div class="mining-meta"><b>Evidence:</b> ${escapeHtml(card.evidence || '—')}</div>
-      </div>`).join('');
-  } else if (row.leagueId === 'nba') {
     hint.textContent = 'NBA live mining is now wired in debug mode. Some factors may succeed, others may fail, depending on source availability.';
     rowCard.innerHTML = rowCardHtml(row);
     ensureNbaMining(row);
@@ -1469,7 +1456,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.5.1`,
+    `Version: v5.5.2`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
