@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.6</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.7</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -175,8 +175,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.6</h1>
-          <p id="analysisVersion">Version: v5.7.6</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.7</h1>
+          <p id="analysisVersion">Version: v5.7.7</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -242,7 +242,7 @@ const LEAGUES = [
   { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
 ];
 
-const STORAGE_KEY = 'pickcalc-prompt1-v5-7-6';
+const STORAGE_KEY = 'pickcalc-prompt1-v5-7-7';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -1065,7 +1065,7 @@ function normalizeSearchHref(href='') {
 
 async function ddgSearch(query) {
   const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-  const html = await withTimeout(proxiedFetchText(url), 7000, 'search timeout');
+  const html = await withTimeout(proxiedFetchText(url), 4500, 'search timeout');
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const results = [];
   doc.querySelectorAll('.result').forEach((el) => {
@@ -1080,7 +1080,7 @@ async function ddgSearch(query) {
 
 async function bingSearch(query) {
   const url = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
-  const html = await withTimeout(proxiedFetchText(url), 7000, 'search timeout');
+  const html = await withTimeout(proxiedFetchText(url), 4500, 'search timeout');
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const results = [];
   doc.querySelectorAll('li.b_algo').forEach((el) => {
@@ -1474,7 +1474,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.6`,
+    `Version: v5.7.7`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1543,6 +1543,30 @@ function expandNbaTeamAbbr(abbr='') {
   return NBA_TEAM_ABBR[key] || norm(abbr);
 }
 
+function nbaPropSearchTerms(propFamily='') {
+  const prop = normalizeNbaPropFamily(propFamily);
+  const map = {
+    'points':['points','pts'],
+    'rebounds':['rebounds','rebs'],
+    'assists':['assists','asts'],
+    'pts+rebs':['pts+rebs','points rebounds','points+rebounds'],
+    'pts+asts':['pts+asts','points assists','points+assists'],
+    'rebs+asts':['rebs+asts','rebounds assists','rebounds+assists'],
+    'pra':['pra','pts+rebs+asts','points rebounds assists'],
+    '3pt made':['3ptm','3pm','3pt made','three pointers made','threes made'],
+    'fantasy score':['fantasy score','fantasy points'],
+    'blocks':['blocks','blks'],
+    'steals':['steals','stls'],
+    'blks+stls':['stocks','blocks steals','blks+stls'],
+    'turnovers':['turnovers','tos']
+  };
+  return map[prop] || [propFamily];
+}
+
+function primaryNbaPropSearchTerm(propFamily='') {
+  return nbaPropSearchTerms(propFamily)[0] || String(propFamily || '');
+}
+
 function nbaSearchNoise(blob='') {
   const c = canon(blob);
   return ['nfl','mlb','nhl','tennis','soccer','baseball','football'].some(x => c.includes(x));
@@ -1600,7 +1624,7 @@ function parseAmericanOddsPair(text='') {
 }
 
 function extractOddsFromText(text='') {
-  const nums = [...String(text || '').matchAll(/(?:\+[0-9]{3}|-[0-9]{3}|\d+\.\d{2})/g)].map(m => m[0]);
+  const nums = [...String(text || '').matchAll(/(?:\+[0-9]{3}|-[0-9]{3}|\b\d+\.\d{2}\b)/g)].map(m => m[0]);
   return [...new Set(nums)].slice(0, 4);
 }
 
@@ -1655,21 +1679,39 @@ function parseScheduleValue(text='') {
 }
 
 function parsePaceScore(text='') {
+  const c = canon(text || '');
   const rank = extractRank(text);
   if (rank) return rankToScore(rank, 30, true);
-  return parseKeywordWeightedScore(text, ['fast pace','up tempo','high pace','high possessions'], ['slow pace','low pace','fewer possessions'], 50, 14);
+  const numMatch = c.match(/([0-9]{2,3}(?:\.[0-9]+)?)\s*(?:pace|possessions?)/);
+  if (numMatch) {
+    const n = parseFloat(numMatch[1]);
+    if (Number.isFinite(n)) return Math.round(clampNumber((n - 90) * 5, 0, 100));
+  }
+  return parseKeywordWeightedScore(text, ['fast pace','up tempo','high pace','high possessions','top-10 pace'], ['slow pace','low pace','fewer possessions','bottom-10 pace'], 50, 14);
 }
 
 function parseOpponentDefenseScore(text='') {
+  const c = canon(text || '');
   const rank = extractRank(text);
   if (rank) return rankToScore(rank, 30, false);
-  return parseKeywordWeightedScore(text, ['allows','worst defense','bottom'], ['elite defense','best defense','top defense'], 50, 12);
+  const drtg = c.match(/defensive rating[^0-9]{0,12}([0-9]{2,3}(?:\.[0-9]+)?)/);
+  if (drtg) {
+    const n = parseFloat(drtg[1]);
+    if (Number.isFinite(n)) return Math.round(clampNumber((125 - n) * 5, 0, 100));
+  }
+  return parseKeywordWeightedScore(text, ['worst defense','bottom defense','allows most','weak defense','bottom-10 defense'], ['elite defense','best defense','top defense','top-10 defense','allows fewest'], 50, 12);
 }
 
 function parsePositionScore(text='') {
+  const c = canon(text || '');
   const rank = extractRank(text);
   if (rank) return rankToScore(rank, 30, false);
-  return parseKeywordWeightedScore(text, ['vs guards','vs forwards','vs centers','allowed'], ['shuts down','elite vs position','top vs position'], 50, 12);
+  const allowed = c.match(/allow(?:s|ed)?[^0-9]{0,20}([0-9]+(?:\.[0-9]+)?)/);
+  if (allowed) {
+    const n = parseFloat(allowed[1]);
+    if (Number.isFinite(n)) return Math.round(clampNumber(n * 3, 0, 100));
+  }
+  return parseKeywordWeightedScore(text, ['vs guards','vs forwards','vs centers','allowed','bottom-10 vs position'], ['shuts down','elite vs position','top vs position','top-10 vs position'], 50, 12);
 }
 
 function parseTeammateImpactScore(text='') {
@@ -1864,7 +1906,7 @@ function extractNumericMetric(text='', key='', row={}) {
   const prop = normalizeNbaPropFamily(row?.propFamily || '');
   const triple = extractStatTripleGeneric(src);
   const praTriple = triple || extractPRAFromText(src);
-  const averageContext = /per game|avg|average|averages|last\s+(?:5|10|20)\s+games|over\s+the\s+last|season|career|vs\b|matchup/.test(lower);
+  const averageContext = /per game|avg|average|averages|last\s+(?:5|10|20)\s+games|over\s+the\s+last|season|career|vs\b|matchup|split/.test(lower);
 
   if (prop === 'pra' && praTriple) return praTriple.pra;
   if (prop === 'pts+rebs' && praTriple) return +(praTriple.points + praTriple.rebounds).toFixed(1);
@@ -1879,9 +1921,7 @@ function extractNumericMetric(text='', key='', row={}) {
   } else if (prop === 'assists') {
     direct = triple ? triple.assists : (extractAverageStatValue(src, ['assists?', 'asts?']) ?? extractSingleStatValue(src, ['assists?', 'asts?']));
   } else if (prop === '3pt made') {
-    const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+(?:3-pointers?|three-pointers?|threes?)\s*(?:made)?/i)
-      || src.match(/(?:3ptm|3pm|3-pointers?|three-pointers?|threes?|3pt made)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
-    if (m) direct = parseFloat(m[1]);
+    direct = extractAverageStatValue(src, ['3ptm','3pm','3-pointers?','three-pointers?','threes?','3pt made']) ?? extractSingleStatValue(src, ['3ptm','3pm','3-pointers?','three-pointers?','threes?','3pt made']);
   } else if (prop === 'blocks') {
     const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+blocks?/i) || src.match(/(?:blocks?|blks?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
     if (m) direct = parseFloat(m[1]);
@@ -1904,14 +1944,14 @@ function extractNumericMetric(text='', key='', row={}) {
 
   if (direct != null) {
     if (['season','career','matchup','last5','last10','last20'].includes(key) && !averageContext && !triple) return null;
-    return direct;
+    return validateNbaMetricRange(prop, direct, key);
   }
 
   if (key === 'projection') {
     const generic = src.match(/(?:project(?:ed|ion)?|line)[^0-9]{0,16}([0-9]+(?:\.[0-9]+)?)/i);
-    if (generic) return parseFloat(generic[1]);
+    if (generic) return validateNbaMetricRange(prop, parseFloat(generic[1]), key);
     const fallback = src.match(/([0-9]+(?:\.[0-9]+)?)/);
-    return fallback ? parseFloat(fallback[1]) : null;
+    return fallback ? validateNbaMetricRange(prop, parseFloat(fallback[1]), key) : null;
   }
 
   return null;
@@ -1945,7 +1985,7 @@ function bestNbaResults(results, row, kind='') {
     const c = canon(blob);
     if (!parts.every(p => c.includes(p))) return false;
     if (nbaSearchNoise(blob)) return false;
-    const trustedGeneral = c.includes('nba') || c.includes('espn') || c.includes('statmuse') || c.includes('basketball') || c.includes('reference') || c.includes('rotowire') || c.includes('stokastic') || c.includes('numberfire') || c.includes('fantasy');
+    const trustedGeneral = c.includes('nba') || c.includes('espn') || c.includes('statmuse') || c.includes('basketball') || c.includes('reference') || c.includes('rotowire') || c.includes('stokastic') || c.includes('numberfire') || c.includes('fantasy') || c.includes('covers') || c.includes('teamrankings');
     const trustedOdds = c.includes('odds') || c.includes('sportsbook') || c.includes('covers') || c.includes('oddschecker') || c.includes('action network') || c.includes('draftkings') || c.includes('fanduel');
     if (!(trustedGeneral || (kind === 'odds' && trustedOdds))) return false;
     if (kind === 'matchup' && row.opponent) {
@@ -1953,14 +1993,13 @@ function bestNbaResults(results, row, kind='') {
       if (!oppOkay) return false;
     }
     if (kind === 'projection') {
-      if (!(c.includes('projection') || c.includes('projected') || c.includes('fantasy') || c.includes('rotowire') || c.includes('stokastic') || c.includes('numberfire'))) return false;
+      if (!(c.includes('projection') || c.includes('projected') || c.includes('fantasy') || c.includes('rotowire') || c.includes('stokastic') || c.includes('numberfire') || c.includes('line'))) return false;
     }
     if (kind === 'minutes') {
-      if (!(c.includes('minutes') || c.includes('projected') || c.includes('expected'))) return false;
+      if (!(c.includes('minutes') || c.includes('projected') || c.includes('expected') || c.includes('rotation'))) return false;
     }
     if (kind === 'odds') {
-      if (!(c.includes('odds') || c.includes('sportsbook') || c.includes('betting') || c.includes('moneyline'))) return false;
-      if (!extractOddsFromText(blob).length && !(c.includes('best odds') || c.includes('sportsbook'))) return false;
+      if (!(c.includes('odds') || c.includes('sportsbook') || c.includes('betting') || c.includes('moneyline') || c.includes('spread') || c.includes('covers'))) return false;
     }
     return true;
   });
@@ -2020,7 +2059,7 @@ function buildCoverageText(propFamily='') {
   const pending = allProps.includes(prop) ? [] : ['prop-specific refinement'];
   return `wired:${wired.join(',')} | pending:${pending.length ? pending.join(',') : 'none'}`;
 }
-async function mineNbaRow(row) {
+async function mineNbaRow(row, onUpdate) {
   const result = {};
   NBA_MINING_FACTORS.forEach(f => {
     result[f.key] = {
@@ -2037,25 +2076,26 @@ async function mineNbaRow(row) {
 
   const oppFull = expandNbaTeamAbbr(row.opponent || '');
   const teamFull = expandNbaTeamAbbr(row.team || '');
+  const propTerm = primaryNbaPropSearchTerm(row.propFamily);
   const queryPlans = {
-    last5: [`${row.entity} last 5 games ${row.propFamily} statmuse nba`, `${row.entity} last 5 games points rebounds assists statmuse nba`, `${row.entity} game log last 5 espn nba`],
-    last10: [`${row.entity} last 10 games ${row.propFamily} statmuse nba`, `${row.entity} last 10 games points rebounds assists statmuse nba`, `${row.entity} game log last 10 espn nba`],
-    last20: [`${row.entity} last 20 games ${row.propFamily} statmuse nba`, `${row.entity} last 20 games points rebounds assists statmuse nba`, `${row.entity} game log last 20 espn nba`],
-    season: [`${row.entity} season ${row.propFamily} statmuse nba`, `${row.entity} season averages points rebounds assists nba`, `${row.entity} season stats ${row.propFamily} espn nba`],
-    career: [`${row.entity} career ${row.propFamily} statmuse nba`, `${row.entity} career averages points rebounds assists nba`, `${row.entity} career stats ${row.propFamily} espn nba`],
-    matchup: [`${row.entity} vs ${oppFull || row.opponent} ${row.propFamily} statmuse nba`, `${row.entity} ${oppFull || row.opponent} points rebounds assists statmuse`, `${row.entity} ${oppFull || row.opponent} record nba`],
+    last5: [`${row.entity} last 5 games ${propTerm} statmuse nba`, `${row.entity} last 5 games points rebounds assists statmuse nba`, `${row.entity} game log last 5 espn nba`],
+    last10: [`${row.entity} last 10 games ${propTerm} statmuse nba`, `${row.entity} last 10 games points rebounds assists statmuse nba`, `${row.entity} game log last 10 espn nba`],
+    last20: [`${row.entity} last 20 games ${propTerm} statmuse nba`, `${row.entity} last 20 games points rebounds assists statmuse nba`, `${row.entity} game log last 20 espn nba`],
+    season: [`${row.entity} season ${propTerm} statmuse nba`, `${row.entity} season averages points rebounds assists nba`, `${row.entity} season stats ${propTerm} espn nba`],
+    career: [`${row.entity} career ${propTerm} statmuse nba`, `${row.entity} career averages points rebounds assists nba`, `${row.entity} career stats ${propTerm} espn nba`],
+    matchup: [`${row.entity} vs ${oppFull || row.opponent} ${propTerm} statmuse nba`, `${row.entity} ${oppFull || row.opponent} ${propTerm} nba`, `${row.entity} ${oppFull || row.opponent} statmuse nba`, `${row.entity} ${oppFull || row.opponent} record nba`],
     odds: [`${teamFull || row.team} vs ${oppFull || row.opponent} odds nba sportsbook`, `${teamFull || row.team} ${oppFull || row.opponent} betting odds nba`, `${teamFull || row.team} ${oppFull || row.opponent} draftkings moneyline`, `${teamFull || row.team} ${oppFull || row.opponent} fanduel moneyline`, `${teamFull || row.team} ${oppFull || row.opponent} oddschecker covers`],
-    projection: [`${row.entity} ${row.propFamily} projection today`, `${row.entity} projected ${row.propFamily} tonight nba`, `${row.entity} fantasy projection ${row.propFamily} nba`],
+    projection: [`${row.entity} ${propTerm} projection today`, `${row.entity} projected ${propTerm} tonight nba`, `${row.entity} fantasy projection ${propTerm} nba`],
     minutes: [`${row.entity} projected minutes tonight`, `${row.entity} minutes projection nba`, `${row.entity} expected minutes nba`],
     injury: [`${row.entity} injury report today nba`, `${row.entity} status today nba`, `${row.entity} probable questionable out nba`, `${teamFull || row.team} injury report nba today`, `${row.entity} nba official injury report`],
-    starters: [`${teamFull || row.team} starting lineup today nba`, `${row.entity} starting tonight nba`, `${teamFull || row.team} starters nba today`, `${teamFull || row.team} projected lineup nba`, `${row.entity} first five starter tonight nba`],
+    starters: [`${teamFull || row.team} starting lineup today nba`, `${row.entity} starting tonight nba`, `${teamFull || row.team} starters nba today`, `${teamFull || row.team} projected lineup nba`, `${row.entity} first five starter tonight nba`, `${teamFull || row.team} rotowire lineup nba`],
     schedule: [`${row.entity} recent games rest days nba`, `${row.entity} game log espn nba`, `${row.entity} schedule last games nba`],
-    pace: [`${teamFull || row.team} vs ${oppFull || row.opponent} pace nba`, `${teamFull || row.team} ${oppFull || row.opponent} possessions pace`, `${teamFull || row.team} team pace nba`],
+    pace: [`${teamFull || row.team} vs ${oppFull || row.opponent} pace nba`, `${teamFull || row.team} ${oppFull || row.opponent} possessions pace`, `${teamFull || row.team} team pace nba`, `${teamFull || row.team} pace teamrankings`, `${oppFull || row.opponent} pace teamrankings`],
     blowout: [`${teamFull || row.team} vs ${oppFull || row.opponent} spread nba`, `${teamFull || row.team} ${oppFull || row.opponent} moneyline spread`, `${teamFull || row.team} ${oppFull || row.opponent} betting line nba`],
-    oppdef: [`${oppFull || row.opponent} defense vs ${row.propFamily} nba`, `${oppFull || row.opponent} defensive rating nba`, `${oppFull || row.opponent} allowed ${row.propFamily} nba`],
-    position: [`${oppFull || row.opponent} vs ${row.entity} position ${row.propFamily} nba`, `${oppFull || row.opponent} vs position ${row.propFamily} nba`, `${oppFull || row.opponent} guards forwards centers allowed nba`],
+    oppdef: [`${oppFull || row.opponent} defense vs ${propTerm} nba`, `${oppFull || row.opponent} defensive rating nba`, `${oppFull || row.opponent} allowed ${propTerm} nba`, `${oppFull || row.opponent} defense teamrankings nba`, `${oppFull || row.opponent} points allowed nba`],
+    position: [`${oppFull || row.opponent} vs ${row.entity} position ${propTerm} nba`, `${oppFull || row.opponent} vs position ${propTerm} nba`, `${oppFull || row.opponent} guards forwards centers allowed nba`],
     teammates: [`${teamFull || row.team} injury report today nba teammates`, `${teamFull || row.team} starting lineup injuries nba`, `${row.entity} teammate injuries usage nba`],
-    homeaway: [`${row.entity} home away splits ${row.propFamily} nba`, `${row.entity} at home on road ${row.propFamily} nba`, `${row.entity} split stats ${row.propFamily} nba`],
+    homeaway: [`${row.entity} home away splits ${propTerm} nba`, `${row.entity} at home on road ${propTerm} nba`, `${row.entity} split stats ${propTerm} nba`],
     role: [`${row.entity} role usage rate nba`, `${row.entity} rotation role tonight nba`, `${row.entity} starter bench usage nba`]
   };
 
@@ -2063,7 +2103,7 @@ async function mineNbaRow(row) {
     let finalCard = null;
     for (const query of queries) {
       try {
-        const searched = await withTimeout(multiSearch(query), ['odds','injury','starters','matchup'].includes(key) ? 18000 : 12000, `${key} timeout`);
+        const searched = await withTimeout(multiSearch(query), ['odds','injury','starters','matchup'].includes(key) ? 9500 : 8000, `${key} timeout`);
         const picks = bestNbaResults(searched.results || [], row, key === 'projection' ? '' : key);
         if (!picks.length) continue;
         const top = picks.slice(0, 2);
@@ -2264,7 +2304,10 @@ async function ensureNbaMining(row) {
   renderAnalysis();
 
   try {
-    const mined = await mineNbaRow(row);
+    const mined = await mineNbaRow(row, (factorKey, card, current) => {
+      runtimeMiningCache[key] = { status:'loading', cards: NBA_MINING_FACTORS.map(f => current[f.key] || f) };
+      renderAnalysis();
+    });
     runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => mined[f.key] || f) };
   } catch (err) {
     runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => ({
@@ -2519,16 +2562,19 @@ function parseBlock(block, selectedIds) {
 
 function makeRow({ entity, team, opponent='', prop, line, leagueId, type, raw }) {
   const sport = findLeague(leagueId)?.sport || '';
-  const lineText = `${prop} ${line}`.trim();
+  const normProp = normalizeNbaPropFamily(prop);
+  const propDisplayMap = { '3pt made':'3PTM', 'pts+rebs+asts':'PRA', 'pra':'PRA', 'pts+rebs':'Pts+Rebs', 'pts+asts':'Pts+Asts', 'rebs+asts':'Rebs+Asts', 'fantasy score':'Fantasy Score', 'blks+stls':'Blks+Stls', 'points':'Points', 'rebounds':'Rebounds', 'assists':'Assists', 'blocks':'Blocks', 'steals':'Steals', 'turnovers':'Turnovers' };
+  const displayProp = propDisplayMap[normProp] || prop;
+  const lineText = `${displayProp} ${line}`.trim();
   return {
-    rowId: `${leagueId}|${canon(entity)}|${canon(team)}|${canon(prop)}|${line}|${type}`,
+    rowId: `${leagueId}|${canon(entity)}|${canon(team)}|${canon(displayProp)}|${line}|${type}`,
     sport,
     leagueId,
     entity: norm(entity),
     team: norm(team),
     opponent: norm(opponent),
-    propFamily: prop,
-    propKey: canon(prop),
+    propFamily: displayProp,
+    propKey: canon(displayProp),
     line,
     lineText,
     type,
