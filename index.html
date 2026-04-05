@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.5.4</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.6.0</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -175,8 +175,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.5.4</h1>
-          <p id="analysisVersion">Version: v5.5.4</p>
+          <h1 id="analysisTitle">Run Analysis v5.6.0</h1>
+          <p id="analysisVersion">Version: v5.6.0</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -267,15 +267,17 @@ const TENNIS_MINING_FACTORS = [
 ];
 
 const NBA_MINING_FACTORS = [
-  { key:'last5', title:'Last 5 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 5-game numeric block.' },
-  { key:'last10', title:'Last 10 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 10-game numeric block.' },
-  { key:'season', title:'Season history', live:true, sources:['NBA.com search','ESPN search','Basketball-Reference search'], note:'Season-long numeric splits.' },
-  { key:'matchup', title:'Matchup context', live:true, sources:['StatMuse matchup search','news search'], note:'Opponent-specific context.' },
+  { key:'last5', title:'Last 5 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 5-game PRA.' },
+  { key:'last10', title:'Last 10 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 10-game PRA.' },
+  { key:'last20', title:'Last 20 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 20-game PRA.' },
+  { key:'season', title:'Season history', live:true, sources:['NBA.com search','ESPN search','Basketball-Reference search'], note:'Season PRA.' },
+  { key:'career', title:'Career history', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Career PRA.' },
+  { key:'matchup', title:'Matchup context', live:true, sources:['StatMuse matchup search','news search'], note:'Opponent-specific PRA.' },
   { key:'odds', title:'Market odds', live:true, sources:['Odds search','sportsbook search'], note:'Moneyline / game context.' },
   { key:'projection', title:'Projection source', live:false, sources:['Model / manual projection'], note:'Needed later for 2A math.' },
   { key:'schedule', title:'Schedule / fatigue', live:true, sources:['Game log search','schedule search'], note:'Rest and prior game cadence.' },
   { key:'validation', title:'Prop-source validation', live:true, sources:['Ingested row'], note:'Parsed row identity and line are already grounded.' }
-];
+]
 
 const state = loadState();
 const PROP_LOOKUP = buildPropLookup();
@@ -1456,7 +1458,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.5.4`,
+    `Version: v5.6.0`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1542,27 +1544,25 @@ function extractPRAFromText(text='') {
   return { points:p, rebounds:r, assists:a, pra:(p+r+a) };
 }
 
-function extractSeasonTriplesFromText(text='') {
+function extractStatTripleGeneric(text='') {
   const src = String(text || '');
   const patterns = [
     /averag(?:ed|es)?\s+([0-9]+(?:\.[0-9]+)?)\s+points?,\s+([0-9]+(?:\.[0-9]+)?)\s+rebounds?\s+and\s+([0-9]+(?:\.[0-9]+)?)\s+assists?/i,
+    /has\s+averaged\s+([0-9]+(?:\.[0-9]+)?)\s+points?,\s+([0-9]+(?:\.[0-9]+)?)\s+rebounds?\s+and\s+([0-9]+(?:\.[0-9]+)?)\s+assists?/i,
     /([0-9]+(?:\.[0-9]+)?)\s+points?,\s+([0-9]+(?:\.[0-9]+)?)\s+rebounds?\s+and\s+([0-9]+(?:\.[0-9]+)?)\s+assists?/i
   ];
   for (const rx of patterns) {
     const m = src.match(rx);
     if (m) {
       const p = parseFloat(m[1]), r = parseFloat(m[2]), a = parseFloat(m[3]);
-      return { points:p, rebounds:r, assists:a, pra: +(p+r+a).toFixed(1) };
+      return { points:p, rebounds:r, assists:a, pra:+(p+r+a).toFixed(1) };
     }
   }
   return null;
 }
 
-function buildPraOnlyEvidence(label, triple, extra='') {
-  if (!triple) return extra || '';
-  const pra = typeof triple.pra === 'number' ? triple.pra : +(triple.points + triple.rebounds + triple.assists).toFixed(1);
-  const base = `${label} PRA ${pra}`;
-  return extra ? `${base} • ${extra}` : base;
+function extractSeasonTriplesFromText(text='') {
+  return extractStatTripleGeneric(text);
 }
 
 function extractOddsPairFromText(text='') {
@@ -1570,7 +1570,8 @@ function extractOddsPairFromText(text='') {
   const pairPatterns = [
     /best odds .*? are currently\s+([0-9]+(?:\.[0-9]+)?)\b.*?best odds .*? are currently\s+([0-9]+(?:\.[0-9]+)?)\b/i,
     /\b([0-9]+(?:\.[0-9]+)?)\s*\/\s*([0-9]+(?:\.[0-9]+)?)\b/,
-    /\b([+-]\d{3})\b[^\n]{0,80}?\b([+-]\d{3})\b/
+    /\b([+-]\d{3})\b[^\n]{0,80}?\b([+-]\d{3})\b/,
+    /\b([0-9]+(?:\.[0-9]+)?)\b[^\n]{0,40}?\b([0-9]+(?:\.[0-9]+)?)\b/
   ];
   for (const rx of pairPatterns) {
     const m = src.match(rx);
@@ -1635,10 +1636,20 @@ async function mineNbaRow(row) {
       `${row.entity} last 10 games points rebounds assists statmuse nba`,
       `${row.entity} game log last 10 espn nba`
     ],
+    last20: [
+      `${row.entity} last 20 games PRA statmuse nba`,
+      `${row.entity} last 20 games points rebounds assists statmuse nba`,
+      `${row.entity} game log last 20 espn nba`
+    ],
     season: [
       `${row.entity} season PRA statmuse nba`,
       `${row.entity} season averages points rebounds assists nba`,
       `${row.entity} season stats points rebounds assists espn nba`
+    ],
+    career: [
+      `${row.entity} career averages points rebounds assists nba`,
+      `${row.entity} career PRA statmuse nba`,
+      `${row.entity} career stats points rebounds assists espn nba`
     ],
     matchup: [
       `${row.entity} vs ${oppFull || row.opponent} PRA statmuse nba`,
@@ -1646,10 +1657,10 @@ async function mineNbaRow(row) {
       `${row.entity} ${oppFull || row.opponent} record nba`
     ],
     odds: [
-      `${teamFull || row.team} vs ${oppFull || row.opponent} odds nba`,
-      `${teamFull || row.team} ${oppFull || row.opponent} odds sportsbook`,
-      `${teamFull || row.team} ${oppFull || row.opponent} draftkings odds`,
-      `${teamFull || row.team} ${oppFull || row.opponent} fanduel odds`,
+      `${teamFull || row.team} vs ${oppFull || row.opponent} odds nba sportsbook`,
+      `${teamFull || row.team} ${oppFull || row.opponent} betting odds nba`,
+      `${teamFull || row.team} ${oppFull || row.opponent} draftkings moneyline`,
+      `${teamFull || row.team} ${oppFull || row.opponent} fanduel moneyline`,
       `${teamFull || row.team} ${oppFull || row.opponent} oddschecker covers`
     ],
     schedule: [
@@ -1669,32 +1680,41 @@ async function mineNbaRow(row) {
         const top = picks.slice(0, 2);
         const blob = top.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
         const recentTriples = extractPRAFromText(blob);
-        const seasonTriples = extractSeasonTriplesFromText(blob);
-        const odds = extractOddsFromText(blob);
-        let parsedResult = {
-          last5:'Recent 5-game evidence found',
-          last10:'Recent 10-game evidence found',
-          season:'Season evidence found',
-          matchup:'Matchup evidence found',
-          odds:'Market odds evidence found',
-          schedule:'Schedule / fatigue evidence found'
-        }[key] || 'Evidence found';
-        let evidence = top.map(r => cleanSnippet(r.snippet || r.title)).filter(Boolean).join(' • ');
+        const genericTriples = extractStatTripleGeneric(blob);
+        const oddsPair = extractOddsPairFromText(blob);
 
-        if ((key === 'last5' || key === 'last10') && recentTriples) {
-          parsedResult = `${key === 'last5' ? 'Last 5' : 'Last 10'} PRA found`;
-          evidence = buildPraOnlyEvidence(key === 'last5' ? 'Last 5' : 'Last 10', recentTriples, evidence);
-        }
-        if (key === 'season' && (seasonTriples || recentTriples)) {
-          const t = seasonTriples || recentTriples;
-          parsedResult = 'Season PRA found';
-          evidence = buildPraOnlyEvidence('Season', t, evidence);
-        }
-        if (key === 'odds') {
-          const pair = extractOddsPairFromText(blob);
-          if (!pair.length) continue;
-          parsedResult = `Market odds parsed: ${pair.join(', ')}`;
-          evidence = `Odds ${pair.join(' / ')}` + (evidence ? ` • ${evidence}` : '');
+        let parsedResult = '';
+        let evidence = '';
+
+        if (key === 'last5' && recentTriples) {
+          parsedResult = numericOnly(recentTriples.pra);
+          evidence = numericOnly(recentTriples.pra);
+        } else if (key === 'last10' && recentTriples) {
+          parsedResult = numericOnly(recentTriples.pra);
+          evidence = numericOnly(recentTriples.pra);
+        } else if (key === 'last20' && recentTriples) {
+          parsedResult = numericOnly(recentTriples.pra);
+          evidence = numericOnly(recentTriples.pra);
+        } else if (key === 'season' && (genericTriples || recentTriples)) {
+          const t = genericTriples || recentTriples;
+          parsedResult = numericOnly(t.pra);
+          evidence = numericOnly(t.pra);
+        } else if (key === 'career' && genericTriples) {
+          parsedResult = numericOnly(genericTriples.pra);
+          evidence = numericOnly(genericTriples.pra);
+        } else if (key === 'matchup' && (genericTriples || recentTriples)) {
+          const t = genericTriples || recentTriples;
+          parsedResult = numericOnly(t.pra);
+          evidence = numericOnly(t.pra);
+        } else if (key === 'odds' && oddsPair.length) {
+          parsedResult = oddsPair.join(', ');
+          evidence = oddsPair.join(', ');
+        } else if (key === 'schedule') {
+          const dateMatch = blob.match(/([A-Z][a-z]+\s+\d{1,2},\s+\d{4})/);
+          parsedResult = dateMatch ? dateMatch[1] : cleanSnippet(top[0]?.title || top[0]?.snippet || '');
+          evidence = parsedResult;
+        } else {
+          continue;
         }
 
         finalCard = {
@@ -1726,6 +1746,7 @@ async function mineNbaRow(row) {
   }
 
   return result;
+};
 }
 
 async function ensureNbaMining(row) {
@@ -2109,4 +2130,10 @@ bindActions();
 
 </script>
 </body>
-</html>
+</html>function numericOnly(value, digits=1) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return '';
+  const n = Number(value);
+  return Number.isInteger(n) ? String(n) : n.toFixed(digits).replace(/\.0$/, '.0');
+}
+
+
