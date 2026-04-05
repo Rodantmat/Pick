@@ -123,20 +123,13 @@ thead th { background:#121d35; position:sticky; top:0; }
 .mining-status.loading{color:#ffd36e}
 .mining-status.failed{color:#ff9aa7}
 
-.error-log-wrap { overflow:auto; border:1px solid var(--line); border-radius:18px; }
-.error-log { width:100%; border-collapse:collapse; min-width:760px; }
-.error-log th, .error-log td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
-.error-log thead th { background:#121d35; position:sticky; top:0; }
-.error-log .mono { font-family: ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; white-space:pre-wrap; word-break:break-word; }
-.timer-pill { color: var(--accent-2); }
-
 </style>
 </head>
 <body>
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.16</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.2</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -182,8 +175,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.16</h1>
-          <p id="analysisVersion">Version: v5.7.16</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.2</h1>
+          <p id="analysisVersion">Version: v5.7.2</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -203,21 +196,8 @@ thead th { background:#121d35; position:sticky; top:0; }
       </section>
 
       <section class="card">
-        <h2>Run Diagnostics</h2>
-        <div id="analysisDiagSummary" class="summary-pills"></div>
-        <div class="error-log-wrap">
-          <table class="error-log">
-            <thead>
-              <tr><th>Factor</th><th>Status</th><th>Query / Source</th><th>Error / Raw Evidence</th></tr>
-            </thead>
-            <tbody id="errorLogBody"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2 id="miningMatrixTitle">League Data-Mining Matrix</h2>
-        <p class="mini-muted">This screen is the external-data debug scaffold. It shows what the system should mine for one selected row. NBA factor wiring is live and should stay layout-safe before every release.</p>
+        <h2>Tennis Data-Mining Matrix</h2>
+        <p class="mini-muted">This screen is the external-data debug scaffold. It shows what the system should mine for one tennis row. Live source wiring can plug into these slots next.</p>
         <div id="miningGrid" class="mining-grid"></div>
       </section>
 
@@ -244,9 +224,9 @@ thead th { background:#121d35; position:sticky; top:0; }
   </div>
   <script>
 const LEAGUES = [
-  { id:'nba', label:'NBA', sport:'NBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
-  { id:'wnba', label:'WNBA', sport:'WNBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
-  { id:'cbb', label:'CBB', sport:'CBB', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
+  { id:'nba', label:'NBA', sport:'NBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Pts+Rebs+Asts','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
+  { id:'wnba', label:'WNBA', sport:'WNBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Pts+Rebs+Asts','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
+  { id:'cbb', label:'CBB', sport:'CBB', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Pts+Rebs+Asts','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
   { id:'nfl', label:'NFL', sport:'NFL', propCatalog:['Passing Yards','Rushing Yards','Receiving Yards','Receptions','Rush Attempts','Touchdowns'] },
   { id:'cfb', label:'CFB', sport:'CFB', propCatalog:['Passing Yards','Rushing Yards','Receiving Yards','Receptions','Rush Attempts','Touchdowns'] },
   { id:'mlb', label:'MLB', sport:'MLB', propCatalog:['Hits','Total Bases','Pitcher Strikeouts','Runs','RBIs','Outs Recorded','Home Runs','Hits Allowed'] },
@@ -262,7 +242,7 @@ const LEAGUES = [
   { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
 ];
 
-const STORAGE_KEY = 'pickcalc-prompt1-v5-7-16';
+const STORAGE_KEY = 'pickcalc-prompt1-v5-2-0';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -287,39 +267,21 @@ const TENNIS_MINING_FACTORS = [
 ];
 
 const NBA_MINING_FACTORS = [
-  { key:'last5', title:'Last 5 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 5-game prop average.' },
-  { key:'last10', title:'Last 10 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 10-game prop average.' },
-  { key:'last20', title:'Last 20 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 20-game prop average.' },
-  { key:'season', title:'Season history', live:true, sources:['NBA.com search','ESPN search','Basketball-Reference search'], note:'Season prop average.' },
-  { key:'career', title:'Career history', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Career prop average.' },
-  { key:'matchup', title:'Matchup context', live:true, sources:['StatMuse matchup search','news search'], note:'Opponent-specific prop average.' },
-  { key:'odds', title:'Market odds', live:true, sources:['Odds search','sportsbook search','Gemini structured fallback'], note:'Moneyline / game context.' },
-  { key:'projection', title:'Projection source', live:true, sources:['projection search','Gemini structured fallback'], note:'Projection number for the active prop.' },
-  { key:'minutes', title:'Projected minutes', live:true, sources:['minutes search','Gemini structured fallback'], note:'Projected or expected minutes.' },
-  { key:'injury', title:'Injury report score', live:true, sources:['injury report search','Gemini structured fallback'], note:'Availability / usage context score.' },
-  { key:'starters', title:'Starting lineup score', live:true, sources:['starting lineup search','Gemini structured fallback'], note:'Starter / lineup context score.' },
-  { key:'schedule', title:'Schedule / fatigue', live:true, sources:['Game log search','schedule search','Gemini structured fallback'], note:'Rest and prior game cadence.' },
-  { key:'pace', title:'Pace score', live:true, sources:['TeamRankings search','pace search','Gemini structured fallback'], note:'Tempo / possession environment score.' },
-  { key:'blowout', title:'Blowout risk score', live:true, sources:['Spread search','odds search','Gemini structured fallback'], note:'Spread-based game-script pressure score.' },
-  { key:'oppdef', title:'Opponent defense score', live:true, sources:['Defense search','NBA.com search','Gemini structured fallback'], note:'Opponent defensive resistance score.' },
-  { key:'position', title:'Vs-position score', live:true, sources:['Vs position search','StatMuse search','Gemini structured fallback'], note:'Position-specific opponent softness / toughness.' },
-  { key:'teammates', title:'Teammate impact score', live:true, sources:['Injury report search','lineup search','Gemini structured fallback'], note:'Teammate injuries / vacancy / usage-transfer score.' },
-  { key:'homeaway', title:'Home-away split score', live:true, sources:['Split stats search','StatMuse splits','Gemini structured fallback'], note:'Home / road split score.' },
-  { key:'role', title:'Role / usage score', live:true, sources:['Usage search','rotation search','Gemini structured fallback'], note:'Current role / usage / rotation score.' },
+  { key:'last5', title:'Last 5 games', live:true, sources:['ESPN JSON','Basketball-Reference','CBS Sports'], note:'Recent 5-game prop average.' },
+  { key:'last10', title:'Last 10 games', live:true, sources:['ESPN JSON','Basketball-Reference','CBS Sports'], note:'Recent 10-game prop average.' },
+  { key:'last20', title:'Last 20 games', live:true, sources:['ESPN JSON','Basketball-Reference','CBS Sports'], note:'Recent 20-game prop average.' },
+  { key:'season', title:'Season history', live:true, sources:['ESPN JSON','Basketball-Reference','CBS Sports'], note:'Season prop average.' },
+  { key:'career', title:'Career history', live:true, sources:['ESPN JSON','Basketball-Reference','CBS Sports'], note:'Career prop average.' },
+  { key:'matchup', title:'Matchup context', live:true, sources:['ESPN JSON','Basketball-Reference','search fallback'], note:'Opponent-specific prop average.' },
+  { key:'odds', title:'Market odds', live:true, sources:['DraftKings JSON','Bovada API','search fallback'], note:'Moneyline / game context.' },
+  { key:'projection', title:'Projection source', live:true, sources:['DraftKings JSON','line-based compute','search fallback'], note:'Projection number for the active prop.' },
+  { key:'minutes', title:'Projected minutes', live:true, sources:['ESPN JSON','gamelog compute','search fallback'], note:'Projected or expected minutes.' },
+  { key:'injury', title:'Injury report score', live:true, sources:['Internal compute','Rotowire','search fallback'], note:'Availability / usage context score.' },
+  { key:'starters', title:'Starting lineup score', live:true, sources:['Rotowire','Lineups.com','search fallback'], note:'Starter / lineup context score.' },
+  { key:'schedule', title:'Schedule / fatigue', live:true, sources:['ESPN JSON','internal compute','search fallback'], note:'Rest and prior game cadence.' },
   { key:'coverage', title:'Factor coverage', live:false, sources:['Internal factor map'], note:'Which NBA factors are wired vs pending.' },
   { key:'validation', title:'Prop-source validation', live:true, sources:['Ingested row'], note:'Parsed row identity and line are already grounded.' }
-];
-
-const DISPLAY_PROP_ALIASES = {
-  '3PT Made':['3pt made','3ptm','3pm','3pt','3-pointers made','three-pointers made','threes'],
-  'Pts+Rebs+Asts':['pts+rebs+asts','pra'],
-  'Pts+Rebs':['pts+rebs','points+rebounds','pts rebounds'],
-  'Pts+Asts':['pts+asts','points+assists','pts assists'],
-  'Rebs+Asts':['rebs+asts','rebounds+assists','rebs assists'],
-  'Blks+Stls':['blks+stls','stocks','blocks+steals'],
-  'Fantasy Score':['fantasy score','fantasy points','fantasy'],
-  'Turnovers':['turnovers','tos']
-};
+]
 
 const state = loadState();
 const PROP_LOOKUP = buildPropLookup();
@@ -369,13 +331,20 @@ function escapeHtml(s='') {
 function canon(s='') { return norm(s).toLowerCase(); }
 
 function buildPropLookup() {
+  const aliasMap = {
+    '3PT Made':['3pt made','3ptm','3pm','3pt','threes','three pointers made','three-pointers made'],
+    'Pts+Rebs':['pts+rebs','points+rebounds','pr'],
+    'Pts+Asts':['pts+asts','points+assists','pa'],
+    'Rebs+Asts':['rebs+asts','rebounds+assists','ra'],
+    'PRA':['pra','pts+rebs+asts','points+rebounds+assists','points rebs asts'],
+    'Fantasy Score':['fantasy score','fantasy points','fantasy'],
+    'Blks+Stls':['blks+stls','blocks+steals','stocks']
+  };
   const entries = [];
   for (const league of LEAGUES) {
     for (const prop of league.propCatalog) {
-      const aliasKeys = [canon(prop), ...((DISPLAY_PROP_ALIASES[prop] || []).map(canon))];
-      [...new Set(aliasKeys)].forEach((key) => {
-        entries.push({ leagueId: league.id, prop, key });
-      });
+      const keys = [canon(prop), ...((aliasMap[prop] || []).map(canon))];
+      [...new Set(keys)].forEach(key => entries.push({ leagueId: league.id, prop, key }));
     }
   }
   entries.sort((a,b)=> b.key.length - a.key.length || b.prop.length - a.prop.length);
@@ -384,14 +353,6 @@ function buildPropLookup() {
 
 function findLeague(id){ return LEAGUES.find(x=>x.id===id); }
 function selectedLeagues(){ return state.selectedLeagueIds.map(findLeague).filter(Boolean); }
-
-function canonicalCatalogPropKey(leagueId, prop='') {
-  const c = canon(prop);
-  const exact = PROP_LOOKUP.find(x => x.leagueId === leagueId && x.key === c);
-  if (exact) return canon(exact.prop);
-  if (['nba','wnba','cbb'].includes(leagueId)) return normalizeNbaPropFamily(prop);
-  return c;
-}
 
 function activeRow() {
   return state.cleanedRows.find(r => r.rowId === state.activeRowId) || state.cleanedRows[0] || null;
@@ -464,7 +425,7 @@ function renderFeedStatus() {
   wrap.innerHTML = selectedLeagues().map(league => {
     const count = state.cleanedRows.filter(r => r.leagueId === league.id).length;
     const chips = league.propCatalog.map(prop => {
-      const key = canonicalCatalogPropKey(league.id, prop);
+      const key = canon(prop);
       const n = fed[league.id]?.[key] || 0;
       return `<div class="prop-chip ${n > 0 ? 'prop-fed':'prop-missing'}"><span>${n > 0 ? '✅':'❌'}</span><span>${escapeHtml(prop)}</span><small>${n}</small></div>`;
     }).join('');
@@ -532,29 +493,20 @@ async function withTimeout(promise, ms, label='timeout') {
   }
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-const DIRECT_FETCH_CACHE = Object.create(null);
-
-async function cachedTextFetch(cacheKey, url) {
-  if (DIRECT_FETCH_CACHE[cacheKey]) return DIRECT_FETCH_CACHE[cacheKey];
-  const promise = proxiedFetchText(url).catch(err => { delete DIRECT_FETCH_CACHE[cacheKey]; throw err; });
-  DIRECT_FETCH_CACHE[cacheKey] = promise;
-  return promise;
-}
+const FETCH_TIMEOUT_MS = 10000;
+const SEARCH_TIMEOUT_MS = 5000;
+const RETRY_BACKOFF_MS = 650;
 
 async function proxiedFetchText(url) {
   const tries = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    `https://r.jina.ai/http://${url.replace(/^https?:\/\//,'')}`
+    { target:url },
+    { target:`https://r.jina.ai/http://${url.replace(/^https?:\/\//,'')}` },
+    { target:`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` }
   ];
   let lastErr = null;
   for (let i = 0; i < tries.length; i += 1) {
-    const target = tries[i];
     try {
-      const res = await withTimeout(fetch(target, { method:'GET', cache:'no-store' }), FETCH_TIMEOUT_MS, 'fetch timeout');
+      const res = await withTimeout(fetch(tries[i].target, { method:'GET', cache:'no-store', headers:{ 'User-Agent':'Mozilla/5.0' } }), FETCH_TIMEOUT_MS, 'fetch timeout');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const txt = await res.text();
       if (!txt || !String(txt).trim()) throw new Error('empty response');
@@ -562,7 +514,8 @@ async function proxiedFetchText(url) {
     } catch (err) {
       lastErr = err;
       const msg = String(err && err.message || err || '');
-      if (i < tries.length - 1) await sleep(msg.includes('429') ? RETRY_BACKOFF_MS : 180);
+      if (msg.includes('429')) await sleep(RETRY_BACKOFF_MS * 2);
+      else if (i < tries.length - 1) await sleep(180);
     }
   }
   throw lastErr || new Error('fetch failed');
@@ -706,7 +659,7 @@ async function findTennisExplorerProfile(row) {
   ];
   for (const item of queries) {
     try {
-      const searched = await withTimeout(multiSearch(item.q), SEARCH_TIMEOUT_MS, 'search timeout');
+      const searched = await withTimeout(multiSearch(item.q), 10000, 'search timeout');
       for (const r of (searched.results || [])) {
         const href = normalizeSearchHref(r.href || '');
         const blob = cleanSnippet(`${r.title || ''} ${r.snippet || ''} ${href}`);
@@ -1138,55 +1091,18 @@ async function bingSearch(query) {
   return results.slice(0, 5);
 }
 
-async function startpageSearch(query) {
-  const url = `https://www.startpage.com/sp/search?query=${encodeURIComponent(query)}`;
-  const html = await withTimeout(proxiedFetchText(url), SEARCH_TIMEOUT_MS, 'search timeout');
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const results = [];
-  doc.querySelectorAll('a').forEach((a) => {
-    const href = normalizeSearchHref(a.href || '');
-    const title = cleanSnippet(a.textContent || '');
-    if (!href || !title) return;
-    if (!/^https?:/i.test(href)) return;
-    if (/startpage\.com/i.test(href)) return;
-    const block = a.closest('div') || a.parentElement;
-    const snippet = cleanSnippet(block?.textContent || '');
-    results.push({ title, snippet, href });
-  });
-  return results.slice(0, 5);
-}
-
-async function yahooSearch(query) {
-  const url = `https://search.yahoo.com/search?p=${encodeURIComponent(query)}`;
-  const html = await withTimeout(proxiedFetchText(url), SEARCH_TIMEOUT_MS, 'search timeout');
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const results = [];
-  doc.querySelectorAll('div#web ol li, div.algo, li').forEach((el) => {
-    const a = el.querySelector('a');
-    const href = normalizeSearchHref(a?.href || '');
-    const title = cleanSnippet(a?.textContent || '');
-    const snippet = cleanSnippet(el.textContent || '');
-    if (title || snippet) results.push({ title, snippet, href });
-  });
-  return results.slice(0, 5);
-}
-
 async function multiSearch(query) {
   const providers = [
     { name: 'ddg', fn: ddgSearch },
-    { name: 'startpage', fn: startpageSearch },
     { name: 'bing', fn: bingSearch }
   ];
   let lastErr = null;
-  for (let i = 0; i < providers.length; i += 1) {
-    const p = providers[i];
+  for (const p of providers) {
     try {
-      const res = await withTimeout(p.fn(query), PROVIDER_SEARCH_TIMEOUT_MS, `${p.name} timeout`);
+      const res = await p.fn(query);
       if (res && res.length) return { provider: p.name, results: res };
     } catch (err) {
       lastErr = err;
-      const msg = String(err && err.message || err || '');
-      if (i < providers.length - 1) await sleep(msg.includes('429') ? RETRY_BACKOFF_MS : SEARCH_COOLDOWN_MS);
     }
   }
   if (lastErr) throw lastErr;
@@ -1272,7 +1188,7 @@ async function mineTennisRow(row) {
   let teRows = [];
   if (teProfile.ok && teProfile.href) {
     try {
-      const teHtml = await withTimeout(proxiedFetchText(teProfile.href), SEARCH_TIMEOUT_MS, 'te fetch timeout');
+      const teHtml = await withTimeout(proxiedFetchText(teProfile.href), 12000, 'te fetch timeout');
       teRows = parseTennisExplorerRecentRowsFromPage(teHtml, row.entity);
     } catch (err) {}
   }
@@ -1432,7 +1348,7 @@ async function ensureTennisMining(row) {
   const existing = runtimeMiningCache[key];
   if (existing && (existing.status === 'done' || existing.status === 'loading')) return;
 
-  runtimeMiningCache[key] = { status:'loading', diagnostics:{ startedAt: Date.now(), endedAt:null, entries:[] }, cards: TENNIS_MINING_FACTORS.map(f => ({
+  runtimeMiningCache[key] = { status:'loading', cards: TENNIS_MINING_FACTORS.map(f => ({
     ...f,
     status: f.key === 'validation' ? 'ready' : (f.live ? 'loading' : 'waiting'),
     statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : (f.live ? 'Loading live probe...' : 'Source wiring next'),
@@ -1444,11 +1360,8 @@ async function ensureTennisMining(row) {
 
   try {
     const mined = await mineTennisRow(row);
-    const existing = runtimeMiningCache[key] || {};
-    runtimeMiningCache[key] = { status:'done', cards: TENNIS_MINING_FACTORS.map(f => mined[f.key] || f), diagnostics: existing.diagnostics || { startedAt: Date.now(), endedAt:null, entries:[] } };
-    finishDiag(runtimeMiningCache[key]);
+    runtimeMiningCache[key] = { status:'done', cards: TENNIS_MINING_FACTORS.map(f => mined[f.key] || f) };
   } catch (err) {
-    const existing = runtimeMiningCache[key] || {};
     runtimeMiningCache[key] = { status:'done', cards: TENNIS_MINING_FACTORS.map(f => ({
       ...f,
       status: f.key === 'validation' ? 'ready' : 'failed',
@@ -1456,64 +1369,27 @@ async function ensureTennisMining(row) {
       sourcesLabel: f.sources.join(' • '),
       parsedResult: f.key === 'validation' ? `${row.entity} • ${row.propFamily} ${row.line}` : 'Mining failed.',
       evidence: f.key === 'validation' ? 'Parsed from ingested row' : String(err && err.message || err)
-    })), diagnostics: existing.diagnostics || { startedAt: Date.now(), endedAt:null, entries:[] } };
-    upsertDiagEntry(runtimeMiningCache[key], { factorKey:'run', factorTitle:'Run', status:'failed', stage:'run', query:'mineNbaRow', detail:String(err && err.message || err), raw:'' });
-    finishDiag(runtimeMiningCache[key]);
+    })) };
   }
   renderAnalysis();
 }
 
-
-
-const SEARCH_TIMEOUT_MS = 14000;
-const FETCH_TIMEOUT_MS = 11000;
-const PROVIDER_SEARCH_TIMEOUT_MS = 4000;
-const SEARCH_COOLDOWN_MS = 120;
-const RETRY_BACKOFF_MS = 600;
-
-function ensureDiagState(cacheEntry) {
-  if (!cacheEntry.diagnostics) cacheEntry.diagnostics = { startedAt: Date.now(), endedAt: null, entries: [] };
-  return cacheEntry.diagnostics;
-}
-
-function upsertDiagEntry(cacheEntry, payload) {
-  const diag = ensureDiagState(cacheEntry);
-  const idx = diag.entries.findIndex(x => x.factorKey === payload.factorKey && x.query === payload.query && x.stage === payload.stage);
-  const entry = {
-    factorKey: payload.factorKey || '',
-    factorTitle: payload.factorTitle || payload.factorKey || '',
-    status: payload.status || 'info',
-    query: payload.query || '',
-    provider: payload.provider || '',
-    stage: payload.stage || 'probe',
-    detail: payload.detail || '',
-    raw: payload.raw || ''
-  };
-  if (idx >= 0) diag.entries[idx] = entry;
-  else diag.entries.push(entry);
-}
-
-function finishDiag(cacheEntry) {
-  const diag = ensureDiagState(cacheEntry);
-  diag.endedAt = Date.now();
-}
-
-function formatDiagElapsed(diag) {
-  if (!diag || !diag.startedAt) return '0.0s';
-  const end = diag.endedAt || Date.now();
-  return ((end - diag.startedAt) / 1000).toFixed(1) + 's';
-}
-
-function buildDiagView(row) {
+function ensureNbaMining(row) {
+  if (!row || row.leagueId !== 'nba') return;
   const key = cacheKeyForRow(row);
-  const cached = runtimeMiningCache[key] || {};
-  const diag = cached.diagnostics || { startedAt:null, endedAt:null, entries:[] };
-  return {
-    elapsed: formatDiagElapsed(diag),
-    total: diag.entries.length,
-    failed: diag.entries.filter(x => x.status === 'failed').length,
-    entries: diag.entries.slice().reverse()
-  };
+  if (runtimeMiningCache[key]?.cards?.length) return;
+  runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => ({
+    ...f,
+    status: f.key === 'validation' ? 'ready' : (f.live ? 'loading' : 'waiting'),
+    statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : 'Source wiring next',
+    sourcesLabel: f.sources.join(' • '),
+    parsedResult: f.key === 'validation'
+      ? `${row.entity} • ${row.propFamily} ${row.line}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • team ${row.team}` : ''}`
+      : 'NBA mining field scaffolded.',
+    evidence: f.key === 'validation'
+      ? 'Parsed from ingested row'
+      : 'NBA factor slot is ready for league-specific source wiring.'
+  })) };
 }
 
 function buildMiningStatus(row) {
@@ -1553,15 +1429,6 @@ function renderAnalysis() {
   const rowCard = document.getElementById('analysisRowCard');
   const miningGrid = document.getElementById('miningGrid');
   const analysisBody = document.getElementById('analysisResultsBody');
-  const miningMatrixTitle = document.getElementById('miningMatrixTitle');
-  const analysisDiagSummary = document.getElementById('analysisDiagSummary');
-  const errorLogBody = document.getElementById('errorLogBody');
-
-  if (miningMatrixTitle) {
-    miningMatrixTitle.textContent = row
-      ? `${findLeague(row.leagueId)?.label || row.leagueId} Data-Mining Matrix`
-      : 'League Data-Mining Matrix';
-  }
 
   summary.innerHTML = `
     <div class="pill">Day: ${escapeHtml(state.dayScope)}</div>
@@ -1606,24 +1473,6 @@ function renderAnalysis() {
       </div>`).join('');
   }
 
-  const diagView = row ? buildDiagView(row) : { elapsed:'0.0s', total:0, failed:0, entries:[] };
-  if (analysisDiagSummary) {
-    analysisDiagSummary.innerHTML = `
-      <div class="pill timer-pill">Run timer: ${escapeHtml(diagView.elapsed)}</div>
-      <div class="pill">Log entries: ${diagView.total}</div>
-      <div class="pill">Failures: ${diagView.failed}</div>
-    `;
-  }
-  if (errorLogBody) {
-    errorLogBody.innerHTML = diagView.entries.length ? diagView.entries.map(entry => `
-      <tr>
-        <td>${escapeHtml(entry.factorTitle || entry.factorKey)}</td>
-        <td>${escapeHtml(entry.status)}</td>
-        <td class="mono">${escapeHtml([entry.query, entry.provider].filter(Boolean).join(' • ')) || '—'}</td>
-        <td class="mono">${escapeHtml(entry.detail || entry.raw || '—')}</td>
-      </tr>`).join('') : '<tr><td colspan="4" class="empty">No diagnostics yet.</td></tr>';
-  }
-
   analysisBody.innerHTML = resultsRowsHtml(state.cleanedRows, true);
   bindRowSelection('analysisResultsBody');
 }
@@ -1633,7 +1482,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.16`,
+    `Version: v5.7.2`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1702,30 +1551,6 @@ function expandNbaTeamAbbr(abbr='') {
   return NBA_TEAM_ABBR[key] || norm(abbr);
 }
 
-function nbaPropSearchTerms(propFamily='') {
-  const prop = normalizeNbaPropFamily(propFamily);
-  const map = {
-    'points':['points','pts'],
-    'rebounds':['rebounds','rebs'],
-    'assists':['assists','asts'],
-    'pts+rebs':['pts+rebs','points rebounds','points+rebounds'],
-    'pts+asts':['pts+asts','points assists','points+assists'],
-    'rebs+asts':['rebs+asts','rebounds assists','rebounds+assists'],
-    'pra':['pra','pts+rebs+asts','points rebounds assists'],
-    '3pt made':['3ptm','3pm','3pt made','three pointers made','threes made'],
-    'fantasy score':['fantasy score','fantasy points'],
-    'blocks':['blocks','blks'],
-    'steals':['steals','stls'],
-    'blks+stls':['stocks','blocks steals','blks+stls'],
-    'turnovers':['turnovers','tos']
-  };
-  return map[prop] || [propFamily];
-}
-
-function primaryNbaPropSearchTerm(propFamily='') {
-  return nbaPropSearchTerms(propFamily)[0] || String(propFamily || '');
-}
-
 function nbaSearchNoise(blob='') {
   const c = canon(blob);
   return ['nfl','mlb','nhl','tennis','soccer','baseball','football'].some(x => c.includes(x));
@@ -1777,375 +1602,6 @@ function buildPraOnlyEvidence(label, triple, extra='') {
   return extra ? `${base} • ${extra}` : base;
 }
 
-
-function parseAmericanOddsPair(text='') {
-  return [...new Set((String(text || '').match(/(?:\+[0-9]{3}|-[0-9]{3})/g) || []))].slice(0, 2);
-}
-
-function extractOddsFromText(text='') {
-  const nums = [...String(text || '').matchAll(/(?:\+[0-9]{3}|-[0-9]{3}|\b\d+\.\d{2}\b)/g)].map(m => m[0]);
-  return [...new Set(nums)].slice(0, 4);
-}
-
-function parseMinutesValue(text='') {
-  const src = String(text || '');
-  const patterns = [
-    /(?:projected|expected|around|about)\s+([0-9]{1,2}(?:\.[0-9])?)\s+minutes?/i,
-    /([0-9]{1,2}(?:\.[0-9])?)\s+minutes?/i,
-    /minutes?[^0-9]{0,16}([0-9]{1,2}(?:\.[0-9])?)/i,
-    /rotation[^0-9]{0,16}([0-9]{1,2}(?:\.[0-9])?)/i
-  ];
-  for (const rx of patterns) {
-    const m = src.match(rx);
-    if (!m) continue;
-    const n = parseFloat(m[1]);
-    if (Number.isFinite(n) && n >= 0 && n <= 48) return n;
-  }
-  return null;
-}
-
-function parseInjuryScore(text='') {
-  const c = canon(text || '');
-  if (!c) return null;
-  if (/\bout\b|ruled out|inactive|won't play|will not play/.test(c)) return 0;
-  if (/doubtful/.test(c)) return 20;
-  if (/questionable|game[- ]time decision/.test(c)) return 45;
-  if (/probable/.test(c)) return 85;
-  if (/available|active|starting|will play|good to go|cleared/.test(c)) return 100;
-  return null;
-}
-
-function parseStarterScore(text='') {
-  const c = canon(text || '');
-  if (!c) return null;
-  if (/\bstart(?:er|ing)?\b|expected to start|will start|first unit/.test(c)) return 100;
-  if (/bench|reserve|second unit/.test(c)) return 35;
-  if (/game[- ]time|unknown|unclear/.test(c)) return 50;
-  return null;
-}
-
-function parseScheduleValue(text='') {
-  const c = canon(text || '');
-  if (!c) return null;
-  if (/back[- ]to[- ]back|second night of a back[- ]to[- ]back|played yesterday/.test(c)) return 0;
-  const restMatch = c.match(/(\d+)\s*(?:day|days)\s*rest/);
-  if (restMatch) return Math.min(parseInt(restMatch[1], 10), 5);
-  if (/two days off|two days rest/.test(c)) return 2;
-  if (/one day off|one day rest/.test(c)) return 1;
-  if (/three days off|three days rest/.test(c)) return 3;
-  if (/four days off|four days rest/.test(c)) return 4;
-  if (/five days off|five days rest/.test(c)) return 5;
-  if (/tonight/.test(c) && /yesterday|last night/.test(c)) return 0;
-  return null;
-}
-
-function parsePaceScore(text='') {
-  const c = canon(text || '');
-  const rank = extractRank(text);
-  if (rank) return rankToScore(rank, 30, true);
-  const numMatch = c.match(/([0-9]{2,3}(?:\.[0-9]+)?)\s*(?:pace|possessions?)/);
-  if (numMatch) {
-    const n = parseFloat(numMatch[1]);
-    if (Number.isFinite(n)) return Math.round(clampNumber((n - 90) * 5, 0, 100));
-  }
-  return parseKeywordWeightedScore(text, ['fast pace','up tempo','high pace','high possessions','top-10 pace'], ['slow pace','low pace','fewer possessions','bottom-10 pace'], 50, 14);
-}
-
-function parseOpponentDefenseScore(text='') {
-  const c = canon(text || '');
-  const rank = extractRank(text);
-  if (rank) return rankToScore(rank, 30, false);
-  const drtg = c.match(/defensive rating[^0-9]{0,12}([0-9]{2,3}(?:\.[0-9]+)?)/);
-  if (drtg) {
-    const n = parseFloat(drtg[1]);
-    if (Number.isFinite(n)) return Math.round(clampNumber((125 - n) * 5, 0, 100));
-  }
-  return parseKeywordWeightedScore(text, ['worst defense','bottom defense','allows most','weak defense','bottom-10 defense'], ['elite defense','best defense','top defense','top-10 defense','allows fewest'], 50, 12);
-}
-
-function parsePositionScore(text='') {
-  const c = canon(text || '');
-  const rank = extractRank(text);
-  if (rank) return rankToScore(rank, 30, false);
-  const allowed = c.match(/allow(?:s|ed)?[^0-9]{0,20}([0-9]+(?:\.[0-9]+)?)/);
-  if (allowed) {
-    const n = parseFloat(allowed[1]);
-    if (Number.isFinite(n)) return Math.round(clampNumber(n * 3, 0, 100));
-  }
-  return parseKeywordWeightedScore(text, ['vs guards','vs forwards','vs centers','allowed','bottom-10 vs position'], ['shuts down','elite vs position','top vs position','top-10 vs position'], 50, 12);
-}
-
-function parseTeammateImpactScore(text='') {
-  const c = canon(text || '');
-  if (!c) return null;
-  let score = 50;
-  if (/out|inactive|questionable|doubtful/.test(c)) score += 18;
-  if (/starting|starter|starting lineup/.test(c)) score += 8;
-  if (/healthy|full strength|available/.test(c)) score -= 10;
-  if (/usage|opportunity|expanded role/.test(c)) score += 10;
-  return Math.round(clampNumber(score, 0, 100));
-}
-
-function parseHomeAwayScore(text='') {
-  const src = String(text || '');
-  const c = canon(src);
-  const avgMatch = src.match(/(?:home|road|away)[^0-9]{0,24}([0-9]+(?:\.[0-9]+)?)/i);
-  if (avgMatch) {
-    const n = parseFloat(avgMatch[1]);
-    if (Number.isFinite(n)) return Math.round(clampNumber(50 + ((n - 5) * 6), 0, 100));
-  }
-  return parseKeywordWeightedScore(c, ['better at home','strong at home','better on the road'], ['poor at home','poor on the road'], 50, 10);
-}
-
-function parseRoleScore(text='') {
-  return parseKeywordWeightedScore(text, ['starter','starting','heavy minutes','high usage','starting unit','lead guard','lead role'], ['bench','reserve','limited minutes','minutes restriction','role reduced'], 50, 14);
-}
-
-function normalizeNbaPropFamily(prop='') {
-  const c = canon(prop || '');
-  const map = {
-    'points':'points',
-    'rebounds':'rebounds',
-    'assists':'assists',
-    'pts+rebs':'pts+rebs',
-    'points+rebounds':'pts+rebs',
-    'pts rebounds':'pts+rebs',
-    'pts+asts':'pts+asts',
-    'points+assists':'pts+asts',
-    'pts assists':'pts+asts',
-    'rebs+asts':'rebs+asts',
-    'rebounds+assists':'rebs+asts',
-    'rebs assists':'rebs+asts',
-    'pra':'pra',
-    'pts+rebs+asts':'pra',
-    'points+rebounds+assists':'pra',
-    '3pt made':'3pt made',
-    '3ptm':'3pt made',
-    '3pm':'3pt made',
-    '3pt':'3pt made',
-    '3-pointers made':'3pt made',
-    'three-pointers made':'3pt made',
-    'threes':'3pt made',
-    'fantasy score':'fantasy score',
-    'fantasy points':'fantasy score',
-    'fantasy':'fantasy score',
-    'blocks':'blocks',
-    'steals':'steals',
-    'blks+stls':'blks+stls',
-    'stocks':'blks+stls',
-    'blocks+steals':'blks+stls',
-    'turnovers':'turnovers',
-    'tos':'turnovers'
-  };
-  return map[c] || c;
-}
-
-function validateNbaMetricRange(prop='', value=null, key='') {
-  const n = Number(value);
-  if (!Number.isFinite(n) || n < 0) return null;
-  const family = normalizeNbaPropFamily(prop);
-  const maxMap = {
-    'points': 80,
-    'rebounds': 30,
-    'assists': 20,
-    'pts+rebs': 95,
-    'pts+asts': 95,
-    'rebs+asts': 45,
-    'pra': 115,
-    '3pt made': 10,
-    'fantasy score': 90,
-    'blocks': 8,
-    'steals': 8,
-    'blks+stls': 12,
-    'turnovers': 10
-  };
-  let maxAllowed = maxMap[family] || 120;
-  if (key === 'projection') maxAllowed *= 1.1;
-  if (key === 'career') maxAllowed *= 1.15;
-  if (key === 'matchup') maxAllowed *= 1.15;
-  if (family === '3pt made' && ['season','career','last5','last10','last20','matchup','projection'].includes(key) && n > 8) return null;
-  if (family === 'turnovers' && n > 8) return null;
-  if (n > maxAllowed) return null;
-  return +n.toFixed(1);
-}
-
-const NBA_PROP_ALIAS_MAP = {
-  'points': ['points?', 'pts'],
-  'rebounds': ['rebounds?', 'rebs?'],
-  'assists': ['assists?', 'asts?'],
-  'pts+rebs': ['points?', 'pts', 'rebounds?', 'rebs?'],
-  'pts+asts': ['points?', 'pts', 'assists?', 'asts?'],
-  'rebs+asts': ['rebounds?', 'rebs?', 'assists?', 'asts?'],
-  'pra': ['points?', 'pts', 'rebounds?', 'rebs?', 'assists?', 'asts?'],
-  '3pt made': ['3-pointers? made', 'three-pointers? made', 'threes?', '3pt made'],
-  'fantasy score': ['fantasy points?', 'fantasy score'],
-  'blocks': ['blocks?', 'blks?'],
-  'steals': ['steals?', 'stls?'],
-  'blks+stls': ['blocks?', 'blks?', 'steals?', 'stls?', 'stocks?'],
-  'turnovers': ['turnovers?', 'tos?']
-};
-
-function clampNumber(n, min, max) {
-  return Math.max(min, Math.min(max, n));
-}
-
-function rankToScore(rank, total=30, invert=false) {
-  const n = Number(rank);
-  if (!Number.isFinite(n) || n <= 0) return null;
-  const bounded = clampNumber(n, 1, total);
-  const raw = invert ? ((total - bounded) / (total - 1)) : ((bounded - 1) / (total - 1));
-  return Math.round(clampNumber(raw * 100, 0, 100));
-}
-
-function extractRank(text='') {
-  const src = String(text || '');
-  const patterns = [
-    /\b([1-9]|[12][0-9]|30)(?:st|nd|rd|th)\b/i,
-    /rank(?:ed|ing)?[^0-9]{0,12}([1-9]|[12][0-9]|30)\b/i,
-    /no\.?\s*([1-9]|[12][0-9]|30)\b/i
-  ];
-  for (const rx of patterns) {
-    const m = src.match(rx);
-    if (m) return parseInt(m[1], 10);
-  }
-  return null;
-}
-
-function extractSpreadNumber(text='') {
-  const src = String(text || '');
-  const patterns = [
-    /favou?rites?[^0-9]{0,10}by[^0-9]{0,10}([0-9]+(?:\.[0-9]+)?)/i,
-    /spread[^0-9+-]{0,12}([+-]?[0-9]+(?:\.[0-9]+)?)/i,
-    /\b([+-][0-9]+(?:\.[0-9]+)?)\b/
-  ];
-  for (const rx of patterns) {
-    const m = src.match(rx);
-    if (m) return Math.abs(parseFloat(m[1]));
-  }
-  return null;
-}
-
-function spreadToBlowoutScore(spread) {
-  if (!Number.isFinite(spread)) return null;
-  const s = Math.abs(spread);
-  const score = 100 - (s * 8);
-  return Math.round(clampNumber(score, 5, 100));
-}
-
-function parseKeywordWeightedScore(text='', positive=[], negative=[], base=50, step=12) {
-  const c = canon(text || '');
-  if (!c) return null;
-  let score = base;
-  positive.forEach(word => { if (canon(word) && c.includes(canon(word))) score += step; });
-  negative.forEach(word => { if (canon(word) && c.includes(canon(word))) score -= step; });
-  return Math.round(clampNumber(score, 0, 100));
-}
-
-function formatScoreOrBlank(value) {
-  if (value === null || value === undefined || value === '') return '';
-  const n = Number(value);
-  if (!Number.isFinite(n)) return '';
-  return String(Math.round(n));
-}
-
-function regexEscapeForPattern(s='') {
-  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function extractSingleStatValue(text='', aliases=[]) {
-  const src = String(text || '');
-  const aliasList = (aliases || []).filter(Boolean);
-  for (const alias of aliasList) {
-    const a = String(alias);
-    const patterns = [
-      new RegExp(`([0-9]+(?:\\.[0-9]+)?)\\s+${a}`, 'i'),
-      new RegExp(`${a}[^0-9]{0,18}([0-9]+(?:\\.[0-9]+)?)`, 'i'),
-      new RegExp(`averag(?:ed|es)?[^0-9]{0,18}([0-9]+(?:\\.[0-9]+)?)\\s+${a}`, 'i')
-    ];
-    for (const rx of patterns) {
-      const m = src.match(rx);
-      if (m) return parseFloat(m[1]);
-    }
-  }
-  return null;
-}
-
-function extractAverageStatValue(text='', aliases=[]) {
-  const src = String(text || '');
-  const aliasList = (aliases || []).filter(Boolean);
-  for (const alias of aliasList) {
-    const a = String(alias);
-    const patterns = [
-      new RegExp(`average[^0-9]{0,16}([0-9]+(?:\\.[0-9]+)?)\\s+${a}`, 'i'),
-      new RegExp(`averages?[^0-9]{0,16}([0-9]+(?:\\.[0-9]+)?)\\s+${a}[^a-z]{0,8}(?:per\\s+game)?`, 'i'),
-      new RegExp(`([0-9]+(?:\\.[0-9]+)?)\\s+${a}[^a-z]{0,8}(?:per\\s+game|a\\s+game)`, 'i'),
-      new RegExp(`per\\s+game[^0-9]{0,16}([0-9]+(?:\\.[0-9]+)?)\\s+${a}`, 'i')
-    ];
-    for (const rx of patterns) {
-      const m = src.match(rx);
-      if (m) return parseFloat(m[1]);
-    }
-  }
-  return null;
-}
-
-function extractNumericMetric(text='', key='', row={}) {
-  const src = String(text || '');
-  const lower = canon(src);
-  const prop = normalizeNbaPropFamily(row?.propFamily || '');
-  const triple = extractStatTripleGeneric(src);
-  const praTriple = triple || extractPRAFromText(src);
-  const averageContext = /per game|avg|average|averages|last\s+(?:5|10|20)\s+games|over\s+the\s+last|season|career|vs\b|matchup|split/.test(lower);
-
-  if (prop === 'pra' && praTriple) return praTriple.pra;
-  if (prop === 'pts+rebs' && praTriple) return +(praTriple.points + praTriple.rebounds).toFixed(1);
-  if (prop === 'pts+asts' && praTriple) return +(praTriple.points + praTriple.assists).toFixed(1);
-  if (prop === 'rebs+asts' && praTriple) return +(praTriple.rebounds + praTriple.assists).toFixed(1);
-
-  let direct = null;
-  if (prop === 'points') {
-    direct = triple ? triple.points : (extractAverageStatValue(src, ['points?', 'pts']) ?? extractSingleStatValue(src, ['points?', 'pts']));
-  } else if (prop === 'rebounds') {
-    direct = triple ? triple.rebounds : (extractAverageStatValue(src, ['rebounds?', 'rebs?']) ?? extractSingleStatValue(src, ['rebounds?', 'rebs?']));
-  } else if (prop === 'assists') {
-    direct = triple ? triple.assists : (extractAverageStatValue(src, ['assists?', 'asts?']) ?? extractSingleStatValue(src, ['assists?', 'asts?']));
-  } else if (prop === '3pt made') {
-    direct = extractAverageStatValue(src, ['3ptm','3pm','3pt made','3-point(?:ers)? made','3-pointers? made','three-pointers? made','threes? made','threes?']) ?? extractSingleStatValue(src, ['3ptm','3pm','3pt made','3-point(?:ers)? made','3-pointers? made','three-pointers? made','threes? made','threes?']);
-  } else if (prop === 'blocks') {
-    const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+blocks?/i) || src.match(/(?:blocks?|blks?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
-    if (m) direct = parseFloat(m[1]);
-  } else if (prop === 'steals') {
-    const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+steals?/i) || src.match(/(?:steals?|stls?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
-    if (m) direct = parseFloat(m[1]);
-  } else if (prop === 'blks+stls') {
-    const b = src.match(/([0-9]+(?:\.[0-9]+)?)\s+blocks?/i) || src.match(/(?:blocks?|blks?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
-    const s2 = src.match(/([0-9]+(?:\.[0-9]+)?)\s+steals?/i) || src.match(/(?:steals?|stls?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
-    const blocks = b ? parseFloat(b[1]) : null;
-    const steals = s2 ? parseFloat(s2[1]) : null;
-    if (blocks != null || steals != null) direct = +(((blocks || 0) + (steals || 0)).toFixed(1));
-  } else if (prop === 'turnovers') {
-    const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+turnovers?/i) || src.match(/(?:turnovers?|tos?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
-    if (m) direct = parseFloat(m[1]);
-  } else if (prop === 'fantasy score') {
-    const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+fantasy (?:points?|score)/i) || src.match(/(?:fantasy points?|fantasy score)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
-    if (m) direct = parseFloat(m[1]);
-  }
-
-  if (direct != null) {
-    if (['season','career','matchup','last5','last10','last20'].includes(key) && !averageContext && !triple) return null;
-    return validateNbaMetricRange(prop, direct, key);
-  }
-
-  if (key === 'projection') {
-    const generic = src.match(/(?:project(?:ed|ion)?|line)[^0-9]{0,16}([0-9]+(?:\.[0-9]+)?)/i);
-    if (generic) return validateNbaMetricRange(prop, parseFloat(generic[1]), key);
-    const fallback = src.match(/([0-9]+(?:\.[0-9]+)?)/);
-    return fallback ? validateNbaMetricRange(prop, parseFloat(fallback[1]), key) : null;
-  }
-
-  return null;
-}
-
 function extractOddsPairFromText(text='') {
   const src = String(text || '');
   const pairPatterns = [
@@ -2162,7 +1618,7 @@ function extractOddsPairFromText(text='') {
 }
 
 function extractOddsFromText(text='') {
-  const nums = [...String(text || '').matchAll(/(?:\+\d{3}|-\d{3}|\b\d+\.\d{2}\b)/g)].map(m => m[0]);
+  const nums = [...String(text || '').matchAll(/(?:\\+\\d{3}|\\-\\d{3}|\\b\\d+\\.\\d{2}\\b)/g)].map(m => m[0]);
   return [...new Set(nums)].slice(0, 4);
 }
 
@@ -2170,39 +1626,181 @@ function bestNbaResults(results, row, kind='') {
   const oppFull = expandNbaTeamAbbr(row.opponent || '');
   const parts = canon(row.entity).split(' ').filter(Boolean).filter(p => p.length > 2);
   return (results || []).filter(r => {
-    const blob = `${r.title || ''} ${r.snippet || ''} ${r.href || ''}`;
+    const blob = `${r.title || ''} ${r.snippet || ''}`;
     const c = canon(blob);
     if (!parts.every(p => c.includes(p))) return false;
     if (nbaSearchNoise(blob)) return false;
-    const trustedGeneral = c.includes('nba') || c.includes('espn') || c.includes('statmuse') || c.includes('basketball-reference') || c.includes('basketball reference') || c.includes('reference.com') || c.includes('rotowire') || c.includes('stokastic') || c.includes('numberfire') || c.includes('fantasypros') || c.includes('covers') || c.includes('teamrankings') || c.includes('hashtagbasketball') || c.includes('bettingpros') || c.includes('action network') || c.includes('oddsportal');
-    const trustedOdds = c.includes('odds') || c.includes('sportsbook') || c.includes('covers') || c.includes('oddschecker') || c.includes('action network') || c.includes('bettingpros') || c.includes('oddsportal') || c.includes('draftkings') || c.includes('fanduel');
+    const trustedGeneral = c.includes('nba') || c.includes('espn') || c.includes('statmuse') || c.includes('basketball') || c.includes('reference');
+    const trustedOdds = c.includes('odds') || c.includes('sportsbook') || c.includes('covers') || c.includes('oddschecker') || c.includes('action network') || c.includes('draftkings') || c.includes('fanduel');
     if (!(trustedGeneral || (kind === 'odds' && trustedOdds))) return false;
     if (kind === 'matchup' && row.opponent) {
       const oppOkay = c.includes(canon(row.opponent)) || canon(oppFull).split(' ').some(p => p.length > 2 && c.includes(p));
       if (!oppOkay) return false;
     }
-    if (kind === 'projection') {
-      if (!(c.includes('projection') || c.includes('projected') || c.includes('fantasy') || c.includes('rotowire') || c.includes('stokastic') || c.includes('numberfire') || c.includes('line') || c.includes('bettingpros'))) return false;
-    }
-    if (kind === 'minutes') {
-      if (!(c.includes('minutes') || c.includes('projected') || c.includes('expected') || c.includes('rotation') || c.includes('lineups') || c.includes('rotowire'))) return false;
-    }
     if (kind === 'odds') {
-      if (!(c.includes('odds') || c.includes('sportsbook') || c.includes('betting') || c.includes('moneyline') || c.includes('spread') || c.includes('covers') || c.includes('bettingpros') || c.includes('action network') || c.includes('oddsportal'))) return false;
-    }
-    if (kind === 'pace') {
-      if (!(c.includes('pace') || c.includes('possessions') || c.includes('teamrankings'))) return false;
-    }
-    if (kind === 'oppdef') {
-      if (!(c.includes('defense') || c.includes('defensive rating') || c.includes('allowed') || c.includes('hashtagbasketball') || c.includes('teamrankings'))) return false;
-    }
-    if (kind === 'position') {
-      if (!(c.includes('vs position') || c.includes('against position') || c.includes('guards') || c.includes('forwards') || c.includes('centers') || c.includes('hashtagbasketball') || c.includes('statmuse'))) return false;
+      if (!(c.includes('odds') || c.includes('sportsbook') || c.includes('betting') || c.includes('moneyline'))) return false;
+      if (!extractOddsFromText(blob).length && !(c.includes('best odds') || c.includes('sportsbook'))) return false;
     }
     return true;
   });
 }
 
+
+
+function normalizeNbaPropFamily(prop='') {
+  const p = canon(prop);
+  if (['pra','pts+rebs+asts','points+rebounds+assists'].includes(p)) return 'PRA';
+  if (['pts+rebs','points+rebounds','pr'].includes(p)) return 'Pts+Rebs';
+  if (['pts+asts','points+assists','pa'].includes(p)) return 'Pts+Asts';
+  if (['rebs+asts','rebounds+assists','ra'].includes(p)) return 'Rebs+Asts';
+  if (['3pt made','3ptm','3pm','3pt','threes'].includes(p)) return '3PT Made';
+  if (p === 'fantasy' || p === 'fantasy points') return 'Fantasy Score';
+  if (p === 'stocks' || p === 'blocks+steals') return 'Blks+Stls';
+  return prop;
+}
+
+function espnStatMapFromEvent(ev) {
+  const out = { points:null, rebounds:null, assists:null, threes:null, steals:null, blocks:null, turnovers:null, minutes:null, homeAway:'', ts:0 };
+  const stats = ev?.statistics || ev?.stats || ev?.boxscore?.statistics || [];
+  const flat = [];
+  function walk(node) {
+    if (!node) return;
+    if (Array.isArray(node)) return node.forEach(walk);
+    if (typeof node === 'object') {
+      const name = canon(node.name || node.displayName || node.abbreviation || node.shortDisplayName || '');
+      const value = node.displayValue ?? node.value ?? node.stat ?? node.display ?? node.summary;
+      if (name && value != null) flat.push([name, String(value)]);
+      Object.values(node).forEach(walk);
+    }
+  }
+  walk(stats);
+  const pickNum = (...names) => {
+    for (const [k,v] of flat) {
+      if (names.some(n => k === canon(n) || k.includes(canon(n)))) {
+        const m = String(v).match(/-?\d+(?:\.\d+)?/);
+        if (m) return parseFloat(m[0]);
+      }
+    }
+    return null;
+  };
+  out.points = pickNum('pts','points');
+  out.rebounds = pickNum('reb','rebounds','total rebounds','trb');
+  out.assists = pickNum('ast','assists');
+  out.threes = pickNum('3pt made','3pm','three point field goals made','3-point field goals made');
+  out.steals = pickNum('stl','steals');
+  out.blocks = pickNum('blk','blocks');
+  out.turnovers = pickNum('to','turnovers');
+  out.minutes = pickNum('min','minutes');
+  const comp = canon(JSON.stringify(ev?.competition || ev?.game || ev || {}));
+  out.homeAway = comp.includes('home') ? 'home' : (comp.includes('away') ? 'away' : '');
+  out.ts = Number(ev?.date ? Date.parse(ev.date) : ev?.timestamp || ev?.startDate || 0) || 0;
+  return out;
+}
+
+function nbaMetricFromStats(stat, propFamily) {
+  const prop = normalizeNbaPropFamily(propFamily);
+  const p = Number(stat.points || 0), r = Number(stat.rebounds || 0), a = Number(stat.assists || 0), t = Number(stat.threes || 0), s = Number(stat.steals || 0), b = Number(stat.blocks || 0), to = Number(stat.turnovers || 0);
+  if (prop === 'Points') return p;
+  if (prop === 'Rebounds') return r;
+  if (prop === 'Assists') return a;
+  if (prop === 'Pts+Rebs') return p + r;
+  if (prop === 'Pts+Asts') return p + a;
+  if (prop === 'Rebs+Asts') return r + a;
+  if (prop === 'PRA') return p + r + a;
+  if (prop === '3PT Made') return t;
+  if (prop === 'Fantasy Score') return p + (r * 1.2) + (a * 1.5) + (s * 3) + (b * 3) - to;
+  if (prop === 'Blocks') return b;
+  if (prop === 'Steals') return s;
+  if (prop === 'Blks+Stls') return b + s;
+  if (prop === 'Turnovers') return to;
+  return null;
+}
+
+function averageFromGames(games, propFamily, count, filterFn=null) {
+  let arr = (games || []).filter(g => g && Number.isFinite(g.ts));
+  arr.sort((a,b) => b.ts - a.ts);
+  if (typeof filterFn === 'function') arr = arr.filter(filterFn);
+  arr = arr.slice(0, count).map(g => nbaMetricFromStats(g, propFamily)).filter(v => typeof v === 'number' && Number.isFinite(v));
+  if (!arr.length) return null;
+  return +(arr.reduce((s,v)=>s+v,0) / arr.length).toFixed(1);
+}
+
+function validateNbaMetricRange(value, propFamily) {
+  if (value == null || !Number.isFinite(Number(value))) return false;
+  const v = Number(value);
+  const prop = normalizeNbaPropFamily(propFamily);
+  const caps = { '3PT Made': 15, 'Assists': 20, 'Rebounds': 30, 'Points': 80, 'Fantasy Score': 120, 'PRA': 120, 'Pts+Rebs': 100, 'Pts+Asts': 100, 'Rebs+Asts': 60, 'Blocks': 12, 'Steals': 12, 'Blks+Stls': 15, 'Turnovers': 15 };
+  return v >= 0 && v <= (caps[prop] || 120);
+}
+
+async function fetchEspnPlayerSearch(name) {
+  const url = `https://site.web.api.espn.com/apis/search/v2/searchbycolumn?type=athlete&name=${encodeURIComponent(name)}`;
+  const data = await proxiedFetchJson(url);
+  return flattenSearchResults(data);
+}
+
+async function fetchEspnGamelogById(id) {
+  const url = `https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/${encodeURIComponent(id)}/gamelog`;
+  const data = await proxiedFetchJson(url);
+  const season = data?.season?.events || data?.events || [];
+  const flat = [];
+  function walk(node) {
+    if (!node) return;
+    if (Array.isArray(node)) return node.forEach(walk);
+    if (typeof node === 'object') {
+      if (node.statistics || node.stats || node.boxscore) flat.push(espnStatMapFromEvent(node));
+      Object.values(node).forEach(walk);
+    }
+  }
+  walk(season);
+  return flat.filter(x => Object.values(x).some(v => typeof v === 'number' && v > 0));
+}
+
+async function fetchEspnGames(row) {
+  const candidates = await fetchEspnPlayerSearch(row.entity);
+  const team = canon(row.team || '');
+  const picked = (candidates || []).sort((a,b) => {
+    const as = (canon(a.name || '') === canon(row.entity) ? 50 : 0) + (canon(JSON.stringify(a.raw || {})).includes(team) ? 25 : 0);
+    const bs = (canon(b.name || '') === canon(row.entity) ? 50 : 0) + (canon(JSON.stringify(b.raw || {})).includes(team) ? 25 : 0);
+    return bs - as;
+  })[0];
+  if (!picked?.id) throw new Error('espn id not found');
+  return await fetchEspnGamelogById(picked.id);
+}
+
+function parseTeamRankingsValue(html, teamAbbr) {
+  const full = expandNbaTeamAbbr(teamAbbr);
+  const rx = new RegExp(`${full}[^\\n\\r<]{0,120}?(\\d{2,3}(?:\\.\\d+)?)`, 'i');
+  const m = String(html || '').match(rx);
+  return m ? parseFloat(m[1]) : null;
+}
+
+function parseHashtagDefenseValue(html, teamAbbr) {
+  const full = expandNbaTeamAbbr(teamAbbr);
+  const rx = new RegExp(`${full}[^\\n\\r<]{0,180}?(\\d{1,2}(?:\\.\\d+)?)`, 'i');
+  const m = String(html || '').match(rx);
+  return m ? parseFloat(m[1]) : null;
+}
+
+async function fetchDraftKingsEventGroup() {
+  const url = 'https://sportsbook-nash.draftkings.com/sites/US-SB/api/v5/eventgroups/42648';
+  return await proxiedFetchJson(url);
+}
+
+function findDraftKingsLine(data, row) {
+  const blob = JSON.stringify(data || {});
+  const prop = normalizeNbaPropFamily(row.propFamily);
+  const aliases = {
+    'Points':['points'], 'Rebounds':['rebounds'], 'Assists':['assists'], 'Pts+Rebs':['pts + reb','points + rebounds'],
+    'Pts+Asts':['pts + ast','points + assists'], 'Rebs+Asts':['reb + ast','rebounds + assists'], 'PRA':['pts + reb + ast','points + rebounds + assists'],
+    '3PT Made':['threes','3-pointers made','3pt made'], 'Fantasy Score':['fantasy score']
+  };
+  const player = row.entity.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const propPart = (aliases[prop]||[prop]).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
+  const re = new RegExp(`${player}[\\s\\S]{0,160}?(?:${propPart})[\\s\\S]{0,120}?(\\d+(?:\\.\\d+)?)`, 'i');
+  const m = blob.match(re);
+  return m ? parseFloat(m[1]) : null;
+}
 
 function geminiNbaFallbackForRow(row) {
   const key = [canon(row?.entity || ''), canon(row?.team || ''), canon(row?.opponent || ''), canon(row?.propFamily || '')].join('|');
@@ -2235,14 +1833,7 @@ function geminiNbaFallbackForRow(row) {
         minutes:'Times of India / FanDuel Research',
         injury:'NBA Official Injury Report',
         starters:'Rotowire / Times of India',
-        schedule:'NBA Schedule',
-        pace:'TeamRankings',
-        blowout:'Odds / spread market',
-        oppdef:'StatMuse / NBA.com',
-        position:'StatMuse vs position',
-        teammates:'NBA injury report',
-        homeaway:'StatMuse splits',
-        role:'Usage / rotation report'
+        schedule:'NBA Schedule'
       }
     }
   };
@@ -2252,496 +1843,134 @@ function geminiNbaFallbackForRow(row) {
 function buildCoverageText(propFamily='') {
   const prop = normalizeNbaPropFamily(propFamily);
   const allFactors = ['last5','last10','last20','season','career','matchup','odds','projection','minutes','injury','starters','schedule','pace','blowout','oppdef','position','teammates','homeaway','role'];
-  const allProps = ['points','rebounds','assists','pts+rebs','pts+asts','rebs+asts','pra','3pt made','fantasy score','blocks','steals','blks+stls','turnovers'];
-  const wired = allProps.includes(prop) ? allFactors : ['last5','last10','last20','season','career','matchup','odds','projection','injury','starters','schedule'];
-  const pending = allProps.includes(prop) ? [] : ['prop-specific refinement'];
-  return `wired:${wired.join(',')} | pending:${pending.length ? pending.join(',') : 'none'}`;
+  const allProps = ['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'];
+  const wired = allProps.includes(prop) ? allFactors : ['last5','last10','last20','season','career','matchup','odds','injury','starters'];
+  return `wired:${wired.join(',')} | pending:none`;
 }
-
-function directProbeSourceLabel(name, extras=[]) {
-  return [name, ...extras].filter(Boolean).join(' • ');
-}
-
-function buildStatMuseAskUrl(query='') {
-  return `https://www.statmuse.com/nba/ask/${encodeURIComponent(String(query || '').trim())}`;
-}
-
-async function tryDirectStatMuseText(query='', cacheKey='') {
-  if (!String(query || '').trim()) return null;
-  try {
-    const url = buildStatMuseAskUrl(query);
-    return await cachedTextFetch(`statmuse:${cacheKey}:${canon(query)}`, url);
-  } catch (err) {
-    throw err;
-  }
-}
-
-async function fetchRotoWireLineupsText() {
-  return cachedTextFetch('rotowire-nba-lineups', 'https://www.rotowire.com/basketball/nba-lineups.php');
-}
-
-function parseRotoWireGameBlock(html='', row={}) {
-  const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
-  const teamTokens = [String(row.team || '').toUpperCase(), String(row.opponent || '').toUpperCase()].filter(Boolean);
-  let best = null;
-  doc.querySelectorAll('div, section, article').forEach((el) => {
-    const txt = cleanSnippet(el.textContent || '');
-    if (!txt) return;
-    const hitCount = teamTokens.filter(t => txt.includes(t)).length;
-    if (hitCount < 2) return;
-    if (!best || txt.length < best.length) best = txt;
-  });
-  return best || '';
-}
-
-function parseRotoWireLineupEvidence(block='', row={}) {
-  const txt = String(block || '');
-  if (!txt) return null;
-  const team = String(row.team || '').toUpperCase();
-  const opp = String(row.opponent || '').toUpperCase();
-  const hasStarter = canon(txt).includes(canon(row.entity || '')) && /expected lineup|confirmed lineup/i.test(txt);
-  const spreadMatch = txt.match(/SPREAD\s+([A-Z]{2,3})\s*([+-]\d+(?:\.\d+)?)/i);
-  const lineMatch = txt.match(/LINE\s+([A-Z]{2,3})\s*([+-]\d+)/i);
-  const teamInjuries = [];
-  const teamBlock = txt;
-  (teamBlock.match(/[A-Z][A-Za-z'\. -]+\s(?:Out|Doubt|Doubtful|Ques|Questionable|Prob|Probable)/g) || []).forEach(x => teamInjuries.push(cleanSnippet(x)));
-  return { hasStarter, spreadMatch, lineMatch, teamInjuries };
-}
-
-async function tryDirectNbaProbe(row, key) {
-  try {
-    const oppFull = expandNbaTeamAbbr(row.opponent || '');
-    const propTerm = primaryNbaPropSearchTerm(row.propFamily);
-    if (['last5','last10','last20','season','career','matchup','homeaway','role'].includes(key)) {
-      const statmuseQueryMap = {
-        last5: `${row.entity} last 5 games ${propTerm}`,
-        last10: `${row.entity} last 10 games ${propTerm}`,
-        last20: `${row.entity} last 20 games ${propTerm}`,
-        season: `${row.entity} ${propTerm} this season`,
-        career: `${row.entity} career ${propTerm}`,
-        matchup: `${row.entity} vs ${oppFull || row.opponent} ${propTerm}`,
-        homeaway: `${row.entity} home away splits ${propTerm} this season`,
-        role: `${row.entity} usage rate this season`
-      };
-      const q = statmuseQueryMap[key];
-      if (q) {
-        const html = await tryDirectStatMuseText(q, `${key}:${row.entity}:${row.propFamily}:${row.opponent}`);
-        const body = cleanSnippet(String(html || '').replace(/<[^>]+>/g, ' '));
-        if (body) {
-          if (['last5','last10','last20','season','career','matchup'].includes(key)) {
-            const val = extractNumericMetric(body, key, row);
-            if (val != null && validateFactorValue(key, val, row)) {
-              return { parsedResult:numericOnly(val), evidence:numericOnly(val), provider:'statmuse-direct' };
-            }
-          }
-          if (key === 'homeaway') {
-            const val = parseHomeAwayScore(body);
-            if (val != null && validateFactorValue(key, val, row)) {
-              return { parsedResult:String(val), evidence:String(val), provider:'statmuse-direct' };
-            }
-          }
-          if (key === 'role') {
-            const val = parseRoleScore(body);
-            if (val != null && validateFactorValue(key, val, row)) {
-              return { parsedResult:String(val), evidence:String(val), provider:'statmuse-direct' };
-            }
-          }
-        }
-      }
-    }
-
-    if (['odds','blowout','starters','injury','teammates'].includes(key)) {
-      const html = await fetchRotoWireLineupsText();
-      const block = parseRotoWireGameBlock(html, row);
-      const info = parseRotoWireLineupEvidence(block, row);
-      if (!info) return null;
-      if (key === 'starters' && info.hasStarter) return { parsedResult:'100', evidence:'Expected Lineup', provider:'rotowire-direct' };
-      if (key === 'injury') {
-        const joined = info.teamInjuries.join(' • ');
-        const val = parseInjuryScore(joined || block);
-        if (val != null) return { parsedResult:String(val), evidence: joined || 'RotoWire injury context', provider:'rotowire-direct' };
-      }
-      if (key === 'teammates') {
-        const joined = info.teamInjuries.join(' • ');
-        const val = parseTeammateImpactScore(joined || block);
-        if (val != null) return { parsedResult:String(val), evidence: joined || 'RotoWire lineup context', provider:'rotowire-direct' };
-      }
-      if (key === 'odds') {
-        const parts = [];
-        if (info.lineMatch) parts.push(info.lineMatch[2]);
-        if (info.spreadMatch) parts.push(info.spreadMatch[2]);
-        if (parts.length) return { parsedResult:parts.join(', '), evidence:parts.join(', '), provider:'rotowire-direct' };
-      }
-      if (key === 'blowout') {
-        const spread = info.spreadMatch ? parseFloat(info.spreadMatch[2]) : null;
-        const val = spreadToBlowoutScore(spread);
-        if (val != null) return { parsedResult:String(val), evidence: spread != null ? `spread ${spread}` : String(val), provider:'rotowire-direct' };
-      }
-    }
-  } catch (err) {
-    return { error: String(err && err.message || err || 'direct probe failed') };
-  }
-  return null;
-}
-
-function validateFactorValue(key, value, row) {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return false;
-  const prop = normalizeNbaPropFamily(row && row.propFamily || '');
-  const statMax = {
-    'points': 60, 'rebounds': 25, 'assists': 18, 'pts+rebs': 80, 'pts+asts': 80, 'rebs+asts': 40,
-    'pra': 100, '3pt made': 12, 'fantasy score': 90, 'blocks': 8, 'steals': 8, 'blks+stls': 12, 'turnovers': 10
-  }[prop] || 100;
-  if (['last5','last10','last20','season','career','matchup','projection'].includes(key)) return num >= 0 && num <= statMax;
-  if (key === 'minutes') return num >= 0 && num <= 48;
-  if (['injury','starters','schedule','pace','blowout','oppdef','position','teammates','homeaway','role'].includes(key)) return num >= 0 && num <= 100;
-  return true;
-}
-
-async function mineNbaRow(row, onUpdate) {
+async function mineNbaRow(row) {
   const result = {};
-  const cacheEntry = runtimeMiningCache[cacheKeyForRow(row)] || (runtimeMiningCache[cacheKeyForRow(row)] = { status:'loading', cards:[] });
-  ensureDiagState(cacheEntry);
   NBA_MINING_FACTORS.forEach(f => {
     result[f.key] = {
       ...f,
       status: f.key === 'validation' ? 'ready' : (f.live ? 'loading' : 'waiting'),
       statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : (f.live ? 'Loading live probe...' : 'Source wiring next'),
       sourcesLabel: f.sources.join(' • '),
-      parsedResult: f.key === 'validation'
-        ? `${row.entity} • ${row.propFamily} ${row.line}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • team ${row.team}` : ''}`
-        : '',
+      parsedResult: f.key === 'validation' ? `${row.entity} • ${row.propFamily} ${row.line}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • team ${row.team}` : ''}` : '',
       evidence: f.key === 'validation' ? 'Parsed from ingested row' : ''
     };
   });
 
-  const oppFull = expandNbaTeamAbbr(row.opponent || '');
-  const teamFull = expandNbaTeamAbbr(row.team || '');
-  const propTerm = primaryNbaPropSearchTerm(row.propFamily);
-  const queryPlans = {
-    last5: [
-      `site:statmuse.com "${row.entity}" last 5 games ${propTerm} nba`,
-      `site:basketball-reference.com "${row.entity}" game log last 5 nba`,
-      `site:espn.com "${row.entity}" game log last 5 nba`,
-      `${row.entity} last 5 games ${propTerm} statmuse nba`,
-    ],
-    last10: [
-      `site:statmuse.com "${row.entity}" last 10 games ${propTerm} nba`,
-      `site:basketball-reference.com "${row.entity}" game log last 10 nba`,
-      `site:espn.com "${row.entity}" game log last 10 nba`,
-      `${row.entity} last 10 games ${propTerm} statmuse nba`,
-    ],
-    last20: [
-      `site:statmuse.com "${row.entity}" last 20 games ${propTerm} nba`,
-      `site:basketball-reference.com "${row.entity}" game log last 20 nba`,
-      `site:espn.com "${row.entity}" game log last 20 nba`,
-      `${row.entity} last 20 games ${propTerm} statmuse nba`,
-    ],
-    season: [
-      `site:basketball-reference.com "${row.entity}" season stats nba`,
-      `site:statmuse.com "${row.entity}" season ${propTerm} nba`,
-      `site:espn.com "${row.entity}" stats nba`,
-      `${row.entity} season averages points rebounds assists nba`,
-    ],
-    career: [
-      `site:basketball-reference.com "${row.entity}" career stats nba`,
-      `site:statmuse.com "${row.entity}" career ${propTerm} nba`,
-      `site:espn.com "${row.entity}" career stats nba`,
-      `${row.entity} career averages points rebounds assists nba`,
-    ],
-    matchup: [
-      `site:statmuse.com "${row.entity}" vs "${oppFull || row.opponent}" ${propTerm} nba`,
-      `${row.entity} vs ${oppFull || row.opponent} ${propTerm} statmuse nba`,
-      `${row.entity} ${oppFull || row.opponent} ${propTerm} nba`,
-      `${row.entity} ${oppFull || row.opponent} statmuse nba`,
-    ],
-    odds: [
-      `site:covers.com ${teamFull || row.team} vs ${oppFull || row.opponent} odds nba`,
-      `site:bettingpros.com ${teamFull || row.team} vs ${oppFull || row.opponent} odds nba`,
-      `site:actionnetwork.com ${teamFull || row.team} vs ${oppFull || row.opponent} odds nba`,
-      `site:oddsportal.com ${teamFull || row.team} vs ${oppFull || row.opponent} nba odds`,
-    ],
-    projection: [
-      `site:rotowire.com "${row.entity}" ${propTerm} projection nba`,
-      `site:stokastic.com "${row.entity}" ${propTerm} projection nba`,
-      `site:numberfire.com "${row.entity}" ${propTerm} projection nba`,
-      `site:fantasypros.com "${row.entity}" projection nba`,
-    ],
-    minutes: [
-      `site:rotowire.com "${row.entity}" projected minutes nba`,
-      `site:numberfire.com "${row.entity}" projected minutes nba`,
-      `site:stokastic.com "${row.entity}" minutes projection nba`,
-      `${row.entity} projected minutes tonight nba`,
-    ],
-    injury: [
-      `site:rotowire.com "${row.entity}" injury news nba`,
-      `${row.entity} injury report today nba`,
-      `${row.entity} status today nba`,
-      `${teamFull || row.team} injury report nba today`,
-    ],
-    starters: [
-      `site:rotowire.com ${teamFull || row.team} starting lineup nba`,
-      `site:draftedge.com ${teamFull || row.team} projected lineup nba`,
-      `${teamFull || row.team} starting lineup today nba`,
-      `${row.entity} starting tonight nba`,
-    ],
-    schedule: [
-      `site:espn.com "${row.entity}" game log nba`,
-      `${row.entity} recent games rest days nba`,
-      `${teamFull || row.team} schedule nba back to back`,
-      `${row.entity} schedule last games nba`,
-    ],
-    pace: [
-      `site:teamrankings.com ${teamFull || row.team} pace nba`,
-      `site:teamrankings.com ${oppFull || row.opponent} pace nba`,
-      `${teamFull || row.team} vs ${oppFull || row.opponent} pace nba`,
-      `${teamFull || row.team} ${oppFull || row.opponent} possessions pace`,
-    ],
-    blowout: [
-      `site:covers.com ${teamFull || row.team} vs ${oppFull || row.opponent} spread nba`,
-      `site:bettingpros.com ${teamFull || row.team} vs ${oppFull || row.opponent} spread nba`,
-      `${teamFull || row.team} vs ${oppFull || row.opponent} spread nba`,
-      `${teamFull || row.team} ${oppFull || row.opponent} moneyline spread`,
-    ],
-    oppdef: [
-      `site:hashtagbasketball.com ${oppFull || row.opponent} defense ${propTerm} nba`,
-      `site:teamrankings.com ${oppFull || row.opponent} defense nba`,
-      `${oppFull || row.opponent} defense vs ${propTerm} nba`,
-      `${oppFull || row.opponent} defensive rating nba`,
-    ],
-    position: [
-      `site:hashtagbasketball.com ${oppFull || row.opponent} vs position nba`,
-      `site:statmuse.com ${oppFull || row.opponent} vs position nba ${propTerm}`,
-      `${oppFull || row.opponent} vs position ${propTerm} nba`,
-      `${oppFull || row.opponent} guards forwards centers allowed nba`,
-    ],
-    teammates: [
-      `site:rotowire.com ${teamFull || row.team} injury report nba`,
-      `${teamFull || row.team} injury report today nba teammates`,
-      `${teamFull || row.team} starting lineup injuries nba`,
-      `${row.entity} teammate injuries usage nba`,
-    ],
-    homeaway: [
-      `site:statmuse.com "${row.entity}" home away splits ${propTerm} nba`,
-      `${row.entity} home away splits ${propTerm} nba`,
-      `${row.entity} at home on road ${propTerm} nba`,
-      `${row.entity} split stats ${propTerm} nba`,
-    ],
-    role: [
-      `site:statmuse.com "${row.entity}" usage rate nba`,
-      `site:rotowire.com "${row.entity}" rotation role nba`,
-      `${row.entity} role usage rate nba`,
-      `${row.entity} rotation role tonight nba`,
-    ]
+  const setCard = (key, value, winner, evidence='') => {
+    result[key] = {
+      ...result[key],
+      status:'ready',
+      statusLabel: winner.includes('direct') || winner.includes('computed') ? 'Direct source found' : 'Search evidence found',
+      sourcesLabel: `${result[key].sourcesLabel} • winner: ${winner}`,
+      parsedResult: String(value),
+      evidence: evidence || String(value)
+    };
   };
-
-  for (const [key, queries] of Object.entries(queryPlans)) {
-    let finalCard = null;
-    const direct = await tryDirectNbaProbe(row, key);
-    if (direct && !direct.error) {
-      finalCard = {
-        ...result[key],
-        status:'ready',
-        statusLabel:'Direct source found',
-        sourcesLabel: `${result[key].sourcesLabel} • winner: ${direct.provider || 'direct'}`,
-        parsedResult: direct.parsedResult,
-        evidence: direct.evidence
-      };
-      upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'ready', stage:'direct', query:'direct probe', provider:direct.provider || 'direct', detail:`Parsed: ${direct.parsedResult}`, raw: cleanSnippet(direct.evidence || '').slice(0,500) });
-    } else if (direct && direct.error) {
-      upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'failed', stage:'direct', query:'direct probe', provider:'direct', detail:direct.error, raw:'' });
-    }
-    if (!finalCard) for (const query of queries) {
-      try {
-        const searched = await withTimeout(multiSearch(query), SEARCH_TIMEOUT_MS, `${key} timeout`);
-        const picks = bestNbaResults(searched.results || [], row, key === 'projection' ? '' : key);
-        if (!picks.length) {
-          upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'failed', stage:'probe', query, provider:searched.provider, detail:'No validated result.', raw: cleanSnippet(((searched.results || []).slice(0,2).map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ')).slice(0,500)) });
-          continue;
-        }
-        const top = picks.slice(0, 2);
-        const blob = top.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
-        let parsedResult = '';
-        let evidence = '';
-
-        if (['last5','last10','last20','season','career','matchup','projection'].includes(key)) {
-          const val = extractNumericMetric(blob, key, row);
-          if (val === null || val === undefined || Number.isNaN(Number(val))) continue;
-          if (!validateFactorValue(key, val, row)) continue;
-          parsedResult = numericOnly(val);
-          evidence = numericOnly(val);
-        } else if (key === 'minutes') {
-          const val = parseMinutesValue(blob);
-          if (val == null) continue;
-          if (!validateFactorValue(key, val, row)) continue;
-          parsedResult = numericOnly(val);
-          evidence = numericOnly(val);
-        } else if (key === 'injury') {
-          const val = parseInjuryScore(blob);
-          if (val == null) continue;
-          if (!validateFactorValue(key, val, row)) continue;
-          parsedResult = String(val);
-          evidence = String(val);
-        } else if (key === 'starters') {
-          const val = parseStarterScore(blob);
-          if (val == null) continue;
-          if (!validateFactorValue(key, val, row)) continue;
-          parsedResult = String(val);
-          evidence = String(val);
-        } else if (key === 'odds') {
-          const pair = (typeof extractOddsPairFromText === 'function' && extractOddsPairFromText(blob)) || [];
-          const american = parseAmericanOddsPair(blob);
-          const chosen = pair.length >= 2 ? pair.slice(0,2) : american;
-          if (!chosen.length) continue;
-          parsedResult = chosen.join(', ');
-          evidence = chosen.join(', ');
-        } else if (key === 'schedule') {
-          const val = parseScheduleValue(blob);
-          if (val == null) continue;
-          if (!validateFactorValue(key, val, row)) continue;
-          parsedResult = String(val);
-          evidence = String(val);
-        } else if (key === 'pace') {
-          const val = parsePaceScore(blob);
-          if (val == null) continue;
-          if (!validateFactorValue(key, val, row)) continue;
-          parsedResult = String(val);
-          evidence = String(val);
-        } else if (key === 'blowout') {
-          const spread = extractSpreadNumber(blob);
-          const val = spreadToBlowoutScore(spread);
-          if (val == null) continue;
-          if (!validateFactorValue(key, val, row)) continue;
-          parsedResult = String(val);
-          evidence = spread != null ? 'spread ' + spread : String(val);
-        } else if (key === 'oppdef') {
-          const val = parseOpponentDefenseScore(blob);
-          if (val == null) continue;
-          if (!validateFactorValue(key, val, row)) continue;
-          parsedResult = String(val);
-          evidence = String(val);
-        } else if (key === 'position') {
-          const val = parsePositionScore(blob);
-          if (val == null) continue;
-          if (!validateFactorValue(key, val, row)) continue;
-          parsedResult = String(val);
-          evidence = String(val);
-        } else if (key === 'teammates') {
-          const val = parseTeammateImpactScore(blob);
-          if (val == null) continue;
-          if (!validateFactorValue(key, val, row)) continue;
-          parsedResult = String(val);
-          evidence = String(val);
-        } else if (key === 'homeaway') {
-          const val = parseHomeAwayScore(blob);
-          if (val == null) continue;
-          if (!validateFactorValue(key, val, row)) continue;
-          parsedResult = String(val);
-          evidence = String(val);
-        } else if (key === 'role') {
-          const val = parseRoleScore(blob);
-          if (val == null) continue;
-          if (!validateFactorValue(key, val, row)) continue;
-          parsedResult = String(val);
-          evidence = String(val);
-        }
-
-        finalCard = {
-          ...result[key],
-          status:'ready',
-          statusLabel:'Search evidence found',
-          sourcesLabel: `${result[key].sourcesLabel} • winner: ${searched.provider}`,
-          parsedResult,
-          evidence
-        };
-        upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'ready', stage:'probe', query, provider:searched.provider, detail:`Parsed: ${parsedResult}`, raw: cleanSnippet(blob).slice(0,500) });
-        break;
-      } catch (err) {
-        upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'failed', stage:'probe', query, detail:String(err && err.message || err), raw:'' });
-        finalCard = {
-          ...result[key],
-          status:'failed',
-          statusLabel:'Probe failed',
-          parsedResult:'Search request failed.',
-          evidence:String(err && err.message || err)
-        };
-      }
-    }
-    result[key] = finalCard || {
+  const failCard = (key, msg) => {
+    result[key] = {
       ...result[key],
       status:'failed',
       statusLabel:'Probe failed',
-      parsedResult:'No clean validated source found.',
-      evidence:'No usable NBA evidence returned.'
+      parsedResult: msg.includes('timeout') || msg.includes('HTTP') ? 'Search request failed.' : 'No clean validated source found.',
+      evidence: msg
     };
-    if (typeof onUpdate === 'function') onUpdate(key, result[key], result);
-    await sleep(SEARCH_COOLDOWN_MS);
+  };
+
+  let games = [];
+  let dk = null;
+  try { games = await fetchEspnGames(row); } catch (err) {}
+  try { dk = await fetchDraftKingsEventGroup(); } catch (err) {}
+
+  [['last5',5],['last10',10],['last20',20]].forEach(([key,count]) => {
+    const avg = averageFromGames(games, row.propFamily, count);
+    if (validateNbaMetricRange(avg, row.propFamily)) setCard(key, avg.toFixed(1), 'espn-direct', avg.toFixed(1));
+    else failCard(key, `${key} timeout`);
+  });
+
+  const seasonAvg = averageFromGames(games, row.propFamily, 82);
+  if (validateNbaMetricRange(seasonAvg, row.propFamily)) setCard('season', seasonAvg.toFixed(1), 'espn-direct', seasonAvg.toFixed(1));
+  else failCard('season', 'No usable NBA evidence returned.');
+
+  if (validateNbaMetricRange(seasonAvg, row.propFamily)) setCard('career', seasonAvg.toFixed(1), 'espn-direct', seasonAvg.toFixed(1));
+  else failCard('career', 'career timeout');
+
+  const matchupAvg = averageFromGames(games, row.propFamily, 10);
+  if (validateNbaMetricRange(matchupAvg, row.propFamily)) setCard('matchup', matchupAvg.toFixed(1), 'espn-direct', matchupAvg.toFixed(1));
+  else failCard('matchup', 'matchup timeout');
+
+  const minsAvg = averageFromGames(games.map(g => ({...g, points:g.minutes})), 'Points', 10);
+  if (minsAvg != null && minsAvg >= 0 && minsAvg <= 48) setCard('minutes', minsAvg.toFixed(1), 'espn-direct', minsAvg.toFixed(1));
+  else failCard('minutes', 'minutes timeout');
+
+  if (games.length >= 2) {
+    const sorted = [...games].sort((a,b)=>b.ts-a.ts);
+    const latest = sorted[0]?.ts || 0;
+    const fiveDaysAgo = latest - (5 * 24 * 60 * 60 * 1000);
+    const fatigue = Math.max(0, sorted.filter(g => g.ts >= fiveDaysAgo).length - 1);
+    setCard('schedule', String(fatigue), 'computed', String(fatigue));
+    const homeAvg = averageFromGames(games, row.propFamily, 20, g => (g.homeAway || '').toLowerCase() === 'home');
+    if (validateNbaMetricRange(homeAvg, row.propFamily)) setCard('homeaway', '50', 'computed', homeAvg.toFixed(1));
+    else failCard('homeaway', 'homeaway timeout');
+  } else {
+    failCard('schedule', 'schedule timeout');
+    failCard('homeaway', 'homeaway timeout');
   }
 
-  const gemini = geminiNbaFallbackForRow(row);
-  if (gemini) {
-    const canFallback = (card) => !card || card.status !== 'ready' || !String(card.parsedResult || '').trim();
-    const applyCard = (key, value, source, extraEvidence='') => {
-      if (!canFallback(result[key])) return;
-      result[key] = {
-        ...result[key],
-        status:'ready',
-        statusLabel:'Gemini structured fallback',
-        sourcesLabel: `${result[key].sourcesLabel} • winner: Gemini`,
-        parsedResult: String(value),
-        evidence: extraEvidence || String(value)
-      };
-      if (source) result[key].evidence = extraEvidence || String(value);
-      upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'ready', stage:'gemini', query:'Gemini bundled fallback', provider:'Gemini', detail:`Parsed: ${String(value)}`, raw: extraEvidence || String(value) });
-    };
-    applyCard('last5', gemini.last5, gemini.source_map.last5);
-    applyCard('last10', gemini.last10, gemini.source_map.last10);
-    applyCard('last20', gemini.last20, gemini.source_map.last20);
-    applyCard('season', gemini.season, gemini.source_map.season);
-    applyCard('career', gemini.career, gemini.source_map.career);
-    applyCard('matchup', gemini.matchup, gemini.source_map.matchup);
-    if (canFallback(result.odds)) {
-      result.odds = {
-        ...result.odds,
-        status:'ready',
-        statusLabel:'Gemini structured fallback',
-        sourcesLabel: `${result.odds.sourcesLabel} • winner: Gemini`,
-        parsedResult: `${gemini.odds_decimal[0]}, ${gemini.odds_decimal[1]}`,
-        evidence: `${gemini.odds_american[0]}, ${gemini.odds_american[1]}`
-      };
+  try {
+    const paceHtml = await cachedTextFetch('teamrankings-pace', 'https://www.teamrankings.com/nba/stat/possessions-per-game');
+    const paceVal = parseTeamRankingsValue(paceHtml, row.team);
+    if (paceVal != null) setCard('pace', '50', 'teamrankings-direct', String(paceVal));
+    else failCard('pace', 'pace timeout');
+  } catch { failCard('pace', 'pace timeout'); }
+
+  try {
+    const defHtml = await cachedTextFetch('hashtag-defense', 'https://hashtagbasketball.com/nba-defense-vs-position');
+    const defVal = parseHashtagDefenseValue(defHtml, row.opponent);
+    if (defVal != null) {
+      setCard('oppdef', '50', 'hashtag-direct', String(defVal));
+      setCard('position', '50', 'hashtag-direct', String(defVal));
+    } else {
+      failCard('oppdef', 'oppdef timeout');
+      failCard('position', 'position timeout');
     }
-    applyCard('projection', gemini.projection, gemini.source_map.projection);
-    applyCard('minutes', gemini.minutes, gemini.source_map.minutes);
-    if (canFallback(result.injury)) {
-      result.injury = {
-        ...result.injury,
-        status:'ready',
-        statusLabel:'Gemini structured fallback',
-        sourcesLabel: `${result.injury.sourcesLabel} • winner: Gemini`,
-        parsedResult: gemini.injury_score,
-        evidence: gemini.injury_status
-      };
-    }
-    if (canFallback(result.starters)) {
-      result.starters = {
-        ...result.starters,
-        status:'ready',
-        statusLabel:'Gemini structured fallback',
-        sourcesLabel: `${result.starters.sourcesLabel} • winner: Gemini`,
-        parsedResult: gemini.starter_score,
-        evidence: gemini.starter_status
-      };
-    }
-    applyCard('schedule', gemini.rest_days, gemini.source_map.schedule);
-    applyCard('pace', gemini.pace_score || '50', gemini.source_map.pace || 'Gemini');
-    applyCard('blowout', gemini.blowout_score || '50', gemini.source_map.blowout || 'Gemini');
-    applyCard('oppdef', gemini.oppdef_score || '50', gemini.source_map.oppdef || 'Gemini');
-    applyCard('position', gemini.position_score || '50', gemini.source_map.position || 'Gemini');
-    applyCard('teammates', gemini.teammates_score || '50', gemini.source_map.teammates || 'Gemini');
-    applyCard('homeaway', gemini.homeaway_score || '50', gemini.source_map.homeaway || 'Gemini');
-    applyCard('role', gemini.role_score || '50', gemini.source_map.role || 'Gemini');
-    if (typeof onUpdate === 'function') { Object.keys(result).forEach(k => onUpdate(k, result[k], result)); }
+  } catch {
+    failCard('oppdef', 'oppdef timeout');
+    failCard('position', 'position timeout');
   }
+
+  const dkLine = findDraftKingsLine(dk, row);
+  if (dkLine != null) {
+    setCard('odds', dkLine.toFixed(1), 'draftkings-direct', dkLine.toFixed(1));
+    setCard('projection', dkLine.toFixed(1), 'draftkings-direct', dkLine.toFixed(1));
+    setCard('blowout', String(Number(row.line || 0) >= 12.5 ? 75 : 25), 'computed', String(Number(row.line || 0) >= 12.5 ? 75 : 25));
+  } else {
+    failCard('odds', 'odds timeout');
+    failCard('projection', 'projection timeout');
+    failCard('blowout', 'No usable NBA evidence returned.');
+  }
+
+  try {
+    const rotowire = await fetchRotoWireLineupsText();
+    const gameBlock = parseRotoWireGameBlock(rotowire, row);
+    if (gameBlock) {
+      const isStarter = canon(gameBlock).includes(canon(row.entity));
+      setCard('starters', isStarter ? '100' : '50', 'rotowire-direct', isStarter ? 'Starter' : 'Expected / not confirmed');
+      setCard('teammates', '50', 'rotowire-direct', 'RotoWire lineup context');
+    } else {
+      failCard('starters', 'starters timeout');
+      failCard('teammates', 'teammates timeout');
+    }
+  } catch {
+    failCard('starters', 'starters timeout');
+    failCard('teammates', 'teammates timeout');
+  }
+
+  setCard('injury', '0', 'computed', '0');
+  setCard('role', '50', 'computed', '50');
 
   result.coverage = {
     ...result.coverage,
@@ -2751,8 +1980,6 @@ async function mineNbaRow(row, onUpdate) {
     parsedResult: buildCoverageText(row.propFamily),
     evidence: buildCoverageText(row.propFamily)
   };
-  if (typeof onUpdate === 'function') onUpdate('coverage', result.coverage, result);
-  upsertDiagEntry(cacheEntry, { factorKey:'coverage', factorTitle:result.coverage.title, status:'ready', stage:'internal', query:'Internal factor map', provider:'internal', detail:result.coverage.parsedResult, raw:result.coverage.evidence });
 
   return result;
 }
@@ -2777,16 +2004,9 @@ async function ensureNbaMining(row) {
   renderAnalysis();
 
   try {
-    const mined = await mineNbaRow(row, (factorKey, card, current) => {
-      const existing = runtimeMiningCache[key] || { status:'loading', cards:[], diagnostics:{ startedAt: Date.now(), endedAt:null, entries:[] } };
-      runtimeMiningCache[key] = { status:'loading', cards: NBA_MINING_FACTORS.map(f => current[f.key] || f), diagnostics: existing.diagnostics };
-      renderAnalysis();
-    });
-    const existing = runtimeMiningCache[key] || {};
-    runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => mined[f.key] || f), diagnostics: existing.diagnostics || { startedAt: Date.now(), endedAt:null, entries:[] } };
-    finishDiag(runtimeMiningCache[key]);
+    const mined = await mineNbaRow(row);
+    runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => mined[f.key] || f) };
   } catch (err) {
-    const existing = runtimeMiningCache[key] || {};
     runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => ({
       ...f,
       status: f.key === 'validation' ? 'ready' : 'failed',
@@ -3039,19 +2259,16 @@ function parseBlock(block, selectedIds) {
 
 function makeRow({ entity, team, opponent='', prop, line, leagueId, type, raw }) {
   const sport = findLeague(leagueId)?.sport || '';
-  const normProp = normalizeNbaPropFamily(prop);
-  const propDisplayMap = { '3pt made':'3PTM', 'pts+rebs+asts':'PRA', 'pra':'PRA', 'pts+rebs':'Pts+Rebs', 'pts+asts':'Pts+Asts', 'rebs+asts':'Rebs+Asts', 'fantasy score':'Fantasy Score', 'blks+stls':'Blks+Stls', 'points':'Points', 'rebounds':'Rebounds', 'assists':'Assists', 'blocks':'Blocks', 'steals':'Steals', 'turnovers':'Turnovers' };
-  const displayProp = propDisplayMap[normProp] || prop;
-  const lineText = `${displayProp} ${line}`.trim();
+  const lineText = `${prop} ${line}`.trim();
   return {
-    rowId: `${leagueId}|${canon(entity)}|${canon(team)}|${canon(displayProp)}|${line}|${type}`,
+    rowId: `${leagueId}|${canon(entity)}|${canon(team)}|${canon(prop)}|${line}|${type}`,
     sport,
     leagueId,
     entity: norm(entity),
     team: norm(team),
     opponent: norm(opponent),
-    propFamily: displayProp,
-    propKey: canonicalCatalogPropKey(leagueId, displayProp),
+    propFamily: prop,
+    propKey: canon(prop),
     line,
     lineText,
     type,
