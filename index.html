@@ -122,15 +122,13 @@ thead th { background:#121d35; position:sticky; top:0; }
 
 .mining-status.loading{color:#ffd36e}
 .mining-status.failed{color:#ff9aa7}
-.mining-status.live{color:#7dd3fc}
-.log-wrap{max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:16px;background:#0b1324;padding:10px}
-.log-entry{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:#0f172a;margin-bottom:10px}
-.log-entry:last-child{margin-bottom:0}
-.log-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:6px;font-size:13px}
-.log-tag{font-weight:700}
-.log-tag.fail{color:#ff9aa7}.log-tag.info{color:#7dd3fc}.log-tag.ok{color:#baf2cb}
-.log-pre{white-space:pre-wrap;word-break:break-word;color:var(--muted);font-size:12px;line-height:1.35}
-.small-clock{font-size:12px;color:var(--muted);margin-top:4px}
+
+.error-log-wrap { overflow:auto; border:1px solid var(--line); border-radius:18px; }
+.error-log { width:100%; border-collapse:collapse; min-width:760px; }
+.error-log th, .error-log td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+.error-log thead th { background:#121d35; position:sticky; top:0; }
+.error-log .mono { font-family: ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; white-space:pre-wrap; word-break:break-word; }
+.timer-pill { color: var(--accent-2); }
 
 </style>
 </head>
@@ -138,7 +136,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.10</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.11</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -184,8 +182,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.10</h1>
-          <p id="analysisVersion">Version: v5.7.10</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.11</h1>
+          <p id="analysisVersion">Version: v5.7.11</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -205,15 +203,22 @@ thead th { background:#121d35; position:sticky; top:0; }
       </section>
 
       <section class="card">
-        <h2 id="miningMatrixTitle">League Data-Mining Matrix</h2>
-        <p class="mini-muted">This screen is the external-data debug scaffold. It shows what the system should mine for one selected row. NBA factor wiring is live and should stay layout-safe before every release.</p>
-        <div id="miningGrid" class="mining-grid"></div>
+        <h2>Run Diagnostics</h2>
+        <div id="analysisDiagSummary" class="summary-pills"></div>
+        <div class="error-log-wrap">
+          <table class="error-log">
+            <thead>
+              <tr><th>Factor</th><th>Status</th><th>Query / Source</th><th>Error / Raw Evidence</th></tr>
+            </thead>
+            <tbody id="errorLogBody"></tbody>
+          </table>
+        </div>
       </section>
 
       <section class="card">
-        <h2>Error Log</h2>
-        <p class="mini-muted">Live factor logs, raw failed payloads, parser misses, timeouts, and elapsed timing.</p>
-        <div id="analysisErrorLog" class="log-wrap"></div>
+        <h2 id="miningMatrixTitle">League Data-Mining Matrix</h2>
+        <p class="mini-muted">This screen is the external-data debug scaffold. It shows what the system should mine for one selected row. NBA factor wiring is live and should stay layout-safe before every release.</p>
+        <div id="miningGrid" class="mining-grid"></div>
       </section>
 
       <section class="card">
@@ -239,9 +244,9 @@ thead th { background:#121d35; position:sticky; top:0; }
   </div>
   <script>
 const LEAGUES = [
-  { id:'nba', label:'NBA', sport:'NBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Pts+Rebs+Asts','3PTM','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
-  { id:'wnba', label:'WNBA', sport:'WNBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Pts+Rebs+Asts','3PTM','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
-  { id:'cbb', label:'CBB', sport:'CBB', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Pts+Rebs+Asts','3PTM','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
+  { id:'nba', label:'NBA', sport:'NBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
+  { id:'wnba', label:'WNBA', sport:'WNBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
+  { id:'cbb', label:'CBB', sport:'CBB', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
   { id:'nfl', label:'NFL', sport:'NFL', propCatalog:['Passing Yards','Rushing Yards','Receiving Yards','Receptions','Rush Attempts','Touchdowns'] },
   { id:'cfb', label:'CFB', sport:'CFB', propCatalog:['Passing Yards','Rushing Yards','Receiving Yards','Receptions','Rush Attempts','Touchdowns'] },
   { id:'mlb', label:'MLB', sport:'MLB', propCatalog:['Hits','Total Bases','Pitcher Strikeouts','Runs','RBIs','Outs Recorded','Home Runs','Hits Allowed'] },
@@ -257,7 +262,7 @@ const LEAGUES = [
   { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
 ];
 
-const STORAGE_KEY = 'pickcalc-prompt1-v5-7-10';
+const STORAGE_KEY = 'pickcalc-prompt1-v5-7-11';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -306,7 +311,7 @@ const NBA_MINING_FACTORS = [
 ];
 
 const DISPLAY_PROP_ALIASES = {
-  '3PTM':['3pt made','3ptm','3pm','3pt','3-pointers made','three-pointers made','threes'],
+  '3PT Made':['3pt made','3ptm','3pm','3pt','3-pointers made','three-pointers made','threes'],
   'Pts+Rebs+Asts':['pts+rebs+asts','pra'],
   'Pts+Rebs':['pts+rebs','points+rebounds','pts rebounds'],
   'Pts+Asts':['pts+asts','points+assists','pts assists'],
@@ -340,7 +345,6 @@ function resetToEmptyIntake(keepMessage='') {
 }
 
 const runtimeMiningCache = {};
-const runtimeLogCache = {};
 
 function cacheKeyForRow(row) {
   return row ? row.rowId : '';
@@ -515,38 +519,11 @@ function renderResults() {
   return;
 }
 
-const SEARCH_TIMEOUT_MS = 30000;
-const FETCH_TIMEOUT_MS = 30000;
-const NETWORK_CONCURRENCY_LIMIT = 4;
 
-function createSemaphore(limit=4) {
-  let active = 0;
-  const queue = [];
-  const release = () => {
-    active = Math.max(0, active - 1);
-    if (queue.length) queue.shift()();
-  };
-  return async function withSlot(fn) {
-    if (active >= limit) await new Promise(resolve => queue.push(resolve));
-    active += 1;
-    try {
-      return await fn();
-    } finally {
-      release();
-    }
-  };
-}
-
-const withNetworkSlot = createSemaphore(NETWORK_CONCURRENCY_LIMIT);
-
-async function withTimeout(promiseOrFactory, ms, label='timeout', onTimeout=null) {
+async function withTimeout(promise, ms, label='timeout') {
   let timer;
-  const promise = typeof promiseOrFactory === 'function' ? promiseOrFactory() : promiseOrFactory;
   const timeoutPromise = new Promise((_, reject) => {
-    timer = setTimeout(() => {
-      try { if (typeof onTimeout === 'function') onTimeout(); } catch {}
-      reject(new Error(label));
-    }, ms);
+    timer = setTimeout(() => reject(new Error(label)), ms);
   });
   try {
     return await Promise.race([promise, timeoutPromise]);
@@ -561,26 +538,11 @@ async function proxiedFetchText(url) {
     `https://r.jina.ai/http://${url.replace(/^https?:\/\//,'')}`
   ];
   let lastErr = null;
-  for (const baseTarget of tries) {
-    const cacheBust = `${baseTarget}${baseTarget.includes('?') ? '&' : '?'}_ts=${Date.now()}`;
+  for (const target of tries) {
     try {
-      const txt = await withNetworkSlot(async () => {
-        const controller = new AbortController();
-        const res = await withTimeout(
-          () => fetch(cacheBust, {
-            method:'GET',
-            cache:'no-store',
-            signal: controller.signal,
-            headers: { 'x-pick-version': 'v5.7.10' }
-          }),
-          FETCH_TIMEOUT_MS,
-          'fetch timeout',
-          () => controller.abort()
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await withTimeout(() => res.text(), FETCH_TIMEOUT_MS, 'read timeout', () => controller.abort());
-      });
-      if (txt) return txt;
+      const res = await withTimeout(fetch(target, { method:'GET' }), FETCH_TIMEOUT_MS, 'fetch timeout');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.text();
     } catch (err) {
       lastErr = err;
     }
@@ -1161,7 +1123,8 @@ async function bingSearch(query) {
 async function multiSearch(query) {
   const providers = [
     { name: 'ddg', fn: ddgSearch },
-    { name: 'bing', fn: bingSearch }
+    { name: 'bing', fn: bingSearch },
+    { name: 'ddg-retry', fn: ddgSearch }
   ];
   let lastErr = null;
   for (const p of providers) {
@@ -1415,22 +1378,23 @@ async function ensureTennisMining(row) {
   const existing = runtimeMiningCache[key];
   if (existing && (existing.status === 'done' || existing.status === 'loading')) return;
 
-  runtimeMiningCache[key] = { status:'loading', cards: TENNIS_MINING_FACTORS.map(f => ({
+  runtimeMiningCache[key] = { status:'loading', diagnostics:{ startedAt: Date.now(), endedAt:null, entries:[] }, cards: TENNIS_MINING_FACTORS.map(f => ({
     ...f,
     status: f.key === 'validation' ? 'ready' : (f.live ? 'loading' : 'waiting'),
     statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : (f.live ? 'Loading live probe...' : 'Source wiring next'),
     sourcesLabel: f.sources.join(' • '),
     parsedResult: f.key === 'validation' ? `${row.entity} • ${row.propFamily} ${row.line}` : '',
-    evidence: f.key === 'validation' ? 'Parsed from ingested row' : '',
-    elapsedMs: f.key === 'validation' ? 0 : null,
-    elapsedLabel: f.key === 'validation' ? '0ms' : 'live'
+    evidence: f.key === 'validation' ? 'Parsed from ingested row' : ''
   })) };
   renderAnalysis();
 
   try {
     const mined = await mineTennisRow(row);
-    runtimeMiningCache[key] = { status:'done', cards: TENNIS_MINING_FACTORS.map(f => mined[f.key] || f) };
+    const existing = runtimeMiningCache[key] || {};
+    runtimeMiningCache[key] = { status:'done', cards: TENNIS_MINING_FACTORS.map(f => mined[f.key] || f), diagnostics: existing.diagnostics || { startedAt: Date.now(), endedAt:null, entries:[] } };
+    finishDiag(runtimeMiningCache[key]);
   } catch (err) {
+    const existing = runtimeMiningCache[key] || {};
     runtimeMiningCache[key] = { status:'done', cards: TENNIS_MINING_FACTORS.map(f => ({
       ...f,
       status: f.key === 'validation' ? 'ready' : 'failed',
@@ -1438,11 +1402,62 @@ async function ensureTennisMining(row) {
       sourcesLabel: f.sources.join(' • '),
       parsedResult: f.key === 'validation' ? `${row.entity} • ${row.propFamily} ${row.line}` : 'Mining failed.',
       evidence: f.key === 'validation' ? 'Parsed from ingested row' : String(err && err.message || err)
-    })) };
+    })), diagnostics: existing.diagnostics || { startedAt: Date.now(), endedAt:null, entries:[] } };
+    upsertDiagEntry(runtimeMiningCache[key], { factorKey:'run', factorTitle:'Run', status:'failed', stage:'run', query:'mineNbaRow', detail:String(err && err.message || err), raw:'' });
+    finishDiag(runtimeMiningCache[key]);
   }
   renderAnalysis();
 }
 
+
+
+const SEARCH_TIMEOUT_MS = 9000;
+const FETCH_TIMEOUT_MS = 9000;
+
+function ensureDiagState(cacheEntry) {
+  if (!cacheEntry.diagnostics) cacheEntry.diagnostics = { startedAt: Date.now(), endedAt: null, entries: [] };
+  return cacheEntry.diagnostics;
+}
+
+function upsertDiagEntry(cacheEntry, payload) {
+  const diag = ensureDiagState(cacheEntry);
+  const idx = diag.entries.findIndex(x => x.factorKey === payload.factorKey && x.query === payload.query && x.stage === payload.stage);
+  const entry = {
+    factorKey: payload.factorKey || '',
+    factorTitle: payload.factorTitle || payload.factorKey || '',
+    status: payload.status || 'info',
+    query: payload.query || '',
+    provider: payload.provider || '',
+    stage: payload.stage || 'probe',
+    detail: payload.detail || '',
+    raw: payload.raw || ''
+  };
+  if (idx >= 0) diag.entries[idx] = entry;
+  else diag.entries.push(entry);
+}
+
+function finishDiag(cacheEntry) {
+  const diag = ensureDiagState(cacheEntry);
+  diag.endedAt = Date.now();
+}
+
+function formatDiagElapsed(diag) {
+  if (!diag || !diag.startedAt) return '0.0s';
+  const end = diag.endedAt || Date.now();
+  return ((end - diag.startedAt) / 1000).toFixed(1) + 's';
+}
+
+function buildDiagView(row) {
+  const key = cacheKeyForRow(row);
+  const cached = runtimeMiningCache[key] || {};
+  const diag = cached.diagnostics || { startedAt:null, endedAt:null, entries:[] };
+  return {
+    elapsed: formatDiagElapsed(diag),
+    total: diag.entries.length,
+    failed: diag.entries.filter(x => x.status === 'failed').length,
+    entries: diag.entries.slice().reverse()
+  };
+}
 
 function buildMiningStatus(row) {
   if (!row) return [];
@@ -1480,9 +1495,10 @@ function renderAnalysis() {
   const hint = document.getElementById('analysisHint');
   const rowCard = document.getElementById('analysisRowCard');
   const miningGrid = document.getElementById('miningGrid');
-  const errorLog = document.getElementById('analysisErrorLog');
   const analysisBody = document.getElementById('analysisResultsBody');
   const miningMatrixTitle = document.getElementById('miningMatrixTitle');
+  const analysisDiagSummary = document.getElementById('analysisDiagSummary');
+  const errorLogBody = document.getElementById('errorLogBody');
 
   if (miningMatrixTitle) {
     miningMatrixTitle.textContent = row
@@ -1501,7 +1517,6 @@ function renderAnalysis() {
     hint.textContent = 'Ingest at least one row, then hit Run.';
     rowCard.innerHTML = '<div class="message">No row selected yet.</div>';
     miningGrid.innerHTML = '<div class="message">No data-mining matrix yet.</div>';
-    if (errorLog) errorLog.innerHTML = '<div class="message">No log entries yet.</div>';
   } else if (row.leagueId === 'nba') {
     hint.textContent = 'NBA live mining is now wired in debug mode. Some factors may succeed, others may fail, depending on source availability.';
     rowCard.innerHTML = rowCardHtml(row);
@@ -1509,19 +1524,16 @@ function renderAnalysis() {
     miningGrid.innerHTML = buildMiningStatus(row).map(card => `
       <div class="mining-card">
         <h3>${escapeHtml(card.title)}</h3>
-        <div class="mining-status ${card.status}">${card.status === 'ready' ? '✅' : card.status === 'failed' ? '❌' : card.status === 'live' ? '🔵' : '🟡'} ${escapeHtml(card.statusLabel)}</div>
+        <div class="mining-status ${card.status}">${card.status === 'ready' ? '✅' : card.status === 'failed' ? '❌' : '🟡'} ${escapeHtml(card.statusLabel)}</div>
         <div class="mining-meta"><b>Sources:</b> ${escapeHtml(card.sourcesLabel)}</div>
         <div class="mining-meta"><b>Purpose:</b> ${escapeHtml(card.note)}</div>
         <div class="mining-meta"><b>Parsed result:</b> ${escapeHtml(card.parsedResult || '—')}</div>
         <div class="mining-meta"><b>Evidence:</b> ${escapeHtml(card.evidence || '—')}</div>
-        <div class="small-clock"><b>Elapsed:</b> ${escapeHtml(card.elapsedLabel || '—')}</div>
       </div>`).join('');
-    if (errorLog) errorLog.innerHTML = buildErrorLogHtml(row);
   } else if (row.leagueId !== 'tennis') {
     hint.textContent = 'Non-tennis row parsed correctly. League-specific live factor cards are not wired yet for this sport.';
     rowCard.innerHTML = rowCardHtml(row);
     miningGrid.innerHTML = '<div class="message">League-specific mining cards are not wired yet for this sport.</div>';
-    if (errorLog) errorLog.innerHTML = '<div class="message">No log entries yet.</div>';
   } else {
     hint.textContent = 'Tennis live mining is now wired in debug mode. Some factors may succeed, others may fail, depending on source availability.';
     rowCard.innerHTML = rowCardHtml(row);
@@ -1529,14 +1541,30 @@ function renderAnalysis() {
     miningGrid.innerHTML = buildMiningStatus(row).map(card => `
       <div class="mining-card">
         <h3>${escapeHtml(card.title)}</h3>
-        <div class="mining-status ${card.status}">${card.status === 'ready' ? '✅' : card.status === 'failed' ? '❌' : card.status === 'live' ? '🔵' : '🟡'} ${escapeHtml(card.statusLabel)}</div>
+        <div class="mining-status ${card.status}">${card.status === 'ready' ? '✅' : card.status === 'failed' ? '❌' : '🟡'} ${escapeHtml(card.statusLabel)}</div>
         <div class="mining-meta"><b>Sources:</b> ${escapeHtml(card.sourcesLabel)}</div>
         <div class="mining-meta"><b>Purpose:</b> ${escapeHtml(card.note)}</div>
         <div class="mining-meta"><b>Parsed result:</b> ${escapeHtml(card.parsedResult || '—')}</div>
         <div class="mining-meta"><b>Evidence:</b> ${escapeHtml(card.evidence || '—')}</div>
-        <div class="small-clock"><b>Elapsed:</b> ${escapeHtml(card.elapsedLabel || '—')}</div>
       </div>`).join('');
-    if (errorLog) errorLog.innerHTML = buildErrorLogHtml(row);
+  }
+
+  const diagView = row ? buildDiagView(row) : { elapsed:'0.0s', total:0, failed:0, entries:[] };
+  if (analysisDiagSummary) {
+    analysisDiagSummary.innerHTML = `
+      <div class="pill timer-pill">Run timer: ${escapeHtml(diagView.elapsed)}</div>
+      <div class="pill">Log entries: ${diagView.total}</div>
+      <div class="pill">Failures: ${diagView.failed}</div>
+    `;
+  }
+  if (errorLogBody) {
+    errorLogBody.innerHTML = diagView.entries.length ? diagView.entries.map(entry => `
+      <tr>
+        <td>${escapeHtml(entry.factorTitle || entry.factorKey)}</td>
+        <td>${escapeHtml(entry.status)}</td>
+        <td class="mono">${escapeHtml([entry.query, entry.provider].filter(Boolean).join(' • ')) || '—'}</td>
+        <td class="mono">${escapeHtml(entry.detail || entry.raw || '—')}</td>
+      </tr>`).join('') : '<tr><td colspan="4" class="empty">No diagnostics yet.</td></tr>';
   }
 
   analysisBody.innerHTML = resultsRowsHtml(state.cleanedRows, true);
@@ -1548,7 +1576,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.10`,
+    `Version: v5.7.11`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1571,7 +1599,7 @@ function buildAnalysisCopyText(row) {
     for (const card of matrix) {
       lines.push(
         card.title,
-        `${card.status === 'ready' ? '✅' : card.status === 'failed' ? '❌' : card.status === 'live' ? '🔵' : '🟡'} ${card.statusLabel}`,
+        `${card.status === 'ready' ? '✅' : card.status === 'failed' ? '❌' : '🟡'} ${card.statusLabel}`,
         `Sources: ${card.sourcesLabel}`,
         `Purpose: ${card.note}`,
         `Parsed result: ${card.parsedResult || '—'}`,
@@ -2163,8 +2191,8 @@ function buildCoverageText(propFamily='') {
 }
 async function mineNbaRow(row, onUpdate) {
   const result = {};
-  const runStarted = Date.now();
-  const cacheKey = cacheKeyForRow(row);
+  const cacheEntry = runtimeMiningCache[cacheKeyForRow(row)] || (runtimeMiningCache[cacheKeyForRow(row)] = { status:'loading', cards:[] });
+  ensureDiagState(cacheEntry);
   NBA_MINING_FACTORS.forEach(f => {
     result[f.key] = {
       ...f,
@@ -2174,9 +2202,7 @@ async function mineNbaRow(row, onUpdate) {
       parsedResult: f.key === 'validation'
         ? `${row.entity} • ${row.propFamily} ${row.line}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • team ${row.team}` : ''}`
         : '',
-      evidence: f.key === 'validation' ? 'Parsed from ingested row' : '',
-      elapsedMs: f.key === 'validation' ? 0 : null,
-      elapsedLabel: f.key === 'validation' ? '0ms' : 'live'
+      evidence: f.key === 'validation' ? 'Parsed from ingested row' : ''
     };
   });
 
@@ -2205,70 +2231,137 @@ async function mineNbaRow(row, onUpdate) {
     role: [`${row.entity} role usage rate nba`, `${row.entity} rotation role tonight nba`, `${row.entity} starter bench usage nba`]
   };
 
-  const parseFactor = (key, blob) => {
-    if (['last5','last10','last20','season','career','matchup','projection'].includes(key)) {
-      const val = extractNumericMetric(blob, key, row);
-      return val == null || Number.isNaN(Number(val)) ? null : { parsedResult: numericOnly(val), evidence: numericOnly(val) };
-    }
-    if (key === 'minutes') { const val = parseMinutesValue(blob); return val == null ? null : { parsedResult: numericOnly(val), evidence: numericOnly(val) }; }
-    if (key === 'injury') { const val = parseInjuryScore(blob); return val == null ? null : { parsedResult: String(val), evidence: String(val) }; }
-    if (key === 'starters') { const val = parseStarterScore(blob); return val == null ? null : { parsedResult: String(val), evidence: String(val) }; }
-    if (key === 'odds') { const pair = (typeof extractOddsPairFromText === 'function' && extractOddsPairFromText(blob)) || []; const american = parseAmericanOddsPair(blob); const chosen = pair.length >= 2 ? pair.slice(0,2) : american; return !chosen.length ? null : { parsedResult: chosen.join(', '), evidence: chosen.join(', ') }; }
-    if (key === 'schedule') { const val = parseScheduleValue(blob); return val == null ? null : { parsedResult: String(val), evidence: String(val) }; }
-    if (key === 'pace') { const val = parsePaceScore(blob); return val == null ? null : { parsedResult: String(val), evidence: String(val) }; }
-    if (key === 'blowout') { const spread = extractSpreadNumber(blob); const val = spreadToBlowoutScore(spread); return val == null ? null : { parsedResult: String(val), evidence: spread != null ? `spread ${spread}` : String(val) }; }
-    if (key === 'oppdef') { const val = parseOpponentDefenseScore(blob); return val == null ? null : { parsedResult: String(val), evidence: String(val) }; }
-    if (key === 'position') { const val = parsePositionScore(blob); return val == null ? null : { parsedResult: String(val), evidence: String(val) }; }
-    if (key === 'teammates') { const val = parseTeammateImpactScore(blob); return val == null ? null : { parsedResult: String(val), evidence: String(val) }; }
-    if (key === 'homeaway') { const val = parseHomeAwayScore(blob); return val == null ? null : { parsedResult: String(val), evidence: String(val) }; }
-    if (key === 'role') { const val = parseRoleScore(blob); return val == null ? null : { parsedResult: String(val), evidence: String(val) }; }
-    return null;
-  };
-
-  async function runFactor(key, queries) {
-    const factorStarted = Date.now();
+  for (const [key, queries] of Object.entries(queryPlans)) {
     let finalCard = null;
-    result[key] = { ...result[key], status:'live', statusLabel:'Running live probes...', elapsedMs:0, elapsedLabel:'0ms' };
-    if (typeof onUpdate === 'function') onUpdate(key, result[key], result);
     for (const query of queries) {
-      const queryStarted = Date.now();
       try {
         const searched = await withTimeout(multiSearch(query), SEARCH_TIMEOUT_MS, `${key} timeout`);
         const picks = bestNbaResults(searched.results || [], row, key === 'projection' ? '' : key);
+        if (!picks.length) {
+          upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'failed', stage:'probe', query, provider:searched.provider, detail:'No validated result.', raw: cleanSnippet(((searched.results || []).slice(0,2).map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ')).slice(0,500)) });
+          continue;
+        }
         const top = picks.slice(0, 2);
         const blob = top.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
-        if (!picks.length) {
-          pushMiningLog(cacheKey, { level:'info', factorKey:key, factorTitle:result[key].title, query, provider:searched.provider, source:'search-empty', elapsedMs:Date.now()-queryStarted, message:'Search returned no validated picks', raw:(searched.results || []).slice(0,2).map(r => `${r.title || ''} | ${r.snippet || ''}`).join(' || ') });
-          continue;
+        let parsedResult = '';
+        let evidence = '';
+
+        if (['last5','last10','last20','season','career','matchup','projection'].includes(key)) {
+          const val = extractNumericMetric(blob, key, row);
+          if (val === null || val === undefined || Number.isNaN(Number(val))) continue;
+          parsedResult = numericOnly(val);
+          evidence = numericOnly(val);
+        } else if (key === 'minutes') {
+          const val = parseMinutesValue(blob);
+          if (val == null) continue;
+          parsedResult = numericOnly(val);
+          evidence = numericOnly(val);
+        } else if (key === 'injury') {
+          const val = parseInjuryScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
+        } else if (key === 'starters') {
+          const val = parseStarterScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
+        } else if (key === 'odds') {
+          const pair = (typeof extractOddsPairFromText === 'function' && extractOddsPairFromText(blob)) || [];
+          const american = parseAmericanOddsPair(blob);
+          const chosen = pair.length >= 2 ? pair.slice(0,2) : american;
+          if (!chosen.length) continue;
+          parsedResult = chosen.join(', ');
+          evidence = chosen.join(', ');
+        } else if (key === 'schedule') {
+          const val = parseScheduleValue(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
+        } else if (key === 'pace') {
+          const val = parsePaceScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
+        } else if (key === 'blowout') {
+          const spread = extractSpreadNumber(blob);
+          const val = spreadToBlowoutScore(spread);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = spread != null ? 'spread ' + spread : String(val);
+        } else if (key === 'oppdef') {
+          const val = parseOpponentDefenseScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
+        } else if (key === 'position') {
+          const val = parsePositionScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
+        } else if (key === 'teammates') {
+          const val = parseTeammateImpactScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
+        } else if (key === 'homeaway') {
+          const val = parseHomeAwayScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
+        } else if (key === 'role') {
+          const val = parseRoleScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = String(val);
         }
-        const parsed = parseFactor(key, blob);
-        if (!parsed) {
-          pushMiningLog(cacheKey, { level:'fail', factorKey:key, factorTitle:result[key].title, query, provider:searched.provider, source:'parse-miss', elapsedMs:Date.now()-queryStarted, message:'Search hit but parser rejected payload', raw:blob.slice(0,800) });
-          continue;
-        }
-        finalCard = { ...result[key], status:'ready', statusLabel:'Search evidence found', sourcesLabel: `${result[key].sourcesLabel} • winner: ${searched.provider}`, parsedResult: parsed.parsedResult, evidence: parsed.evidence, elapsedMs: Date.now()-factorStarted, elapsedLabel: `${Date.now()-factorStarted}ms` };
-        pushMiningLog(cacheKey, { level:'ok', factorKey:key, factorTitle:result[key].title, query, provider:searched.provider, source:'search-win', elapsedMs:Date.now()-queryStarted, message:'Factor parsed successfully', raw:blob.slice(0,400) });
+
+        finalCard = {
+          ...result[key],
+          status:'ready',
+          statusLabel:'Search evidence found',
+          sourcesLabel: `${result[key].sourcesLabel} • winner: ${searched.provider}`,
+          parsedResult,
+          evidence
+        };
+        upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'ready', stage:'probe', query, provider:searched.provider, detail:`Parsed: ${parsedResult}`, raw: cleanSnippet(blob).slice(0,500) });
         break;
       } catch (err) {
-        const msg = String(err && err.message || err);
-        pushMiningLog(cacheKey, { level:'fail', factorKey:key, factorTitle:result[key].title, query, provider:'', source:'search-error', elapsedMs:Date.now()-queryStarted, message:msg, raw:'' });
-        finalCard = { ...result[key], status:'failed', statusLabel:'Probe failed', parsedResult:'Search request failed.', evidence:msg, elapsedMs: Date.now()-factorStarted, elapsedLabel: `${Date.now()-factorStarted}ms` };
+        upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'failed', stage:'probe', query, detail:String(err && err.message || err), raw:'' });
+        finalCard = {
+          ...result[key],
+          status:'failed',
+          statusLabel:'Probe failed',
+          parsedResult:'Search request failed.',
+          evidence:String(err && err.message || err)
+        };
       }
-      if (typeof onUpdate === 'function') onUpdate(key, finalCard || result[key], result);
     }
-    result[key] = finalCard || { ...result[key], status:'failed', statusLabel:'Probe failed', parsedResult:'No clean validated source found.', evidence:'No usable NBA evidence returned.', elapsedMs: Date.now()-factorStarted, elapsedLabel: `${Date.now()-factorStarted}ms` };
+    result[key] = finalCard || {
+      ...result[key],
+      status:'failed',
+      statusLabel:'Probe failed',
+      parsedResult:'No clean validated source found.',
+      evidence:'No usable NBA evidence returned.'
+    };
     if (typeof onUpdate === 'function') onUpdate(key, result[key], result);
   }
-
-  await Promise.allSettled(Object.entries(queryPlans).map(([key, queries]) => runFactor(key, queries)));
 
   const gemini = geminiNbaFallbackForRow(row);
   if (gemini) {
     const canFallback = (card) => !card || card.status !== 'ready' || !String(card.parsedResult || '').trim();
     const applyCard = (key, value, source, extraEvidence='') => {
       if (!canFallback(result[key])) return;
-      result[key] = { ...result[key], status:'ready', statusLabel:'Gemini structured fallback', sourcesLabel: `${result[key].sourcesLabel} • winner: Gemini`, parsedResult: String(value), evidence: extraEvidence || String(value), elapsedMs: result[key].elapsedMs || (Date.now()-runStarted), elapsedLabel: `${result[key].elapsedMs || (Date.now()-runStarted)}ms` };
-      pushMiningLog(cacheKey, { level:'info', factorKey:key, factorTitle:result[key].title, provider:'Gemini', source:source || 'Gemini', elapsedMs:0, message:'Structured fallback applied', raw:extraEvidence || String(value) });
+      result[key] = {
+        ...result[key],
+        status:'ready',
+        statusLabel:'Gemini structured fallback',
+        sourcesLabel: `${result[key].sourcesLabel} • winner: Gemini`,
+        parsedResult: String(value),
+        evidence: extraEvidence || String(value)
+      };
+      if (source) result[key].evidence = extraEvidence || String(value);
+      upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'ready', stage:'gemini', query:'Gemini bundled fallback', provider:'Gemini', detail:`Parsed: ${String(value)}`, raw: extraEvidence || String(value) });
     };
     applyCard('last5', gemini.last5, gemini.source_map.last5);
     applyCard('last10', gemini.last10, gemini.source_map.last10);
@@ -2276,11 +2369,38 @@ async function mineNbaRow(row, onUpdate) {
     applyCard('season', gemini.season, gemini.source_map.season);
     applyCard('career', gemini.career, gemini.source_map.career);
     applyCard('matchup', gemini.matchup, gemini.source_map.matchup);
-    if (canFallback(result.odds)) { result.odds = { ...result.odds, status:'ready', statusLabel:'Gemini structured fallback', sourcesLabel: `${result.odds.sourcesLabel} • winner: Gemini`, parsedResult: `${gemini.odds_decimal[0]}, ${gemini.odds_decimal[1]}`, evidence: `${gemini.odds_american[0]}, ${gemini.odds_american[1]}`, elapsedMs: result.odds.elapsedMs || (Date.now()-runStarted), elapsedLabel: `${result.odds.elapsedMs || (Date.now()-runStarted)}ms` }; pushMiningLog(cacheKey, { level:'info', factorKey:'odds', factorTitle:result.odds.title, provider:'Gemini', source:'Gemini odds fallback', message:'Structured fallback applied', raw:result.odds.evidence }); }
+    if (canFallback(result.odds)) {
+      result.odds = {
+        ...result.odds,
+        status:'ready',
+        statusLabel:'Gemini structured fallback',
+        sourcesLabel: `${result.odds.sourcesLabel} • winner: Gemini`,
+        parsedResult: `${gemini.odds_decimal[0]}, ${gemini.odds_decimal[1]}`,
+        evidence: `${gemini.odds_american[0]}, ${gemini.odds_american[1]}`
+      };
+    }
     applyCard('projection', gemini.projection, gemini.source_map.projection);
     applyCard('minutes', gemini.minutes, gemini.source_map.minutes);
-    if (canFallback(result.injury)) { result.injury = { ...result.injury, status:'ready', statusLabel:'Gemini structured fallback', sourcesLabel: `${result.injury.sourcesLabel} • winner: Gemini`, parsedResult: gemini.injury_score, evidence: gemini.injury_status, elapsedMs: result.injury.elapsedMs || (Date.now()-runStarted), elapsedLabel: `${result.injury.elapsedMs || (Date.now()-runStarted)}ms` }; pushMiningLog(cacheKey, { level:'info', factorKey:'injury', factorTitle:result.injury.title, provider:'Gemini', source:'Gemini injury fallback', message:'Structured fallback applied', raw:result.injury.evidence }); }
-    if (canFallback(result.starters)) { result.starters = { ...result.starters, status:'ready', statusLabel:'Gemini structured fallback', sourcesLabel: `${result.starters.sourcesLabel} • winner: Gemini`, parsedResult: gemini.starter_score, evidence: gemini.starter_status, elapsedMs: result.starters.elapsedMs || (Date.now()-runStarted), elapsedLabel: `${result.starters.elapsedMs || (Date.now()-runStarted)}ms` }; pushMiningLog(cacheKey, { level:'info', factorKey:'starters', factorTitle:result.starters.title, provider:'Gemini', source:'Gemini starters fallback', message:'Structured fallback applied', raw:result.starters.evidence }); }
+    if (canFallback(result.injury)) {
+      result.injury = {
+        ...result.injury,
+        status:'ready',
+        statusLabel:'Gemini structured fallback',
+        sourcesLabel: `${result.injury.sourcesLabel} • winner: Gemini`,
+        parsedResult: gemini.injury_score,
+        evidence: gemini.injury_status
+      };
+    }
+    if (canFallback(result.starters)) {
+      result.starters = {
+        ...result.starters,
+        status:'ready',
+        statusLabel:'Gemini structured fallback',
+        sourcesLabel: `${result.starters.sourcesLabel} • winner: Gemini`,
+        parsedResult: gemini.starter_score,
+        evidence: gemini.starter_status
+      };
+    }
     applyCard('schedule', gemini.rest_days, gemini.source_map.schedule);
     applyCard('pace', gemini.pace_score || '50', gemini.source_map.pace || 'Gemini');
     applyCard('blowout', gemini.blowout_score || '50', gemini.source_map.blowout || 'Gemini');
@@ -2292,9 +2412,16 @@ async function mineNbaRow(row, onUpdate) {
     if (typeof onUpdate === 'function') { Object.keys(result).forEach(k => onUpdate(k, result[k], result)); }
   }
 
-  result.coverage = { ...result.coverage, status:'ready', statusLabel:'Internal factor map', sourcesLabel: result.coverage.sources.join(' • '), parsedResult: buildCoverageText(row.propFamily), evidence: buildCoverageText(row.propFamily), elapsedMs: Date.now()-runStarted, elapsedLabel: `${Date.now()-runStarted}ms` };
-  pushMiningLog(cacheKey, { level:'info', factorKey:'coverage', factorTitle:result.coverage.title, source:'internal', message:'Coverage snapshot updated', elapsedMs:Date.now()-runStarted, raw:result.coverage.parsedResult });
+  result.coverage = {
+    ...result.coverage,
+    status:'ready',
+    statusLabel:'Internal factor map',
+    sourcesLabel: result.coverage.sources.join(' • '),
+    parsedResult: buildCoverageText(row.propFamily),
+    evidence: buildCoverageText(row.propFamily)
+  };
   if (typeof onUpdate === 'function') onUpdate('coverage', result.coverage, result);
+  upsertDiagEntry(cacheEntry, { factorKey:'coverage', factorTitle:result.coverage.title, status:'ready', stage:'internal', query:'Internal factor map', provider:'internal', detail:result.coverage.parsedResult, raw:result.coverage.evidence });
 
   return result;
 }
@@ -2306,7 +2433,6 @@ async function ensureNbaMining(row) {
   const existing = runtimeMiningCache[key];
   if (existing && (existing.status === 'done' || existing.status === 'loading')) return;
 
-  runtimeLogCache[key] = [];
   runtimeMiningCache[key] = { status:'loading', cards: NBA_MINING_FACTORS.map(f => ({
     ...f,
     status: f.key === 'validation' ? 'ready' : (f.live ? 'loading' : 'waiting'),
@@ -2321,11 +2447,15 @@ async function ensureNbaMining(row) {
 
   try {
     const mined = await mineNbaRow(row, (factorKey, card, current) => {
-      runtimeMiningCache[key] = { status:'loading', cards: NBA_MINING_FACTORS.map(f => current[f.key] || f) };
+      const existing = runtimeMiningCache[key] || { status:'loading', cards:[], diagnostics:{ startedAt: Date.now(), endedAt:null, entries:[] } };
+      runtimeMiningCache[key] = { status:'loading', cards: NBA_MINING_FACTORS.map(f => current[f.key] || f), diagnostics: existing.diagnostics };
       renderAnalysis();
     });
-    runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => mined[f.key] || f) };
+    const existing = runtimeMiningCache[key] || {};
+    runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => mined[f.key] || f), diagnostics: existing.diagnostics || { startedAt: Date.now(), endedAt:null, entries:[] } };
+    finishDiag(runtimeMiningCache[key]);
   } catch (err) {
+    const existing = runtimeMiningCache[key] || {};
     runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => ({
       ...f,
       status: f.key === 'validation' ? 'ready' : 'failed',
@@ -2463,7 +2593,7 @@ function inferLeagueFromProp(prop, block, selectedIds) {
   if (prop.includes('MAP')) return selectedIds.includes('esports-cs2') ? 'esports-cs2' : candidates[0]?.leagueId;
   if (['Total Games','Double Faults','Break Points Won','Aces','Games Won','Sets Won'].includes(prop)) return selectedIds.includes('tennis') ? 'tennis' : candidates[0]?.leagueId;
   if (['Goalie Saves','Passes Attempted','Shots Assisted','Attempted Dribbles','Shots','Shots On Target'].includes(prop)) return selectedIds.includes('soccer') ? 'soccer' : candidates[0]?.leagueId;
-  if (['Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Points','Rebounds','Assists','3PTM','Blocks','Steals'].includes(prop)) {
+  if (['Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Points','Rebounds','Assists','3PT Made','Blocks','Steals'].includes(prop)) {
     if (selectedIds.includes('nba')) return 'nba';
     if (selectedIds.includes('wnba')) return 'wnba';
     if (selectedIds.includes('cbb')) return 'cbb';
