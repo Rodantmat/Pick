@@ -136,7 +136,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.17</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.16</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -182,8 +182,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.17</h1>
-          <p id="analysisVersion">Version: v5.7.17</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.16</h1>
+          <p id="analysisVersion">Version: v5.7.16</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -262,7 +262,7 @@ const LEAGUES = [
   { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
 ];
 
-const STORAGE_KEY = 'pickcalc-prompt1-v5-7-17';
+const STORAGE_KEY = 'pickcalc-prompt1-v5-7-16';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -547,8 +547,8 @@ async function cachedTextFetch(cacheKey, url) {
 
 async function proxiedFetchText(url) {
   const tries = [
-    `https://r.jina.ai/http://${url.replace(/^https?:\/\//,'')}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://r.jina.ai/http://${url.replace(/^https?:\/\//,'')}`
   ];
   let lastErr = null;
   for (let i = 0; i < tries.length; i += 1) {
@@ -1174,7 +1174,8 @@ async function yahooSearch(query) {
 async function multiSearch(query) {
   const providers = [
     { name: 'ddg', fn: ddgSearch },
-    { name: 'startpage', fn: startpageSearch }
+    { name: 'startpage', fn: startpageSearch },
+    { name: 'bing', fn: bingSearch }
   ];
   let lastErr = null;
   for (let i = 0; i < providers.length; i += 1) {
@@ -1632,7 +1633,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.17`,
+    `Version: v5.7.16`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
