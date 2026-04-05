@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.4.2</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.4.3</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -175,8 +175,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.4.2</h1>
-          <p id="analysisVersion">Version: v5.4.2</p>
+          <h1 id="analysisTitle">Run Analysis v5.4.3</h1>
+          <p id="analysisVersion">Version: v5.4.3</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -263,6 +263,17 @@ const TENNIS_MINING_FACTORS = [
   { key:'projection', title:'Projection source', live:false, sources:['Model / manual projection'], note:'Needed later for 2A math.' },
   { key:'schedule', title:'Schedule / fatigue', live:true, sources:['SofaScore API'], note:'Rest and prior match cadence.' },
   { key:'form', title:'Recent form notes', live:true, sources:['SofaScore API'], note:'Micro trend layer.' },
+  { key:'validation', title:'Prop-source validation', live:true, sources:['Ingested row'], note:'Parsed row identity and line are already grounded.' }
+];
+
+const NBA_MINING_FACTORS = [
+  { key:'last5', title:'Last 5 games', live:false, sources:['NBA game log source'], note:'Recent game-log block.' },
+  { key:'last10', title:'Last 10 games', live:false, sources:['NBA game log source'], note:'Short sample trend block.' },
+  { key:'season', title:'Season history', live:false, sources:['NBA season stats source'], note:'Season-long splits.' },
+  { key:'matchup', title:'Matchup context', live:false, sources:['Opponent/team source'], note:'Opponent-specific context.' },
+  { key:'odds', title:'Market odds', live:false, sources:['Sportsbook / odds source'], note:'Moneyline / game context.' },
+  { key:'projection', title:'Projection source', live:false, sources:['Model / manual projection'], note:'Needed later for 2A math.' },
+  { key:'schedule', title:'Schedule / fatigue', live:false, sources:['Game log / schedule source'], note:'Rest and prior game cadence.' },
   { key:'validation', title:'Prop-source validation', live:true, sources:['Ingested row'], note:'Parsed row identity and line are already grounded.' }
 ];
 
@@ -1337,19 +1348,54 @@ async function ensureTennisMining(row) {
   renderAnalysis();
 }
 
+function ensureNbaMining(row) {
+  if (!row || row.leagueId !== 'nba') return;
+  const key = cacheKeyForRow(row);
+  if (runtimeMiningCache[key]?.cards?.length) return;
+  runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => ({
+    ...f,
+    status: f.key === 'validation' ? 'ready' : (f.live ? 'loading' : 'waiting'),
+    statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : 'Source wiring next',
+    sourcesLabel: f.sources.join(' • '),
+    parsedResult: f.key === 'validation'
+      ? `${row.entity} • ${row.propFamily} ${row.line}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • ${row.team}` : ''}`
+      : 'NBA mining field scaffolded.',
+    evidence: f.key === 'validation'
+      ? 'Parsed from ingested row'
+      : 'NBA factor slot is ready for league-specific source wiring.'
+  })) };
+}
+
 function buildMiningStatus(row) {
-  if (!row || row.leagueId !== 'tennis') return [];
+  if (!row) return [];
   const key = cacheKeyForRow(row);
   const cached = runtimeMiningCache[key];
   if (cached?.cards?.length) return cached.cards;
-  return TENNIS_MINING_FACTORS.map(f => ({
-    ...f,
-    status: f.key === 'validation' ? 'ready' : (f.live ? 'loading' : 'waiting'),
-    statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : (f.live ? 'Loading live probe...' : 'Source wiring next'),
-    sourcesLabel: f.sources.join(' • '),
-    parsedResult: f.key === 'validation' ? `${row.entity} • ${row.propFamily} ${row.line}` : '',
-    evidence: f.key === 'validation' ? 'Parsed from ingested row' : ''
-  }));
+  if (row.leagueId === 'tennis') {
+    return TENNIS_MINING_FACTORS.map(f => ({
+      ...f,
+      status: f.key === 'validation' ? 'ready' : (f.live ? 'loading' : 'waiting'),
+      statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : (f.live ? 'Loading live probe...' : 'Source wiring next'),
+      sourcesLabel: f.sources.join(' • '),
+      parsedResult: f.key === 'validation' ? `${row.entity} • ${row.propFamily} ${row.line}` : '',
+      evidence: f.key === 'validation' ? 'Parsed from ingested row' : ''
+    }));
+  }
+  if (row.leagueId === 'nba') {
+    return NBA_MINING_FACTORS.map(f => ({
+      ...f,
+      status: f.key === 'validation' ? 'ready' : 'waiting',
+      statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : 'Source wiring next',
+      sourcesLabel: f.sources.join(' • '),
+      parsedResult: f.key === 'validation'
+        ? `${row.entity} • ${row.propFamily} ${row.line}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • ${row.team}` : ''}`
+        : 'NBA mining field scaffolded.',
+      evidence: f.key === 'validation'
+        ? 'Parsed from ingested row'
+        : 'NBA factor slot is ready for league-specific source wiring.'
+    }));
+  }
+  return [];
 }
 
 function renderAnalysis() {
@@ -1371,10 +1417,23 @@ function renderAnalysis() {
     hint.textContent = 'Ingest at least one row, then hit Run.';
     rowCard.innerHTML = '<div class="message">No row selected yet.</div>';
     miningGrid.innerHTML = '<div class="message">No data-mining matrix yet.</div>';
+  } else if (row.leagueId === 'nba') {
+    hint.textContent = 'NBA row parsed correctly. NBA factor cards are scaffolded for source wiring.';
+    rowCard.innerHTML = rowCardHtml(row);
+    ensureNbaMining(row);
+    miningGrid.innerHTML = buildMiningStatus(row).map(card => `
+      <div class="mining-card">
+        <h3>${escapeHtml(card.title)}</h3>
+        <div class="mining-status ${card.status}">${card.status === 'ready' ? '✅' : card.status === 'failed' ? '❌' : '🟡'} ${escapeHtml(card.statusLabel)}</div>
+        <div class="mining-meta"><b>Sources:</b> ${escapeHtml(card.sourcesLabel)}</div>
+        <div class="mining-meta"><b>Purpose:</b> ${escapeHtml(card.note)}</div>
+        <div class="mining-meta"><b>Parsed result:</b> ${escapeHtml(card.parsedResult || '—')}</div>
+        <div class="mining-meta"><b>Evidence:</b> ${escapeHtml(card.evidence || '—')}</div>
+      </div>`).join('');
   } else if (row.leagueId !== 'tennis') {
     hint.textContent = 'Non-tennis row parsed correctly. League-specific live factor cards are not wired yet for this sport.';
     rowCard.innerHTML = rowCardHtml(row);
-    miningGrid.innerHTML = '<div class="message">NBA parsing is live. League-specific mining cards are not wired yet for NBA.</div>';
+    miningGrid.innerHTML = '<div class="message">League-specific mining cards are not wired yet for this sport.</div>';
   } else {
     hint.textContent = 'Tennis live mining is now wired in debug mode. Some factors may succeed, others may fail, depending on source availability.';
     rowCard.innerHTML = rowCardHtml(row);
@@ -1399,7 +1458,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.4.2`,
+    `Version: v5.4.3`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1465,23 +1524,27 @@ function normalizePhoneTennisBlock(text) {
 
 
 function parsePhoneStatBlock(block, selectedIds) {
-  const lines = block.replace(/\r/g,'').split(/\n+/).map(s => s.trim()).filter(Boolean);
-  if (lines.length < 6) return null;
+  const lines = block.replace(/\r/g,'').split(/\n+/).map(norm).filter(Boolean);
+  if (lines.length < 5) return null;
 
-  const first = norm(lines[0] || '');
+  let start = 0;
+  while (start < lines.length && !/\s-\s(?:Player|Attacker|Defender|Midfielder|Goalkeeper|Forward|Guard|Center|F|G|C|F-G|G-F|F-C|C-F|G-C)\b/i.test(lines[start])) start += 1;
+  if (start >= lines.length) return null;
+
+  const first = norm(lines[start] || '');
   const firstMatch = first.match(/^([A-Za-z0-9'.&\- ]+)\s-\s(?:Player|Attacker|Defender|Midfielder|Goalkeeper|Forward|Guard|Center|F|G|C|F-G|G-F|F-C|C-F|G-C)\b/i);
   if (!firstMatch) return null;
 
   const team = norm(firstMatch[1] || '');
-  const entity = norm(lines[1] || '');
+  const entity = norm(lines[start + 1] || '');
   if (!entity) return null;
 
-  let idx = 2;
+  let idx = start + 2;
   const entityCanon = canon(entity);
   while (idx < lines.length && canon(lines[idx]) === entityCanon) idx += 1;
 
   const oppLine = norm(lines[idx] || '');
-  const lineNum = (lines[idx + 1] || '').match(/(\d+(?:\.\d+)?)/)?.[1] || '';
+  const lineNum = norm(lines[idx + 1] || '').match(/(\d+(?:\.\d+)?)/)?.[1] || '';
   const prop = norm(lines[idx + 2] || '');
   if (!oppLine || !lineNum || !prop) return null;
   if (!/\b(vs|@)\b/i.test(oppLine)) return null;
