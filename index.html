@@ -136,7 +136,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.13</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.14</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -182,8 +182,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.13</h1>
-          <p id="analysisVersion">Version: v5.7.13</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.14</h1>
+          <p id="analysisVersion">Version: v5.7.14</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -534,6 +534,15 @@ async function withTimeout(promise, ms, label='timeout') {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+const DIRECT_FETCH_CACHE = Object.create(null);
+
+async function cachedTextFetch(cacheKey, url) {
+  if (DIRECT_FETCH_CACHE[cacheKey]) return DIRECT_FETCH_CACHE[cacheKey];
+  const promise = proxiedFetchText(url).catch(err => { delete DIRECT_FETCH_CACHE[cacheKey]; throw err; });
+  DIRECT_FETCH_CACHE[cacheKey] = promise;
+  return promise;
 }
 
 async function proxiedFetchText(url) {
@@ -1129,18 +1138,52 @@ async function bingSearch(query) {
   return results.slice(0, 5);
 }
 
+async function startpageSearch(query) {
+  const url = `https://www.startpage.com/sp/search?query=${encodeURIComponent(query)}`;
+  const html = await withTimeout(proxiedFetchText(url), SEARCH_TIMEOUT_MS, 'search timeout');
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const results = [];
+  doc.querySelectorAll('a').forEach((a) => {
+    const href = normalizeSearchHref(a.href || '');
+    const title = cleanSnippet(a.textContent || '');
+    if (!href || !title) return;
+    if (!/^https?:/i.test(href)) return;
+    if (/startpage\.com/i.test(href)) return;
+    const block = a.closest('div') || a.parentElement;
+    const snippet = cleanSnippet(block?.textContent || '');
+    results.push({ title, snippet, href });
+  });
+  return results.slice(0, 5);
+}
+
+async function yahooSearch(query) {
+  const url = `https://search.yahoo.com/search?p=${encodeURIComponent(query)}`;
+  const html = await withTimeout(proxiedFetchText(url), SEARCH_TIMEOUT_MS, 'search timeout');
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const results = [];
+  doc.querySelectorAll('div#web ol li, div.algo, li').forEach((el) => {
+    const a = el.querySelector('a');
+    const href = normalizeSearchHref(a?.href || '');
+    const title = cleanSnippet(a?.textContent || '');
+    const snippet = cleanSnippet(el.textContent || '');
+    if (title || snippet) results.push({ title, snippet, href });
+  });
+  return results.slice(0, 5);
+}
+
 async function multiSearch(query) {
   const providers = [
     { name: 'ddg', fn: ddgSearch },
     { name: 'bing', fn: bingSearch },
-    { name: 'ddg-retry', fn: ddgSearch }
+    { name: 'startpage', fn: startpageSearch },
+    { name: 'yahoo', fn: yahooSearch }
   ];
   let lastErr = null;
   for (let i = 0; i < providers.length; i += 1) {
     const p = providers[i];
     try {
-      const res = await p.fn(query);
-      if (res && res.length) return { provider: p.name.replace('-retry',''), results: res };
+      const res = await withTimeout(p.fn(query), PROVIDER_SEARCH_TIMEOUT_MS, `${p.name} timeout`);
+      if (res && res.length) return { provider: p.name, results: res };
     } catch (err) {
       lastErr = err;
       const msg = String(err && err.message || err || '');
@@ -1423,10 +1466,11 @@ async function ensureTennisMining(row) {
 
 
 
-const SEARCH_TIMEOUT_MS = 15000;
-const FETCH_TIMEOUT_MS = 12000;
-const SEARCH_COOLDOWN_MS = 250;
-const RETRY_BACKOFF_MS = 700;
+const SEARCH_TIMEOUT_MS = 12000;
+const FETCH_TIMEOUT_MS = 8000;
+const PROVIDER_SEARCH_TIMEOUT_MS = 3200;
+const SEARCH_COOLDOWN_MS = 220;
+const RETRY_BACKOFF_MS = 900;
 
 function ensureDiagState(cacheEntry) {
   if (!cacheEntry.diagnostics) cacheEntry.diagnostics = { startedAt: Date.now(), endedAt: null, entries: [] };
@@ -1590,7 +1634,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.13`,
+    `Version: v5.7.14`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -2203,6 +2247,93 @@ function buildCoverageText(propFamily='') {
   const pending = allProps.includes(prop) ? [] : ['prop-specific refinement'];
   return `wired:${wired.join(',')} | pending:${pending.length ? pending.join(',') : 'none'}`;
 }
+
+function directProbeSourceLabel(name, extras=[]) {
+  return [name, ...extras].filter(Boolean).join(' • ');
+}
+
+async function fetchRotoWireLineupsText() {
+  return cachedTextFetch('rotowire-nba-lineups', 'https://www.rotowire.com/basketball/nba-lineups.php');
+}
+
+function parseRotoWireGameBlock(html='', row={}) {
+  const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+  const teamTokens = [String(row.team || '').toUpperCase(), String(row.opponent || '').toUpperCase()].filter(Boolean);
+  let best = null;
+  doc.querySelectorAll('div, section, article').forEach((el) => {
+    const txt = cleanSnippet(el.textContent || '');
+    if (!txt) return;
+    const hitCount = teamTokens.filter(t => txt.includes(t)).length;
+    if (hitCount < 2) return;
+    if (!best || txt.length < best.length) best = txt;
+  });
+  return best || '';
+}
+
+function parseRotoWireLineupEvidence(block='', row={}) {
+  const txt = String(block || '');
+  if (!txt) return null;
+  const team = String(row.team || '').toUpperCase();
+  const opp = String(row.opponent || '').toUpperCase();
+  const hasStarter = canon(txt).includes(canon(row.entity || '')) && /expected lineup|confirmed lineup/i.test(txt);
+  const spreadMatch = txt.match(/SPREAD\s+([A-Z]{2,3})\s*([+-]\d+(?:\.\d+)?)/i);
+  const lineMatch = txt.match(/LINE\s+([A-Z]{2,3})\s*([+-]\d+)/i);
+  const teamInjuries = [];
+  const teamBlock = txt;
+  (teamBlock.match(/[A-Z][A-Za-z'\. -]+\s(?:Out|Doubt|Doubtful|Ques|Questionable|Prob|Probable)/g) || []).forEach(x => teamInjuries.push(cleanSnippet(x)));
+  return { hasStarter, spreadMatch, lineMatch, teamInjuries };
+}
+
+async function tryDirectNbaProbe(row, key) {
+  try {
+    if (['odds','blowout','starters','injury','teammates'].includes(key)) {
+      const html = await fetchRotoWireLineupsText();
+      const block = parseRotoWireGameBlock(html, row);
+      const info = parseRotoWireLineupEvidence(block, row);
+      if (!info) return null;
+      if (key === 'starters' && info.hasStarter) return { parsedResult:'100', evidence:'Expected Lineup', provider:'rotowire-direct' };
+      if (key === 'injury') {
+        const joined = info.teamInjuries.join(' • ');
+        const val = parseInjuryScore(joined || block);
+        if (val != null) return { parsedResult:String(val), evidence: joined || 'RotoWire injury context', provider:'rotowire-direct' };
+      }
+      if (key === 'teammates') {
+        const joined = info.teamInjuries.join(' • ');
+        const val = parseTeammateImpactScore(joined || block);
+        if (val != null) return { parsedResult:String(val), evidence: joined || 'RotoWire lineup context', provider:'rotowire-direct' };
+      }
+      if (key === 'odds') {
+        const parts = [];
+        if (info.lineMatch) parts.push(info.lineMatch[2]);
+        if (info.spreadMatch) parts.push(info.spreadMatch[2]);
+        if (parts.length) return { parsedResult:parts.join(', '), evidence:parts.join(', '), provider:'rotowire-direct' };
+      }
+      if (key === 'blowout') {
+        const spread = info.spreadMatch ? parseFloat(info.spreadMatch[2]) : null;
+        const val = spreadToBlowoutScore(spread);
+        if (val != null) return { parsedResult:String(val), evidence: spread != null ? `spread ${spread}` : String(val), provider:'rotowire-direct' };
+      }
+    }
+  } catch (err) {
+    return { error: String(err && err.message || err || 'direct probe failed') };
+  }
+  return null;
+}
+
+function validateFactorValue(key, value, row) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return false;
+  const prop = normalizeNbaPropFamily(row && row.propFamily || '');
+  const statMax = {
+    'points': 60, 'rebounds': 25, 'assists': 18, 'pts+rebs': 80, 'pts+asts': 80, 'rebs+asts': 40,
+    'pra': 100, '3pt made': 12, 'fantasy score': 90, 'blocks': 8, 'steals': 8, 'blks+stls': 12, 'turnovers': 10
+  }[prop] || 100;
+  if (['last5','last10','last20','season','career','matchup','projection'].includes(key)) return num >= 0 && num <= statMax;
+  if (key === 'minutes') return num >= 0 && num <= 48;
+  if (['injury','starters','schedule','pace','blowout','oppdef','position','teammates','homeaway','role'].includes(key)) return num >= 0 && num <= 100;
+  return true;
+}
+
 async function mineNbaRow(row, onUpdate) {
   const result = {};
   const cacheEntry = runtimeMiningCache[cacheKeyForRow(row)] || (runtimeMiningCache[cacheKeyForRow(row)] = { status:'loading', cards:[] });
@@ -2247,7 +2378,21 @@ async function mineNbaRow(row, onUpdate) {
 
   for (const [key, queries] of Object.entries(queryPlans)) {
     let finalCard = null;
-    for (const query of queries) {
+    const direct = await tryDirectNbaProbe(row, key);
+    if (direct && !direct.error) {
+      finalCard = {
+        ...result[key],
+        status:'ready',
+        statusLabel:'Direct source found',
+        sourcesLabel: `${result[key].sourcesLabel} • winner: ${direct.provider || 'direct'}`,
+        parsedResult: direct.parsedResult,
+        evidence: direct.evidence
+      };
+      upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'ready', stage:'direct', query:'direct probe', provider:direct.provider || 'direct', detail:`Parsed: ${direct.parsedResult}`, raw: cleanSnippet(direct.evidence || '').slice(0,500) });
+    } else if (direct && direct.error) {
+      upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'failed', stage:'direct', query:'direct probe', provider:'direct', detail:direct.error, raw:'' });
+    }
+    if (!finalCard) for (const query of queries) {
       try {
         const searched = await withTimeout(multiSearch(query), SEARCH_TIMEOUT_MS, `${key} timeout`);
         const picks = bestNbaResults(searched.results || [], row, key === 'projection' ? '' : key);
@@ -2263,21 +2408,25 @@ async function mineNbaRow(row, onUpdate) {
         if (['last5','last10','last20','season','career','matchup','projection'].includes(key)) {
           const val = extractNumericMetric(blob, key, row);
           if (val === null || val === undefined || Number.isNaN(Number(val))) continue;
+          if (!validateFactorValue(key, val, row)) continue;
           parsedResult = numericOnly(val);
           evidence = numericOnly(val);
         } else if (key === 'minutes') {
           const val = parseMinutesValue(blob);
           if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
           parsedResult = numericOnly(val);
           evidence = numericOnly(val);
         } else if (key === 'injury') {
           const val = parseInjuryScore(blob);
           if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
           parsedResult = String(val);
           evidence = String(val);
         } else if (key === 'starters') {
           const val = parseStarterScore(blob);
           if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
           parsedResult = String(val);
           evidence = String(val);
         } else if (key === 'odds') {
@@ -2290,42 +2439,50 @@ async function mineNbaRow(row, onUpdate) {
         } else if (key === 'schedule') {
           const val = parseScheduleValue(blob);
           if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
           parsedResult = String(val);
           evidence = String(val);
         } else if (key === 'pace') {
           const val = parsePaceScore(blob);
           if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
           parsedResult = String(val);
           evidence = String(val);
         } else if (key === 'blowout') {
           const spread = extractSpreadNumber(blob);
           const val = spreadToBlowoutScore(spread);
           if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
           parsedResult = String(val);
           evidence = spread != null ? 'spread ' + spread : String(val);
         } else if (key === 'oppdef') {
           const val = parseOpponentDefenseScore(blob);
           if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
           parsedResult = String(val);
           evidence = String(val);
         } else if (key === 'position') {
           const val = parsePositionScore(blob);
           if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
           parsedResult = String(val);
           evidence = String(val);
         } else if (key === 'teammates') {
           const val = parseTeammateImpactScore(blob);
           if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
           parsedResult = String(val);
           evidence = String(val);
         } else if (key === 'homeaway') {
           const val = parseHomeAwayScore(blob);
           if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
           parsedResult = String(val);
           evidence = String(val);
         } else if (key === 'role') {
           const val = parseRoleScore(blob);
           if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
           parsedResult = String(val);
           evidence = String(val);
         }
