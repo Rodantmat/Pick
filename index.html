@@ -129,7 +129,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.3</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.4</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -175,8 +175,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.3</h1>
-          <p id="analysisVersion">Version: v5.7.3</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.4</h1>
+          <p id="analysisVersion">Version: v5.7.4</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -196,7 +196,7 @@ thead th { background:#121d35; position:sticky; top:0; }
       </section>
 
       <section class="card">
-        <h2>Tennis Data-Mining Matrix</h2>
+        <h2 id="miningMatrixTitle">League Data-Mining Matrix</h2>
         <p class="mini-muted">This screen is the external-data debug scaffold. It shows what the system should mine for one tennis row. Live source wiring can plug into these slots next.</p>
         <div id="miningGrid" class="mining-grid"></div>
       </section>
@@ -242,7 +242,7 @@ const LEAGUES = [
   { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
 ];
 
-const STORAGE_KEY = 'pickcalc-prompt1-v5-7-3';
+const STORAGE_KEY = 'pickcalc-prompt1-v5-7-4';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -1392,6 +1392,13 @@ function renderAnalysis() {
   const rowCard = document.getElementById('analysisRowCard');
   const miningGrid = document.getElementById('miningGrid');
   const analysisBody = document.getElementById('analysisResultsBody');
+  const miningMatrixTitle = document.getElementById('miningMatrixTitle');
+
+  if (miningMatrixTitle) {
+    miningMatrixTitle.textContent = row
+      ? `${findLeague(row.leagueId)?.label || row.leagueId} Data-Mining Matrix`
+      : 'League Data-Mining Matrix';
+  }
 
   summary.innerHTML = `
     <div class="pill">Day: ${escapeHtml(state.dayScope)}</div>
@@ -1445,7 +1452,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.3`,
+    `Version: v5.7.4`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1631,6 +1638,86 @@ function normalizeNbaPropFamily(prop='') {
   return map[c] || c;
 }
 
+
+const NBA_PROP_ALIAS_MAP = {
+  'points': ['points?', 'pts'],
+  'rebounds': ['rebounds?', 'rebs?'],
+  'assists': ['assists?', 'asts?'],
+  'pts+rebs': ['points?', 'pts', 'rebounds?', 'rebs?'],
+  'pts+asts': ['points?', 'pts', 'assists?', 'asts?'],
+  'rebs+asts': ['rebounds?', 'rebs?', 'assists?', 'asts?'],
+  'pra': ['points?', 'pts', 'rebounds?', 'rebs?', 'assists?', 'asts?'],
+  '3pt made': ['3-pointers? made', 'three-pointers? made', 'threes?', '3pt made'],
+  'fantasy score': ['fantasy points?', 'fantasy score'],
+  'blocks': ['blocks?', 'blks?'],
+  'steals': ['steals?', 'stls?'],
+  'blks+stls': ['blocks?', 'blks?', 'steals?', 'stls?', 'stocks?'],
+  'turnovers': ['turnovers?', 'tos?']
+};
+
+function clampNumber(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function rankToScore(rank, total=30, invert=false) {
+  const n = Number(rank);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const bounded = clampNumber(n, 1, total);
+  const raw = invert ? ((total - bounded) / (total - 1)) : ((bounded - 1) / (total - 1));
+  return Math.round(clampNumber(raw * 100, 0, 100));
+}
+
+function extractRank(text='') {
+  const src = String(text || '');
+  const patterns = [
+    /\b([1-9]|[12][0-9]|30)(?:st|nd|rd|th)\b/i,
+    /rank(?:ed|ing)?[^0-9]{0,12}([1-9]|[12][0-9]|30)\b/i,
+    /no\.?\s*([1-9]|[12][0-9]|30)\b/i
+  ];
+  for (const rx of patterns) {
+    const m = src.match(rx);
+    if (m) return parseInt(m[1], 10);
+  }
+  return null;
+}
+
+function extractSpreadNumber(text='') {
+  const src = String(text || '');
+  const patterns = [
+    /favou?rites?[^0-9]{0,10}by[^0-9]{0,10}([0-9]+(?:\.[0-9]+)?)/i,
+    /spread[^0-9+-]{0,12}([+-]?[0-9]+(?:\.[0-9]+)?)/i,
+    /\b([+-][0-9]+(?:\.[0-9]+)?)\b/
+  ];
+  for (const rx of patterns) {
+    const m = src.match(rx);
+    if (m) return Math.abs(parseFloat(m[1]));
+  }
+  return null;
+}
+
+function spreadToBlowoutScore(spread) {
+  if (!Number.isFinite(spread)) return null;
+  const s = Math.abs(spread);
+  const score = 100 - (s * 8);
+  return Math.round(clampNumber(score, 5, 100));
+}
+
+function parseKeywordWeightedScore(text='', positive=[], negative=[], base=50, step=12) {
+  const c = canon(text || '');
+  if (!c) return null;
+  let score = base;
+  positive.forEach(word => { if (canon(word) && c.includes(canon(word))) score += step; });
+  negative.forEach(word => { if (canon(word) && c.includes(canon(word))) score -= step; });
+  return Math.round(clampNumber(score, 0, 100));
+}
+
+function formatScoreOrBlank(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '';
+  return String(Math.round(n));
+}
+
 function regexEscapeForPattern(s='') {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -1639,7 +1726,7 @@ function extractSingleStatValue(text='', aliases=[]) {
   const src = String(text || '');
   const aliasList = (aliases || []).filter(Boolean);
   for (const alias of aliasList) {
-    const a = regexEscapeForPattern(alias);
+    const a = String(alias);
     const patterns = [
       new RegExp(`([0-9]+(?:\.[0-9]+)?)\s+${a}`, 'i'),
       new RegExp(`${a}[^0-9]{0,18}([0-9]+(?:\.[0-9]+)?)`, 'i'),
@@ -1682,23 +1769,41 @@ function extractNumericMetric(text='', key='', row={}) {
     if (triple) return triple.assists;
     return extractSingleStatValue(src, ['assists?', 'asts?']);
   }
-  if (prop === '3pt made') return extractSingleStatValue(src, ['3-pointers? made', 'three-pointers? made', 'threes?', '3pt made']);
-  if (prop === 'blocks') return extractSingleStatValue(src, ['blocks?', 'blks?']);
-  if (prop === 'steals') return extractSingleStatValue(src, ['steals?', 'stls?']);
+  if (prop === '3pt made') {
+    const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+(?:3-pointers?|three-pointers?|threes?)\s*(?:made)?/i)
+      || src.match(/(?:3-pointers?|three-pointers?|threes?|3pt made)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
+    if (m) return parseFloat(m[1]);
+  }
+  if (prop === 'blocks') {
+    const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+blocks?/i) || src.match(/(?:blocks?|blks?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
+    if (m) return parseFloat(m[1]);
+  }
+  if (prop === 'steals') {
+    const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+steals?/i) || src.match(/(?:steals?|stls?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
+    if (m) return parseFloat(m[1]);
+  }
   if (prop === 'blks+stls') {
-    const blocks = extractSingleStatValue(src, ['blocks?', 'blks?']);
-    const steals = extractSingleStatValue(src, ['steals?', 'stls?']);
+    const b = src.match(/([0-9]+(?:\.[0-9]+)?)\s+blocks?/i) || src.match(/(?:blocks?|blks?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
+    const s = src.match(/([0-9]+(?:\.[0-9]+)?)\s+steals?/i) || src.match(/(?:steals?|stls?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
+    const blocks = b ? parseFloat(b[1]) : null;
+    const steals = s ? parseFloat(s[1]) : null;
     if (blocks != null || steals != null) return +(((blocks || 0) + (steals || 0)).toFixed(1));
   }
-  if (prop === 'turnovers') return extractSingleStatValue(src, ['turnovers?', 'tos?']);
-  if (prop === 'fantasy score') return extractSingleStatValue(src, ['fantasy points?', 'fantasy score']);
+  if (prop === 'turnovers') {
+    const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+turnovers?/i) || src.match(/(?:turnovers?|tos?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
+    if (m) return parseFloat(m[1]);
+  }
+  if (prop === 'fantasy score') {
+    const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+fantasy (?:points?|score)/i) || src.match(/(?:fantasy points?|fantasy score)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
+    if (m) return parseFloat(m[1]);
+  }
 
   if (key === 'projection') {
     const generic = src.match(/(?:project(?:ed|ion)?|line)[^0-9]{0,16}([0-9]+(?:\.[0-9]+)?)/i);
     if (generic) return parseFloat(generic[1]);
   }
 
-  const fallback = src.match(/([0-9]+(?:\.[0-9]+)?)/);
+  const fallback = key === 'projection' ? src.match(/([0-9]+(?:\.[0-9]+)?)/) : null;
   return fallback ? parseFloat(fallback[1]) : null;
 }
 
@@ -1785,9 +1890,12 @@ function geminiNbaFallbackForRow(row) {
 }
 
 function buildCoverageText(propFamily='') {
-  const prop = canon(propFamily || '');
-  if (prop === 'pra') return 'wired:last5,last10,last20,season,career,matchup,odds,projection,minutes,injury,starters,schedule | pending:none';
-  return 'wired:trend,history,matchup,odds,projection,minutes,injury,starters,schedule | pending:prop-specific refinement';
+  const prop = normalizeNbaPropFamily(propFamily);
+  const allFactors = ['last5','last10','last20','season','career','matchup','odds','projection','minutes','injury','starters','schedule','pace','blowout','oppdef','position','teammates','homeaway','role'];
+  const allProps = ['points','rebounds','assists','pts+rebs','pts+asts','rebs+asts','pra','3pt made','fantasy score','blocks','steals','blks+stls','turnovers'];
+  const wired = allProps.includes(prop) ? allFactors : ['last5','last10','last20','season','career','matchup','odds','projection','injury','starters','schedule'];
+  const pending = allProps.includes(prop) ? [] : ['prop-specific refinement'];
+  return `wired:${wired.join(',')} | pending:${pending.length ? pending.join(',') : 'none'}`;
 }
 async function mineNbaRow(row) {
   const result = {};
@@ -1818,7 +1926,14 @@ async function mineNbaRow(row) {
     minutes: [`${row.entity} projected minutes tonight`, `${row.entity} minutes projection nba`, `${row.entity} expected minutes nba`],
     injury: [`${row.entity} injury report today nba`, `${row.entity} status today nba`, `${row.entity} probable questionable out nba`],
     starters: [`${teamFull || row.team} starting lineup today nba`, `${row.entity} starting tonight nba`, `${teamFull || row.team} starters nba today`],
-    schedule: [`${row.entity} recent games rest days nba`, `${row.entity} game log espn nba`, `${row.entity} schedule last games nba`]
+    schedule: [`${row.entity} recent games rest days nba`, `${row.entity} game log espn nba`, `${row.entity} schedule last games nba`],
+    pace: [`${teamFull || row.team} vs ${oppFull || row.opponent} pace nba`, `${teamFull || row.team} ${oppFull || row.opponent} possessions pace`, `${teamFull || row.team} team pace nba`],
+    blowout: [`${teamFull || row.team} vs ${oppFull || row.opponent} spread nba`, `${teamFull || row.team} ${oppFull || row.opponent} moneyline spread`, `${teamFull || row.team} ${oppFull || row.opponent} betting line nba`],
+    oppdef: [`${oppFull || row.opponent} defense vs ${row.propFamily} nba`, `${oppFull || row.opponent} defensive rating nba`, `${oppFull || row.opponent} allowed ${row.propFamily} nba`],
+    position: [`${oppFull || row.opponent} vs ${row.entity} position ${row.propFamily} nba`, `${oppFull || row.opponent} vs position ${row.propFamily} nba`, `${oppFull || row.opponent} guards forwards centers allowed nba`],
+    teammates: [`${teamFull || row.team} injury report today nba teammates`, `${teamFull || row.team} starting lineup injuries nba`, `${row.entity} teammate injuries usage nba`],
+    homeaway: [`${row.entity} home away splits ${row.propFamily} nba`, `${row.entity} at home on road ${row.propFamily} nba`, `${row.entity} split stats ${row.propFamily} nba`],
+    role: [`${row.entity} role usage rate nba`, `${row.entity} rotation role tonight nba`, `${row.entity} starter bench usage nba`]
   };
 
   for (const [key, queries] of Object.entries(queryPlans)) {
@@ -1896,7 +2011,9 @@ async function mineNbaRow(row) {
 
   const gemini = geminiNbaFallbackForRow(row);
   if (gemini) {
+    const canFallback = (card) => !card || card.status !== 'ready' || !String(card.parsedResult || '').trim();
     const applyCard = (key, value, source, extraEvidence='') => {
+      if (!canFallback(result[key])) return;
       result[key] = {
         ...result[key],
         status:'ready',
@@ -1905,7 +2022,7 @@ async function mineNbaRow(row) {
         parsedResult: String(value),
         evidence: extraEvidence || String(value)
       };
-      if (source) result[key].evidence = String(value);
+      if (source) result[key].evidence = extraEvidence || String(value);
     };
     applyCard('last5', gemini.last5, gemini.source_map.last5);
     applyCard('last10', gemini.last10, gemini.source_map.last10);
@@ -1913,32 +2030,38 @@ async function mineNbaRow(row) {
     applyCard('season', gemini.season, gemini.source_map.season);
     applyCard('career', gemini.career, gemini.source_map.career);
     applyCard('matchup', gemini.matchup, gemini.source_map.matchup);
-    result.odds = {
-      ...result.odds,
-      status:'ready',
-      statusLabel:'Gemini structured fallback',
-      sourcesLabel: `${result.odds.sourcesLabel} • winner: Gemini`,
-      parsedResult: `${gemini.odds_decimal[0]}, ${gemini.odds_decimal[1]}`,
-      evidence: `${gemini.odds_american[0]}, ${gemini.odds_american[1]}`
-    };
+    if (canFallback(result.odds)) {
+      result.odds = {
+        ...result.odds,
+        status:'ready',
+        statusLabel:'Gemini structured fallback',
+        sourcesLabel: `${result.odds.sourcesLabel} • winner: Gemini`,
+        parsedResult: `${gemini.odds_decimal[0]}, ${gemini.odds_decimal[1]}`,
+        evidence: `${gemini.odds_american[0]}, ${gemini.odds_american[1]}`
+      };
+    }
     applyCard('projection', gemini.projection, gemini.source_map.projection);
     applyCard('minutes', gemini.minutes, gemini.source_map.minutes);
-    result.injury = {
-      ...result.injury,
-      status:'ready',
-      statusLabel:'Gemini structured fallback',
-      sourcesLabel: `${result.injury.sourcesLabel} • winner: Gemini`,
-      parsedResult: gemini.injury_score,
-      evidence: gemini.injury_status
-    };
-    result.starters = {
-      ...result.starters,
-      status:'ready',
-      statusLabel:'Gemini structured fallback',
-      sourcesLabel: `${result.starters.sourcesLabel} • winner: Gemini`,
-      parsedResult: gemini.starter_score,
-      evidence: gemini.starter_status
-    };
+    if (canFallback(result.injury)) {
+      result.injury = {
+        ...result.injury,
+        status:'ready',
+        statusLabel:'Gemini structured fallback',
+        sourcesLabel: `${result.injury.sourcesLabel} • winner: Gemini`,
+        parsedResult: gemini.injury_score,
+        evidence: gemini.injury_status
+      };
+    }
+    if (canFallback(result.starters)) {
+      result.starters = {
+        ...result.starters,
+        status:'ready',
+        statusLabel:'Gemini structured fallback',
+        sourcesLabel: `${result.starters.sourcesLabel} • winner: Gemini`,
+        parsedResult: gemini.starter_score,
+        evidence: gemini.starter_status
+      };
+    }
     applyCard('schedule', gemini.rest_days, gemini.source_map.schedule);
   }
 
