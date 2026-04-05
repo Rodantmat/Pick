@@ -138,7 +138,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.9</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.10</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -184,8 +184,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.9</h1>
-          <p id="analysisVersion">Version: v5.7.9</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.10</h1>
+          <p id="analysisVersion">Version: v5.7.10</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -257,7 +257,7 @@ const LEAGUES = [
   { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
 ];
 
-const STORAGE_KEY = 'pickcalc-prompt1-v5-7-9';
+const STORAGE_KEY = 'pickcalc-prompt1-v5-7-10';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -517,11 +517,36 @@ function renderResults() {
 
 const SEARCH_TIMEOUT_MS = 30000;
 const FETCH_TIMEOUT_MS = 30000;
+const NETWORK_CONCURRENCY_LIMIT = 4;
 
-async function withTimeout(promise, ms, label='timeout') {
+function createSemaphore(limit=4) {
+  let active = 0;
+  const queue = [];
+  const release = () => {
+    active = Math.max(0, active - 1);
+    if (queue.length) queue.shift()();
+  };
+  return async function withSlot(fn) {
+    if (active >= limit) await new Promise(resolve => queue.push(resolve));
+    active += 1;
+    try {
+      return await fn();
+    } finally {
+      release();
+    }
+  };
+}
+
+const withNetworkSlot = createSemaphore(NETWORK_CONCURRENCY_LIMIT);
+
+async function withTimeout(promiseOrFactory, ms, label='timeout', onTimeout=null) {
   let timer;
+  const promise = typeof promiseOrFactory === 'function' ? promiseOrFactory() : promiseOrFactory;
   const timeoutPromise = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error(label)), ms);
+    timer = setTimeout(() => {
+      try { if (typeof onTimeout === 'function') onTimeout(); } catch {}
+      reject(new Error(label));
+    }, ms);
   });
   try {
     return await Promise.race([promise, timeoutPromise]);
@@ -536,11 +561,26 @@ async function proxiedFetchText(url) {
     `https://r.jina.ai/http://${url.replace(/^https?:\/\//,'')}`
   ];
   let lastErr = null;
-  for (const target of tries) {
+  for (const baseTarget of tries) {
+    const cacheBust = `${baseTarget}${baseTarget.includes('?') ? '&' : '?'}_ts=${Date.now()}`;
     try {
-      const res = await withTimeout(fetch(target, { method:'GET' }), FETCH_TIMEOUT_MS, 'fetch timeout');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.text();
+      const txt = await withNetworkSlot(async () => {
+        const controller = new AbortController();
+        const res = await withTimeout(
+          () => fetch(cacheBust, {
+            method:'GET',
+            cache:'no-store',
+            signal: controller.signal,
+            headers: { 'x-pick-version': 'v5.7.10' }
+          }),
+          FETCH_TIMEOUT_MS,
+          'fetch timeout',
+          () => controller.abort()
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await withTimeout(() => res.text(), FETCH_TIMEOUT_MS, 'read timeout', () => controller.abort());
+      });
+      if (txt) return txt;
     } catch (err) {
       lastErr = err;
     }
@@ -1121,8 +1161,7 @@ async function bingSearch(query) {
 async function multiSearch(query) {
   const providers = [
     { name: 'ddg', fn: ddgSearch },
-    { name: 'bing', fn: bingSearch },
-    { name: 'ddg-retry', fn: ddgSearch }
+    { name: 'bing', fn: bingSearch }
   ];
   let lastErr = null;
   for (const p of providers) {
@@ -1509,7 +1548,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.9`,
+    `Version: v5.7.10`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
