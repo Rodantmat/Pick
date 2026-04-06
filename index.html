@@ -131,7 +131,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.32</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.33</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -177,8 +177,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.32</h1>
-          <p id="analysisVersion">Version: v5.7.32</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.33</h1>
+          <p id="analysisVersion">Version: v5.7.33</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -589,6 +589,8 @@ function cleanSnippet(s='') {
 function sleep(ms=0) {
   return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
 }
+const SEARCH_TIMEOUT_MS = 5000;
+const SEARCH_COOLDOWN_MS = 150;
 
 function clampNumber(value, min=0, max=100) {
   const n = Number(value);
@@ -1607,7 +1609,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.32`,
+    `Version: v5.7.33`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
