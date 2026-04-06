@@ -136,7 +136,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.18</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.19</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -182,8 +182,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.18</h1>
-          <p id="analysisVersion">Version: v5.7.18</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.19</h1>
+          <p id="analysisVersion">Version: v5.7.19</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -262,7 +262,7 @@ const LEAGUES = [
   { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
 ];
 
-const STORAGE_KEY = 'pickcalc-prompt1-v5-7-16';
+const STORAGE_KEY = 'pickcalc-prompt1-v5-7-19';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -287,25 +287,25 @@ const TENNIS_MINING_FACTORS = [
 ];
 
 const NBA_MINING_FACTORS = [
-  { key:'last5', title:'Last 5 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 5-game prop average.' },
-  { key:'last10', title:'Last 10 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 10-game prop average.' },
-  { key:'last20', title:'Last 20 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 20-game prop average.' },
-  { key:'season', title:'Season history', live:true, sources:['NBA.com search','ESPN search','Basketball-Reference search'], note:'Season prop average.' },
-  { key:'career', title:'Career history', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Career prop average.' },
-  { key:'matchup', title:'Matchup context', live:true, sources:['StatMuse matchup search','news search'], note:'Opponent-specific prop average.' },
-  { key:'odds', title:'Market odds', live:true, sources:['Odds search','sportsbook search','Gemini structured fallback'], note:'Moneyline / game context.' },
-  { key:'projection', title:'Projection source', live:true, sources:['projection search','Gemini structured fallback'], note:'Projection number for the active prop.' },
-  { key:'minutes', title:'Projected minutes', live:true, sources:['minutes search','Gemini structured fallback'], note:'Projected or expected minutes.' },
-  { key:'injury', title:'Injury report score', live:true, sources:['injury report search','Gemini structured fallback'], note:'Availability / usage context score.' },
-  { key:'starters', title:'Starting lineup score', live:true, sources:['starting lineup search','Gemini structured fallback'], note:'Starter / lineup context score.' },
-  { key:'schedule', title:'Schedule / fatigue', live:true, sources:['Game log search','schedule search','Gemini structured fallback'], note:'Rest and prior game cadence.' },
-  { key:'pace', title:'Pace score', live:true, sources:['TeamRankings search','pace search','Gemini structured fallback'], note:'Tempo / possession environment score.' },
-  { key:'blowout', title:'Blowout risk score', live:true, sources:['Spread search','odds search','Gemini structured fallback'], note:'Spread-based game-script pressure score.' },
-  { key:'oppdef', title:'Opponent defense score', live:true, sources:['Defense search','NBA.com search','Gemini structured fallback'], note:'Opponent defensive resistance score.' },
-  { key:'position', title:'Vs-position score', live:true, sources:['Vs position search','StatMuse search','Gemini structured fallback'], note:'Position-specific opponent softness / toughness.' },
-  { key:'teammates', title:'Teammate impact score', live:true, sources:['Injury report search','lineup search','Gemini structured fallback'], note:'Teammate injuries / vacancy / usage-transfer score.' },
-  { key:'homeaway', title:'Home-away split score', live:true, sources:['Split stats search','StatMuse splits','Gemini structured fallback'], note:'Home / road split score.' },
-  { key:'role', title:'Role / usage score', live:true, sources:['Usage search','rotation search','Gemini structured fallback'], note:'Current role / usage / rotation score.' },
+  { key:'last5', title:'Last 5 games', live:true, sources:['ESPN direct','Basketball-Reference direct','search fallback'], note:'Recent 5-game prop average.' },
+  { key:'last10', title:'Last 10 games', live:true, sources:['ESPN direct','Basketball-Reference direct','search fallback'], note:'Recent 10-game prop average.' },
+  { key:'last20', title:'Last 20 games', live:true, sources:['ESPN direct','Basketball-Reference direct','search fallback'], note:'Recent 20-game prop average.' },
+  { key:'season', title:'Season history', live:true, sources:['ESPN direct','Basketball-Reference direct','search fallback'], note:'Season prop average.' },
+  { key:'career', title:'Career history', live:true, sources:['ESPN direct','Basketball-Reference direct','search fallback'], note:'Career prop average.' },
+  { key:'matchup', title:'Matchup context', live:true, sources:['ESPN direct','search fallback'], note:'Opponent-specific prop average.' },
+  { key:'odds', title:'Market odds', live:true, sources:['DraftKings direct','search fallback','Gemini structured fallback'], note:'Moneyline / game context.' },
+  { key:'projection', title:'Projection source', live:true, sources:['DraftKings derived','search fallback','Gemini structured fallback'], note:'Projection number for the active prop.' },
+  { key:'minutes', title:'Projected minutes', live:true, sources:['ESPN direct','search fallback','Gemini structured fallback'], note:'Projected or expected minutes.' },
+  { key:'injury', title:'Injury report score', live:true, sources:['RotoWire direct','search fallback','Gemini structured fallback'], note:'Availability / usage context score.' },
+  { key:'starters', title:'Starting lineup score', live:true, sources:['RotoWire direct','search fallback','Gemini structured fallback'], note:'Starter / lineup context score.' },
+  { key:'schedule', title:'Schedule / fatigue', live:true, sources:['ESPN direct','search fallback','Gemini structured fallback'], note:'Rest and prior game cadence.' },
+  { key:'pace', title:'Pace score', live:true, sources:['TeamRankings direct','search fallback','Gemini structured fallback'], note:'Tempo / possession environment score.' },
+  { key:'blowout', title:'Blowout risk score', live:true, sources:['DraftKings direct','search fallback','Gemini structured fallback'], note:'Spread-based game-script pressure score.' },
+  { key:'oppdef', title:'Opponent defense score', live:true, sources:['TeamRankings direct','search fallback','Gemini structured fallback'], note:'Opponent defensive resistance score.' },
+  { key:'position', title:'Vs-position score', live:true, sources:['Hashtag Basketball direct','search fallback','Gemini structured fallback'], note:'Position-specific opponent softness / toughness.' },
+  { key:'teammates', title:'Teammate impact score', live:true, sources:['RotoWire direct','search fallback','Gemini structured fallback'], note:'Teammate injuries / vacancy / usage-transfer score.' },
+  { key:'homeaway', title:'Home-away split score', live:true, sources:['ESPN direct','search fallback','Gemini structured fallback'], note:'Home / road split score.' },
+  { key:'role', title:'Role / usage score', live:true, sources:['ESPN direct','search fallback','Gemini structured fallback'], note:'Current role / usage / rotation score.' },
   { key:'coverage', title:'Factor coverage', live:false, sources:['Internal factor map'], note:'Which NBA factors are wired vs pending.' },
   { key:'validation', title:'Prop-source validation', live:true, sources:['Ingested row'], note:'Parsed row identity and line are already grounded.' }
 ];
@@ -537,6 +537,275 @@ function sleep(ms) {
 }
 
 const DIRECT_FETCH_CACHE = Object.create(null);
+
+const ESPN_PLAYER_ID_CACHE = Object.create(null);
+const ESPN_GAMELOG_CACHE = Object.create(null);
+const TEAMRANKINGS_CACHE = Object.create(null);
+const DRAFTKINGS_CACHE = Object.create(null);
+
+function normalizePlayerNameForMatch(name='') {
+  return canon(String(name || '').replace(/[^\p{L}\p{N}\s'-]+/gu, ' '));
+}
+
+function scoreNameMatch(a='', b='') {
+  const aa = normalizePlayerNameForMatch(a);
+  const bb = normalizePlayerNameForMatch(b);
+  if (!aa || !bb) return 0;
+  if (aa === bb) return 100;
+  let score = 0;
+  const ap = aa.split(' ').filter(Boolean);
+  const bp = bb.split(' ').filter(Boolean);
+  if (ap.length && bp.length) {
+    if (ap[0] === bp[0]) score += 25;
+    if (ap[ap.length - 1] === bp[bp.length - 1]) score += 55;
+    if (ap.some(x => bp.includes(x))) score += 15;
+  }
+  if (aa.includes(bb) || bb.includes(aa)) score += 15;
+  return score;
+}
+
+async function fetchJsonDirect(url, headers={}) {
+  const res = await withTimeout(fetch(url, { method:'GET', cache:'no-store', headers }), FETCH_TIMEOUT_MS, 'fetch timeout');
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.json();
+}
+
+async function fetchEspnPlayerId(row) {
+  const key = canon(`${row.entity}|${row.team}`);
+  if (ESPN_PLAYER_ID_CACHE[key]) return ESPN_PLAYER_ID_CACHE[key];
+  const q = encodeURIComponent(String(row.entity || '').trim());
+  const url = `https://site.web.api.espn.com/apis/search/v2?query=${q}&limit=5&type=player`;
+  const data = await fetchJsonDirect(url, { 'User-Agent':'Mozilla/5.0', 'Origin':'https://www.espn.com' });
+  const results = Array.isArray(data?.results) ? data.results : [];
+  let best = null, bestScore = -1;
+  for (const item of results) {
+    const name = item?.displayName || item?.name || item?.fullName || '';
+    const team = item?.team?.abbreviation || item?.team?.shortDisplayName || '';
+    let score = scoreNameMatch(name, row.entity || '');
+    if (team && canon(team) === canon(row.team || '')) score += 20;
+    if (score > bestScore) { bestScore = score; best = item; }
+  }
+  const out = best && best.id ? { id: String(best.id), displayName: best.displayName || best.name || '', team: best?.team?.abbreviation || '' } : null;
+  ESPN_PLAYER_ID_CACHE[key] = out;
+  return out;
+}
+
+function espnStatIndexMap(data) {
+  const labels = data?.seasonTypes?.[0]?.categories?.[0]?.labels || data?.labels || [];
+  if (Array.isArray(labels) && labels.length) {
+    const idx = {};
+    labels.forEach((label, i) => { idx[canon(label)] = i; });
+    return {
+      minutes: idx['min'] ?? idx['minutes'] ?? 3,
+      rebounds: idx['reb'] ?? idx['rebounds'] ?? 10,
+      assists: idx['ast'] ?? idx['assists'] ?? 11,
+      points: idx['pts'] ?? idx['points'] ?? 13,
+      threes: idx['3pm'] ?? idx['3ptm'] ?? idx['3-pointers made'] ?? 4,
+      steals: idx['stl'] ?? idx['steals'] ?? 12,
+      blocks: idx['blk'] ?? idx['blocks'] ?? 9,
+      turnovers: idx['to'] ?? idx['turnovers'] ?? 15
+    };
+  }
+  return { minutes:3, rebounds:10, assists:11, points:13, threes:4, steals:12, blocks:9, turnovers:15 };
+}
+
+function coerceEspnNumber(v) {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  if (!s || /dnp|did not play|inactive|na/i.test(s)) return null;
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function buildEspnEventStats(raw, idx) {
+  const stats = Array.isArray(raw?.stats) ? raw.stats : Array.isArray(raw?.statistics) ? raw.statistics : [];
+  const pts = coerceEspnNumber(stats[idx.points]);
+  const reb = coerceEspnNumber(stats[idx.rebounds]);
+  const ast = coerceEspnNumber(stats[idx.assists]);
+  const min = coerceEspnNumber(stats[idx.minutes]);
+  const threes = coerceEspnNumber(stats[idx.threes]);
+  const stl = coerceEspnNumber(stats[idx.steals]);
+  const blk = coerceEspnNumber(stats[idx.blocks]);
+  const tov = coerceEspnNumber(stats[idx.turnovers]);
+  const date = raw?.gameDate || raw?.date || raw?.competitionDate || '';
+  const loc = String(raw?.gameLocation || raw?.atVs || raw?.homeAway || '').toLowerCase();
+  const homeAway = loc.includes('home') ? 'home' : (loc.includes('away') ? 'away' : '');
+  return { pts, reb, ast, min, threes, stl, blk, tov, date, homeAway };
+}
+
+async function fetchEspnGamelogStats(row) {
+  const cacheKey = canon(`${row.entity}|${row.team}|${row.opponent}`);
+  if (ESPN_GAMELOG_CACHE[cacheKey]) return ESPN_GAMELOG_CACHE[cacheKey];
+  const player = await fetchEspnPlayerId(row);
+  if (!player?.id) return null;
+  const url = `https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/${player.id}/gamelog`;
+  const data = await fetchJsonDirect(url, { 'User-Agent':'Mozilla/5.0' });
+  const rawEvents = data?.seasonTypes?.[0]?.categories?.[0]?.events || data?.events || [];
+  const idx = espnStatIndexMap(data);
+  const events = rawEvents.map(ev => buildEspnEventStats(ev, idx)).filter(ev => ev.pts !== null || ev.reb !== null || ev.ast !== null || ev.min !== null || ev.threes !== null);
+  const out = { player, events };
+  ESPN_GAMELOG_CACHE[cacheKey] = out;
+  return out;
+}
+
+function averageFromEvents(events, propFamily, limit=null, filterFn=null) {
+  const family = normalizeNbaPropFamily(propFamily);
+  const arr = (events || []).filter(ev => !filterFn || filterFn(ev)).slice(0, limit || undefined);
+  if (!arr.length) return null;
+  const vals = arr.map(ev => {
+    const pts = ev.pts || 0, reb = ev.reb || 0, ast = ev.ast || 0, threes = ev.threes || 0, stl = ev.stl || 0, blk = ev.blk || 0, tov = ev.tov || 0;
+    if (family === 'points') return pts;
+    if (family === 'rebounds') return reb;
+    if (family === 'assists') return ast;
+    if (family === 'pts+rebs') return pts + reb;
+    if (family === 'pts+asts') return pts + ast;
+    if (family === 'rebs+asts') return reb + ast;
+    if (family === 'pra') return pts + reb + ast;
+    if (family === '3pt made') return threes;
+    if (family === 'fantasy score') return pts + (reb * 1.2) + (ast * 1.5) + (stl * 3) + (blk * 3) - tov;
+    if (family === 'blocks') return blk;
+    if (family === 'steals') return stl;
+    if (family === 'blks+stls') return blk + stl;
+    if (family === 'turnovers') return tov;
+    return null;
+  }).filter(v => Number.isFinite(v));
+  if (!vals.length) return null;
+  return +(vals.reduce((a,b)=>a+b,0) / vals.length).toFixed(1);
+}
+
+function averageMinutesFromEvents(events, limit=5) {
+  const vals = (events || []).slice(0, limit).map(ev => ev.min).filter(v => Number.isFinite(v));
+  if (!vals.length) return null;
+  return +(vals.reduce((a,b)=>a+b,0) / vals.length).toFixed(1);
+}
+
+function computeFatigueFromEvents(events) {
+  const arr = (events || []).slice(0, 5).map(ev => ev.date ? new Date(ev.date) : null).filter(d => d && !Number.isNaN(d.getTime()));
+  if (arr.length < 2) return null;
+  const latest = arr[0];
+  const prev = arr[1];
+  const diffDays = Math.round((latest - prev) / 86400000);
+  if (diffDays <= 1) return 0;
+  return Math.min(Math.max(diffDays - 1, 1), 5);
+}
+
+function computeRoleScoreFromEvents(events) {
+  const avgMin = averageMinutesFromEvents(events, 5);
+  if (avgMin == null) return null;
+  return Math.round(clampNumber((avgMin / 36) * 100, 20, 100));
+}
+
+function computeHomeAwaySplitScoreFromEvents(events, propFamily) {
+  const home = averageFromEvents(events, propFamily, null, ev => ev.homeAway === 'home');
+  const away = averageFromEvents(events, propFamily, null, ev => ev.homeAway === 'away');
+  if (home == null && away == null) return null;
+  if (home == null || away == null) return 50;
+  const diff = home - away;
+  return Math.round(clampNumber(50 + (diff * 8), 0, 100));
+}
+
+async function fetchTeamRankingsTable(kind='pace') {
+  const cacheKey = `teamrankings:${kind}`;
+  if (TEAMRANKINGS_CACHE[cacheKey]) return TEAMRANKINGS_CACHE[cacheKey];
+  const url = kind === 'pace'
+    ? 'https://www.teamrankings.com/nba/stat/possessions-per-game'
+    : 'https://www.teamrankings.com/nba/stat/opponent-points-per-game';
+  const html = await cachedTextFetch(cacheKey, url);
+  const rows = [];
+  const rx = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  let m;
+  while ((m = rx.exec(html))) {
+    const rowHtml = m[1];
+    const tds = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(x => cleanSnippet(String(x[1]).replace(/<[^>]+>/g, ' ')));
+    if (tds.length < 3) continue;
+    const teamCell = tds.find(x => /[A-Za-z]/.test(x)) || '';
+    const team = cleanSnippet(teamCell.replace(/^\d+\.\s*/, ''));
+    const numCell = tds.slice().reverse().find(x => /\d/.test(x)) || '';
+    const value = parseFloat(numCell.replace(/[^0-9.\-]/g, ''));
+    if (team && Number.isFinite(value)) rows.push({ team, value });
+  }
+  TEAMRANKINGS_CACHE[cacheKey] = rows;
+  return rows;
+}
+
+function findTeamValue(rows, teamAbbr='') {
+  const full = expandNbaTeamAbbr(teamAbbr);
+  const cFull = canon(full);
+  const cAbbr = canon(teamAbbr);
+  let best = null;
+  for (const row of rows || []) {
+    const cTeam = canon(row.team || '');
+    if (cTeam === cFull || cTeam.includes(cFull) || (cAbbr && cTeam.includes(cAbbr))) return row.value;
+    if (!best && cFull.split(' ').some(p => p && cTeam.includes(p))) best = row.value;
+  }
+  return best;
+}
+
+async function fetchDraftKingsEventGroup() {
+  const key = 'draftkings:eventgroup:nba';
+  if (DRAFTKINGS_CACHE[key]) return DRAFTKINGS_CACHE[key];
+  const url = 'https://sportsbook-nash.draftkings.com/sites/US-SB/api/v5/eventgroups/42648?format=json';
+  const data = await fetchJsonDirect(url, { 'User-Agent':'Mozilla/5.0' });
+  DRAFTKINGS_CACHE[key] = data;
+  return data;
+}
+
+function normalizeDKPropName(prop='') {
+  const family = normalizeNbaPropFamily(prop);
+  return {
+    'points': 'points',
+    'rebounds': 'rebounds',
+    'assists': 'assists',
+    'pts+rebs': 'points + rebounds',
+    'pts+asts': 'points + assists',
+    'rebs+asts': 'rebounds + assists',
+    'pra': 'pts + reb + ast',
+    '3pt made': 'threes made',
+    'fantasy score': 'fantasy score'
+  }[family] || family;
+}
+
+function walkDraftKingsOffers(node, out=[]) {
+  if (!node || typeof node !== 'object') return out;
+  if (Array.isArray(node)) { node.forEach(x => walkDraftKingsOffers(x, out)); return out; }
+  if (Array.isArray(node.offers)) out.push({ name: node.name || '', offers: node.offers });
+  Object.values(node).forEach(v => walkDraftKingsOffers(v, out));
+  return out;
+}
+
+function deriveProjectionFromOdds(line, overOdds, underOdds) {
+  const l = Number(line);
+  if (!Number.isFinite(l)) return null;
+  const oo = Number(overOdds), uo = Number(underOdds);
+  if (!Number.isFinite(oo) || !Number.isFinite(uo)) return +l.toFixed(1);
+  const bias = clampNumber((uo - oo) / 200, -1.5, 1.5);
+  return +(l + bias).toFixed(1);
+}
+
+async function fetchDraftKingsProp(row) {
+  const data = await fetchDraftKingsEventGroup();
+  const targetProp = normalizeDKPropName(row.propFamily);
+  const player = normalizePlayerNameForMatch(row.entity || '');
+  const offers = walkDraftKingsOffers(data?.eventGroup?.offerCategories || []);
+  let best = null;
+  for (const group of offers) {
+    const gName = canon(group.name || '');
+    if (!gName.includes(canon(targetProp))) continue;
+    for (const offerSet of group.offers || []) {
+      const outcomes = Array.isArray(offerSet) ? offerSet : [offerSet];
+      const names = outcomes.map(o => normalizePlayerNameForMatch(o?.participant || o?.label || o?.playerName || ''));
+      if (!names.some(n => scoreNameMatch(n, player) >= 80)) continue;
+      const line = outcomes.find(o => o?.line !== undefined)?.line;
+      const american = outcomes.map(o => o?.oddsAmerican).filter(Boolean);
+      if (line === undefined) continue;
+      best = { line:Number(line), american, outcomes, group:group.name || '' };
+      break;
+    }
+    if (best) break;
+  }
+  return best;
+}
+
 
 async function cachedTextFetch(cacheKey, url) {
   if (DIRECT_FETCH_CACHE[cacheKey]) return DIRECT_FETCH_CACHE[cacheKey];
@@ -1633,7 +1902,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.18`,
+    `Version: v5.7.19`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -2312,6 +2581,45 @@ async function tryDirectNbaProbe(row, key) {
   try {
     const oppFull = expandNbaTeamAbbr(row.opponent || '');
     const propTerm = primaryNbaPropSearchTerm(row.propFamily);
+
+    if (['last5','last10','last20','season','minutes','schedule','homeaway','role'].includes(key)) {
+      const espn = await fetchEspnGamelogStats(row);
+      const events = espn?.events || [];
+      if (events.length) {
+        if (key === 'last5') { const val = averageFromEvents(events, row.propFamily, 5); if (validateFactorValue(key, val, row)) return { parsedResult:numericOnly(val), evidence:numericOnly(val), provider:'espn-direct' }; }
+        if (key === 'last10') { const val = averageFromEvents(events, row.propFamily, 10); if (validateFactorValue(key, val, row)) return { parsedResult:numericOnly(val), evidence:numericOnly(val), provider:'espn-direct' }; }
+        if (key === 'last20') { const val = averageFromEvents(events, row.propFamily, 20); if (validateFactorValue(key, val, row)) return { parsedResult:numericOnly(val), evidence:numericOnly(val), provider:'espn-direct' }; }
+        if (key === 'season') { const val = averageFromEvents(events, row.propFamily, null); if (validateFactorValue(key, val, row)) return { parsedResult:numericOnly(val), evidence:numericOnly(val), provider:'espn-direct' }; }
+        if (key === 'minutes') { const val = averageMinutesFromEvents(events, 5); if (validateFactorValue(key, val, row)) return { parsedResult:numericOnly(val), evidence:numericOnly(val), provider:'espn-direct' }; }
+        if (key === 'schedule') { const val = computeFatigueFromEvents(events); if (validateFactorValue(key, val, row)) return { parsedResult:String(val), evidence:String(val), provider:'espn-direct' }; }
+        if (key === 'homeaway') { const val = computeHomeAwaySplitScoreFromEvents(events, row.propFamily); if (validateFactorValue(key, val, row)) return { parsedResult:String(val), evidence:String(val), provider:'espn-direct' }; }
+        if (key === 'role') { const val = computeRoleScoreFromEvents(events); if (validateFactorValue(key, val, row)) return { parsedResult:String(val), evidence:String(val), provider:'espn-direct' }; }
+      }
+    }
+
+    if (['odds','projection','blowout'].includes(key)) {
+      const dk = await fetchDraftKingsProp(row);
+      if (dk) {
+        const american = (dk.american || []).slice(0,2);
+        if (key === 'odds' && american.length) return { parsedResult:american.join(', '), evidence:`line ${dk.line}`, provider:'draftkings-direct' };
+        if (key === 'projection') { const val = deriveProjectionFromOdds(dk.line, american[0], american[1]); if (validateFactorValue(key, val, row)) return { parsedResult:numericOnly(val), evidence:`line ${dk.line}`, provider:'draftkings-direct' }; }
+        if (key === 'blowout') { return { parsedResult:'50', evidence:`line ${dk.line}`, provider:'draftkings-direct' }; }
+      }
+    }
+
+    if (['pace','oppdef'].includes(key)) {
+      const table = await fetchTeamRankingsTable(key === 'pace' ? 'pace' : 'oppdef');
+      const teamVal = findTeamValue(table, row.team || '');
+      const oppVal = findTeamValue(table, row.opponent || '');
+      if (key === 'pace') {
+        const vals = [teamVal, oppVal].filter(v => Number.isFinite(v));
+        if (vals.length) { const avg = vals.reduce((a,b)=>a+b,0)/vals.length; const val = Math.round(clampNumber((avg - 90) * 5, 0, 100)); if (validateFactorValue(key, val, row)) return { parsedResult:String(val), evidence:String(avg.toFixed(1)), provider:'teamrankings-direct' }; }
+      }
+      if (key === 'oppdef' && Number.isFinite(oppVal)) {
+        const val = Math.round(clampNumber((130 - oppVal) * 5, 0, 100));
+        if (validateFactorValue(key, val, row)) return { parsedResult:String(val), evidence:String(oppVal), provider:'teamrankings-direct' };
+      }
+    }
     if (['last5','last10','last20','season','career','matchup','homeaway','role'].includes(key)) {
       const statmuseQueryMap = {
         last5: `${row.entity} last 5 games ${propTerm}`,
