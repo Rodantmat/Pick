@@ -136,7 +136,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.19</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.20</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -182,8 +182,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.19</h1>
-          <p id="analysisVersion">Version: v5.7.19</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.20</h1>
+          <p id="analysisVersion">Version: v5.7.20</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -262,7 +262,7 @@ const LEAGUES = [
   { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
 ];
 
-const STORAGE_KEY = 'pickcalc-prompt1-v5-7-19';
+const STORAGE_KEY = 'pickcalc-prompt1-v5-7-20';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -565,27 +565,46 @@ function scoreNameMatch(a='', b='') {
 }
 
 async function fetchJsonDirect(url, headers={}) {
-  const res = await withTimeout(fetch(url, { method:'GET', cache:'no-store', headers }), FETCH_TIMEOUT_MS, 'fetch timeout');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return await res.json();
+  let firstErr = null;
+  try {
+    const res = await withTimeout(fetch(url, { method:'GET', cache:'no-store', headers }), FETCH_TIMEOUT_MS, 'fetch timeout');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    firstErr = err;
+  }
+  try {
+    return await proxiedFetchJson(url);
+  } catch (err) {
+    throw firstErr || err;
+  }
 }
 
 async function fetchEspnPlayerId(row) {
   const key = canon(`${row.entity}|${row.team}`);
   if (ESPN_PLAYER_ID_CACHE[key]) return ESPN_PLAYER_ID_CACHE[key];
-  const q = encodeURIComponent(String(row.entity || '').trim());
-  const url = `https://site.web.api.espn.com/apis/search/v2?query=${q}&limit=5&type=player`;
-  const data = await fetchJsonDirect(url, { 'User-Agent':'Mozilla/5.0', 'Origin':'https://www.espn.com' });
-  const results = Array.isArray(data?.results) ? data.results : [];
-  let best = null, bestScore = -1;
-  for (const item of results) {
-    const name = item?.displayName || item?.name || item?.fullName || '';
-    const team = item?.team?.abbreviation || item?.team?.shortDisplayName || '';
-    let score = scoreNameMatch(name, row.entity || '');
-    if (team && canon(team) === canon(row.team || '')) score += 20;
-    if (score > bestScore) { bestScore = score; best = item; }
+  const urls = [
+    `https://site.web.api.espn.com/apis/search/v2?query=${encodeURIComponent(String(row.entity || '').trim())}&limit=5&type=player`,
+    `https://site.web.api.espn.com/apis/search/v2/searchbycolumn?type=athlete&name=${encodeURIComponent(String(row.entity || '').trim())}`
+  ];
+  let out = null;
+  for (const url of urls) {
+    try {
+      const data = await fetchJsonDirect(url, { 'User-Agent':'Mozilla/5.0', 'Origin':'https://www.espn.com' });
+      const flat = flattenSearchResults(data).concat(Array.isArray(data?.results) ? data.results.map(x => ({name:x.displayName || x.name || '', id:x.id, sport:x.sport?.slug || '', type:x.type || '', raw:x})) : []);
+      let best = null, bestScore = -1;
+      for (const item of flat) {
+        const name = item?.name || item?.raw?.displayName || item?.raw?.name || item?.raw?.fullName || '';
+        const team = item?.raw?.team?.abbreviation || item?.raw?.team?.shortDisplayName || '';
+        const sport = item?.sport || item?.raw?.sport?.slug || '';
+        if (sport && !canon(sport).includes('basketball')) continue;
+        let score = scoreNameMatch(name, row.entity || '');
+        if (team && canon(team) === canon(row.team || '')) score += 20;
+        if (score > bestScore && item?.id) { bestScore = score; best = { id: String(item.id), displayName: name, team }; }
+      }
+      if (best?.id) { out = best; break; }
+    } catch (err) {}
   }
-  const out = best && best.id ? { id: String(best.id), displayName: best.displayName || best.name || '', team: best?.team?.abbreviation || '' } : null;
   ESPN_PLAYER_ID_CACHE[key] = out;
   return out;
 }
@@ -760,7 +779,7 @@ function normalizeDKPropName(prop='') {
     'pts+asts': 'points + assists',
     'rebs+asts': 'rebounds + assists',
     'pra': 'pts + reb + ast',
-    '3pt made': 'threes made',
+    '3pt made': '3-pointers made',
     'fantasy score': 'fantasy score'
   }[family] || family;
 }
@@ -816,6 +835,7 @@ async function cachedTextFetch(cacheKey, url) {
 
 async function proxiedFetchText(url) {
   const tries = [
+    url,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
     `https://r.jina.ai/http://${url.replace(/^https?:\/\//,'')}`
   ];
@@ -823,7 +843,7 @@ async function proxiedFetchText(url) {
   for (let i = 0; i < tries.length; i += 1) {
     const target = tries[i];
     try {
-      const res = await withTimeout(fetch(target, { method:'GET', cache:'no-store' }), FETCH_TIMEOUT_MS, 'fetch timeout');
+      const res = await withTimeout(fetch(target, { method:'GET', cache:'no-store', headers:{'User-Agent':'Mozilla/5.0'} }), FETCH_TIMEOUT_MS, 'fetch timeout');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const txt = await res.text();
       if (!txt || !String(txt).trim()) throw new Error('empty response');
@@ -1444,7 +1464,7 @@ async function multiSearch(query) {
   const providers = [
     { name: 'ddg', fn: ddgSearch },
     { name: 'startpage', fn: startpageSearch },
-    { name: 'bing', fn: bingSearch }
+    { name: 'yahoo', fn: yahooSearch }
   ];
   let lastErr = null;
   for (let i = 0; i < providers.length; i += 1) {
@@ -1902,7 +1922,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.19`,
+    `Version: v5.7.20`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -2246,7 +2266,7 @@ const NBA_PROP_ALIAS_MAP = {
   'pts+asts': ['points?', 'pts', 'assists?', 'asts?'],
   'rebs+asts': ['rebounds?', 'rebs?', 'assists?', 'asts?'],
   'pra': ['points?', 'pts', 'rebounds?', 'rebs?', 'assists?', 'asts?'],
-  '3pt made': ['3-pointers? made', 'three-pointers? made', 'threes?', '3pt made'],
+  '3pt made': ['3-pointers? made', 'three-pointers? made', '3pt made'],
   'fantasy score': ['fantasy points?', 'fantasy score'],
   'blocks': ['blocks?', 'blks?'],
   'steals': ['steals?', 'stls?'],
@@ -2379,7 +2399,7 @@ function extractNumericMetric(text='', key='', row={}) {
   } else if (prop === 'assists') {
     direct = triple ? triple.assists : (extractAverageStatValue(src, ['assists?', 'asts?']) ?? extractSingleStatValue(src, ['assists?', 'asts?']));
   } else if (prop === '3pt made') {
-    direct = extractAverageStatValue(src, ['3ptm','3pm','3pt made','3-point(?:ers)? made','3-pointers? made','three-pointers? made','threes? made','threes?']) ?? extractSingleStatValue(src, ['3ptm','3pm','3pt made','3-point(?:ers)? made','3-pointers? made','three-pointers? made','threes? made','threes?']);
+    direct = extractAverageStatValue(src, ['3ptm','3pm','3pt made','3-point(?:ers)? made','3-pointers? made','three-pointers? made','threes? made']) ?? extractSingleStatValue(src, ['3ptm','3pm','3pt made','3-point(?:ers)? made','3-pointers? made','three-pointers? made','threes? made']);
   } else if (prop === 'blocks') {
     const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+blocks?/i) || src.match(/(?:blocks?|blks?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
     if (m) direct = parseFloat(m[1]);
@@ -2549,6 +2569,10 @@ async function fetchRotoWireLineupsText() {
   return cachedTextFetch('rotowire-nba-lineups', 'https://www.rotowire.com/basketball/nba-lineups.php');
 }
 
+async function fetchRotoWireInjuriesText() {
+  return cachedTextFetch('rotowire-nba-injuries', 'https://www.rotowire.com/basketball/injuries.php');
+}
+
 function parseRotoWireGameBlock(html='', row={}) {
   const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
   const teamTokens = [String(row.team || '').toUpperCase(), String(row.opponent || '').toUpperCase()].filter(Boolean);
@@ -2566,15 +2590,47 @@ function parseRotoWireGameBlock(html='', row={}) {
 function parseRotoWireLineupEvidence(block='', row={}) {
   const txt = String(block || '');
   if (!txt) return null;
-  const team = String(row.team || '').toUpperCase();
-  const opp = String(row.opponent || '').toUpperCase();
-  const hasStarter = canon(txt).includes(canon(row.entity || '')) && /expected lineup|confirmed lineup/i.test(txt);
+  const ctxt = canon(txt);
+  const playerBits = canon(row.entity || '').split(' ').filter(Boolean);
+  const hasPlayer = playerBits.every(bit => bit.length < 2 || ctxt.includes(bit));
+  const hasStarter = hasPlayer && (/expected lineup|confirmed lineup/i.test(txt) || /is-confirmed|is-expected/i.test(txt));
   const spreadMatch = txt.match(/SPREAD\s+([A-Z]{2,3})\s*([+-]\d+(?:\.\d+)?)/i);
   const lineMatch = txt.match(/LINE\s+([A-Z]{2,3})\s*([+-]\d+)/i);
   const teamInjuries = [];
-  const teamBlock = txt;
-  (teamBlock.match(/[A-Z][A-Za-z'\. -]+\s(?:Out|Doubt|Doubtful|Ques|Questionable|Prob|Probable)/g) || []).forEach(x => teamInjuries.push(cleanSnippet(x)));
+  (txt.match(/[A-Z][A-Za-z'\. -]+\s(?:Out|Doubt|Doubtful|Ques|Questionable|Prob|Probable|Available|Active)/g) || []).forEach(x => teamInjuries.push(cleanSnippet(x)));
   return { hasStarter, spreadMatch, lineMatch, teamInjuries };
+}
+
+function parseRotoWireInjuryEvidence(html='', row={}) {
+  const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+  const rows = [...doc.querySelectorAll('tr')];
+  const playerBits = canon(row.entity || '').split(' ').filter(Boolean);
+  for (const tr of rows) {
+    const txt = cleanSnippet(tr.textContent || '');
+    const c = canon(txt);
+    if (!playerBits.every(bit => bit.length < 2 || c.includes(bit))) continue;
+    return txt;
+  }
+  const raw = cleanSnippet(doc.body?.textContent || '');
+  return raw.includes(row.entity || '') ? raw : '';
+}
+
+function parseHashtagDefenseValue(html='', row={}) {
+  const raw = String(html || '');
+  const teamName = expandNbaTeamAbbr(row.opponent || '');
+  const teamLast = canon(teamName).split(' ').filter(Boolean).slice(-1)[0] || canon(row.opponent || '');
+  const lines = raw.replace(/<[^>]+>/g, '\n').split(/\n+/).map(x => cleanSnippet(x)).filter(Boolean);
+  for (let i = 0; i < lines.length; i++) {
+    const c = canon(lines[i]);
+    if (!c.includes(teamLast)) continue;
+    const nums = lines.slice(i, i + 8).map(x => parseFloat(String(x).replace(/[^0-9.\-]/g,''))).filter(v => Number.isFinite(v));
+    if (nums.length) {
+      const avg = nums.slice(0,5).reduce((a,b)=>a+b,0) / Math.min(nums.length,5);
+      return Math.round(clampNumber(avg, 0, 100));
+    }
+  return null;
+}
+  return null;
 }
 
 async function tryDirectNbaProbe(row, key) {
@@ -2620,6 +2676,12 @@ async function tryDirectNbaProbe(row, key) {
         if (validateFactorValue(key, val, row)) return { parsedResult:String(val), evidence:String(oppVal), provider:'teamrankings-direct' };
       }
     }
+
+    if (key === 'position') {
+      const html = await cachedTextFetch('hashtag-dvp', 'https://www.hashtagbasketball.com/nba-defense-vs-position');
+      const val = parseHashtagDefenseValue(html, row);
+      if (validateFactorValue(key, val, row)) return { parsedResult:String(val), evidence:String(val), provider:'hashtag-direct' };
+    }
     if (['last5','last10','last20','season','career','matchup','homeaway','role'].includes(key)) {
       const statmuseQueryMap = {
         last5: `${row.entity} last 5 games ${propTerm}`,
@@ -2662,28 +2724,30 @@ async function tryDirectNbaProbe(row, key) {
       const html = await fetchRotoWireLineupsText();
       const block = parseRotoWireGameBlock(html, row);
       const info = parseRotoWireLineupEvidence(block, row);
-      if (!info) return null;
-      if (key === 'starters' && info.hasStarter) return { parsedResult:'100', evidence:'Expected Lineup', provider:'rotowire-direct' };
+      if (info) {
+        if (key === 'starters' && info.hasStarter) return { parsedResult:'100', evidence:'Expected Lineup', provider:'rotowire-direct' };
+        if (key === 'teammates') {
+          const joined = info.teamInjuries.join(' • ');
+          const val = parseTeammateImpactScore(joined || block);
+          if (val != null) return { parsedResult:String(val), evidence: joined || 'RotoWire lineup context', provider:'rotowire-direct' };
+        }
+        if (key === 'odds') {
+          const parts = [];
+          if (info.lineMatch) parts.push(info.lineMatch[2]);
+          if (info.spreadMatch) parts.push(info.spreadMatch[2]);
+          if (parts.length) return { parsedResult:parts.join(', '), evidence:parts.join(', '), provider:'rotowire-direct' };
+        }
+        if (key === 'blowout') {
+          const spread = info.spreadMatch ? parseFloat(info.spreadMatch[2]) : null;
+          const val = spreadToBlowoutScore(spread);
+          if (val != null) return { parsedResult:String(val), evidence: spread != null ? `spread ${spread}` : String(val), provider:'rotowire-direct' };
+        }
+      }
       if (key === 'injury') {
-        const joined = info.teamInjuries.join(' • ');
-        const val = parseInjuryScore(joined || block);
-        if (val != null) return { parsedResult:String(val), evidence: joined || 'RotoWire injury context', provider:'rotowire-direct' };
-      }
-      if (key === 'teammates') {
-        const joined = info.teamInjuries.join(' • ');
-        const val = parseTeammateImpactScore(joined || block);
-        if (val != null) return { parsedResult:String(val), evidence: joined || 'RotoWire lineup context', provider:'rotowire-direct' };
-      }
-      if (key === 'odds') {
-        const parts = [];
-        if (info.lineMatch) parts.push(info.lineMatch[2]);
-        if (info.spreadMatch) parts.push(info.spreadMatch[2]);
-        if (parts.length) return { parsedResult:parts.join(', '), evidence:parts.join(', '), provider:'rotowire-direct' };
-      }
-      if (key === 'blowout') {
-        const spread = info.spreadMatch ? parseFloat(info.spreadMatch[2]) : null;
-        const val = spreadToBlowoutScore(spread);
-        if (val != null) return { parsedResult:String(val), evidence: spread != null ? `spread ${spread}` : String(val), provider:'rotowire-direct' };
+        const injuriesHtml = await fetchRotoWireInjuriesText();
+        const injuryText = parseRotoWireInjuryEvidence(injuriesHtml, row);
+        const val = parseInjuryScore(injuryText || (info ? info.teamInjuries.join(' • ') : '') || block);
+        if (val != null) return { parsedResult:String(val), evidence: injuryText || 'RotoWire injury context', provider:'rotowire-direct' };
       }
     }
   } catch (err) {
