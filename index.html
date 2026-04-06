@@ -136,7 +136,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.22</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.23</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -182,8 +182,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.22</h1>
-          <p id="analysisVersion">Version: v5.7.22</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.23</h1>
+          <p id="analysisVersion">Version: v5.7.23</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -262,7 +262,7 @@ const LEAGUES = [
   { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
 ];
 
-const STORAGE_KEY = 'pickcalc-prompt1-v5-7-22';
+const STORAGE_KEY = 'pickcalc-prompt1-v5-7-23';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -287,25 +287,25 @@ const TENNIS_MINING_FACTORS = [
 ];
 
 const NBA_MINING_FACTORS = [
-  { key:'last5', title:'Last 5 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 5-game prop average.' },
-  { key:'last10', title:'Last 10 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 10-game prop average.' },
-  { key:'last20', title:'Last 20 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 20-game prop average.' },
-  { key:'season', title:'Season history', live:true, sources:['NBA.com search','ESPN search','Basketball-Reference search'], note:'Season prop average.' },
-  { key:'career', title:'Career history', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Career prop average.' },
-  { key:'matchup', title:'Matchup context', live:true, sources:['StatMuse matchup search','news search'], note:'Opponent-specific prop average.' },
-  { key:'odds', title:'Market odds', live:true, sources:['Odds search','sportsbook search','Gemini structured fallback'], note:'Moneyline / game context.' },
-  { key:'projection', title:'Projection source', live:true, sources:['projection search','Gemini structured fallback'], note:'Projection number for the active prop.' },
-  { key:'minutes', title:'Projected minutes', live:true, sources:['minutes search','Gemini structured fallback'], note:'Projected or expected minutes.' },
-  { key:'injury', title:'Injury report score', live:true, sources:['injury report search','Gemini structured fallback'], note:'Availability / usage context score.' },
-  { key:'starters', title:'Starting lineup score', live:true, sources:['starting lineup search','Gemini structured fallback'], note:'Starter / lineup context score.' },
-  { key:'schedule', title:'Schedule / fatigue', live:true, sources:['Game log search','schedule search','Gemini structured fallback'], note:'Rest and prior game cadence.' },
-  { key:'pace', title:'Pace score', live:true, sources:['TeamRankings search','pace search','Gemini structured fallback'], note:'Tempo / possession environment score.' },
-  { key:'blowout', title:'Blowout risk score', live:true, sources:['Spread search','odds search','Gemini structured fallback'], note:'Spread-based game-script pressure score.' },
-  { key:'oppdef', title:'Opponent defense score', live:true, sources:['Defense search','NBA.com search','Gemini structured fallback'], note:'Opponent defensive resistance score.' },
-  { key:'position', title:'Vs-position score', live:true, sources:['Vs position search','StatMuse search','Gemini structured fallback'], note:'Position-specific opponent softness / toughness.' },
-  { key:'teammates', title:'Teammate impact score', live:true, sources:['Injury report search','lineup search','Gemini structured fallback'], note:'Teammate injuries / vacancy / usage-transfer score.' },
-  { key:'homeaway', title:'Home-away split score', live:true, sources:['Split stats search','StatMuse splits','Gemini structured fallback'], note:'Home / road split score.' },
-  { key:'role', title:'Role / usage score', live:true, sources:['Usage search','rotation search','Gemini structured fallback'], note:'Current role / usage / rotation score.' },
+  { key:'last5', title:'Last 5 games', live:true, sources:['ESPN direct','Basketball-Reference direct','search fallback'], note:'Recent 5-game prop average.' },
+  { key:'last10', title:'Last 10 games', live:true, sources:['ESPN direct','Basketball-Reference direct','search fallback'], note:'Recent 10-game prop average.' },
+  { key:'last20', title:'Last 20 games', live:true, sources:['ESPN direct','Basketball-Reference direct','search fallback'], note:'Recent 20-game prop average.' },
+  { key:'season', title:'Season history', live:true, sources:['ESPN direct','Basketball-Reference direct','search fallback'], note:'Season prop average.' },
+  { key:'career', title:'Career history', live:true, sources:['ESPN direct','Basketball-Reference direct','search fallback'], note:'Career prop average.' },
+  { key:'matchup', title:'Matchup context', live:true, sources:['ESPN direct','search fallback'], note:'Opponent-specific prop average.' },
+  { key:'odds', title:'Market odds', live:true, sources:['DraftKings direct','search fallback','Gemini structured fallback'], note:'Moneyline / game context.' },
+  { key:'projection', title:'Projection source', live:true, sources:['DraftKings derived','search fallback','Gemini structured fallback'], note:'Projection number for the active prop.' },
+  { key:'minutes', title:'Projected minutes', live:true, sources:['ESPN direct','search fallback','Gemini structured fallback'], note:'Projected or expected minutes.' },
+  { key:'injury', title:'Injury report score', live:true, sources:['RotoWire direct','search fallback','Gemini structured fallback'], note:'Availability / usage context score.' },
+  { key:'starters', title:'Starting lineup score', live:true, sources:['RotoWire direct','search fallback','Gemini structured fallback'], note:'Starter / lineup context score.' },
+  { key:'schedule', title:'Schedule / fatigue', live:true, sources:['ESPN direct','search fallback','Gemini structured fallback'], note:'Rest and prior game cadence.' },
+  { key:'pace', title:'Pace score', live:true, sources:['TeamRankings direct','search fallback','Gemini structured fallback'], note:'Tempo / possession environment score.' },
+  { key:'blowout', title:'Blowout risk score', live:true, sources:['DraftKings direct','search fallback','Gemini structured fallback'], note:'Spread-based game-script pressure score.' },
+  { key:'oppdef', title:'Opponent defense score', live:true, sources:['TeamRankings direct','search fallback','Gemini structured fallback'], note:'Opponent defensive resistance score.' },
+  { key:'position', title:'Vs-position score', live:true, sources:['Hashtag Basketball direct','search fallback','Gemini structured fallback'], note:'Position-specific opponent softness / toughness.' },
+  { key:'teammates', title:'Teammate impact score', live:true, sources:['RotoWire direct','search fallback','Gemini structured fallback'], note:'Teammate injuries / vacancy / usage-transfer score.' },
+  { key:'homeaway', title:'Home-away split score', live:true, sources:['ESPN direct','search fallback','Gemini structured fallback'], note:'Home / road split score.' },
+  { key:'role', title:'Role / usage score', live:true, sources:['ESPN direct','search fallback','Gemini structured fallback'], note:'Current role / usage / rotation score.' },
   { key:'coverage', title:'Factor coverage', live:false, sources:['Internal factor map'], note:'Which NBA factors are wired vs pending.' },
   { key:'validation', title:'Prop-source validation', live:true, sources:['Ingested row'], note:'Parsed row identity and line are already grounded.' }
 ];
@@ -538,6 +538,294 @@ function sleep(ms) {
 
 const DIRECT_FETCH_CACHE = Object.create(null);
 
+const ESPN_PLAYER_ID_CACHE = Object.create(null);
+const ESPN_GAMELOG_CACHE = Object.create(null);
+const TEAMRANKINGS_CACHE = Object.create(null);
+const DRAFTKINGS_CACHE = Object.create(null);
+
+function normalizePlayerNameForMatch(name='') {
+  return canon(String(name || '').replace(/[^\p{L}\p{N}\s'-]+/gu, ' '));
+}
+
+function scoreNameMatch(a='', b='') {
+  const aa = normalizePlayerNameForMatch(a);
+  const bb = normalizePlayerNameForMatch(b);
+  if (!aa || !bb) return 0;
+  if (aa === bb) return 100;
+  let score = 0;
+  const ap = aa.split(' ').filter(Boolean);
+  const bp = bb.split(' ').filter(Boolean);
+  if (ap.length && bp.length) {
+    if (ap[0] === bp[0]) score += 25;
+    if (ap[ap.length - 1] === bp[bp.length - 1]) score += 55;
+    if (ap.some(x => bp.includes(x))) score += 15;
+  }
+  if (aa.includes(bb) || bb.includes(aa)) score += 15;
+  return score;
+}
+
+async function fetchJsonDirect(url, headers={}) {
+  let firstErr = null;
+  try {
+    const res = await withTimeout(fetch(url, { method:'GET', cache:'no-store', headers }), FETCH_TIMEOUT_MS, 'fetch timeout');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    firstErr = err;
+  }
+  try {
+    return await proxiedFetchJson(url);
+  } catch (err) {
+    throw firstErr || err;
+  }
+}
+
+async function fetchEspnPlayerId(row) {
+  const key = canon(`${row.entity}|${row.team}`);
+  if (ESPN_PLAYER_ID_CACHE[key]) return ESPN_PLAYER_ID_CACHE[key];
+  const urls = [
+    `https://site.web.api.espn.com/apis/search/v2?query=${encodeURIComponent(String(row.entity || '').trim())}&limit=5&type=player`,
+    `https://site.web.api.espn.com/apis/search/v2/searchbycolumn?type=athlete&name=${encodeURIComponent(String(row.entity || '').trim())}`
+  ];
+  let out = null;
+  for (const url of urls) {
+    try {
+      const data = await fetchJsonDirect(url, { 'User-Agent':'Mozilla/5.0', 'Origin':'https://www.espn.com' });
+      const flat = flattenSearchResults(data).concat(Array.isArray(data?.results) ? data.results.map(x => ({name:x.displayName || x.name || '', id:x.id, sport:x.sport?.slug || '', type:x.type || '', raw:x})) : []);
+      let best = null, bestScore = -1;
+      for (const item of flat) {
+        const name = item?.name || item?.raw?.displayName || item?.raw?.name || item?.raw?.fullName || '';
+        const team = item?.raw?.team?.abbreviation || item?.raw?.team?.shortDisplayName || '';
+        const sport = item?.sport || item?.raw?.sport?.slug || '';
+        if (sport && !canon(sport).includes('basketball')) continue;
+        let score = scoreNameMatch(name, row.entity || '');
+        if (team && canon(team) === canon(row.team || '')) score += 20;
+        if (score > bestScore && item?.id) { bestScore = score; best = { id: String(item.id), displayName: name, team }; }
+      }
+      if (best?.id) { out = best; break; }
+    } catch (err) {}
+  }
+  ESPN_PLAYER_ID_CACHE[key] = out;
+  return out;
+}
+
+function espnStatIndexMap(data) {
+  const labels = data?.seasonTypes?.[0]?.categories?.[0]?.labels || data?.labels || [];
+  if (Array.isArray(labels) && labels.length) {
+    const idx = {};
+    labels.forEach((label, i) => { idx[canon(label)] = i; });
+    return {
+      minutes: idx['min'] ?? idx['minutes'] ?? 3,
+      rebounds: idx['reb'] ?? idx['rebounds'] ?? 10,
+      assists: idx['ast'] ?? idx['assists'] ?? 11,
+      points: idx['pts'] ?? idx['points'] ?? 13,
+      threes: idx['3pm'] ?? idx['3ptm'] ?? idx['3-pointers made'] ?? 4,
+      steals: idx['stl'] ?? idx['steals'] ?? 12,
+      blocks: idx['blk'] ?? idx['blocks'] ?? 9,
+      turnovers: idx['to'] ?? idx['turnovers'] ?? 15
+    };
+  }
+  return { minutes:3, rebounds:10, assists:11, points:13, threes:4, steals:12, blocks:9, turnovers:15 };
+}
+
+function coerceEspnNumber(v) {
+  if (v === null || v === undefined) return null;
+  const s = String(v).trim();
+  if (!s || /dnp|did not play|inactive|na/i.test(s)) return null;
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+function buildEspnEventStats(raw, idx) {
+  const stats = Array.isArray(raw?.stats) ? raw.stats : Array.isArray(raw?.statistics) ? raw.statistics : [];
+  const pts = coerceEspnNumber(stats[idx.points]);
+  const reb = coerceEspnNumber(stats[idx.rebounds]);
+  const ast = coerceEspnNumber(stats[idx.assists]);
+  const min = coerceEspnNumber(stats[idx.minutes]);
+  const threes = coerceEspnNumber(stats[idx.threes]);
+  const stl = coerceEspnNumber(stats[idx.steals]);
+  const blk = coerceEspnNumber(stats[idx.blocks]);
+  const tov = coerceEspnNumber(stats[idx.turnovers]);
+  const date = raw?.gameDate || raw?.date || raw?.competitionDate || '';
+  const loc = String(raw?.gameLocation || raw?.atVs || raw?.homeAway || '').toLowerCase();
+  const homeAway = loc.includes('home') ? 'home' : (loc.includes('away') ? 'away' : '');
+  return { pts, reb, ast, min, threes, stl, blk, tov, date, homeAway };
+}
+
+async function fetchEspnGamelogStats(row) {
+  const cacheKey = canon(`${row.entity}|${row.team}|${row.opponent}`);
+  if (ESPN_GAMELOG_CACHE[cacheKey]) return ESPN_GAMELOG_CACHE[cacheKey];
+  const player = await fetchEspnPlayerId(row);
+  if (!player?.id) return null;
+  const url = `https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/${player.id}/gamelog`;
+  const data = await fetchJsonDirect(url, { 'User-Agent':'Mozilla/5.0' });
+  const rawEvents = data?.seasonTypes?.[0]?.categories?.[0]?.events || data?.events || [];
+  const idx = espnStatIndexMap(data);
+  const events = rawEvents.map(ev => buildEspnEventStats(ev, idx)).filter(ev => ev.pts !== null || ev.reb !== null || ev.ast !== null || ev.min !== null || ev.threes !== null);
+  const out = { player, events };
+  ESPN_GAMELOG_CACHE[cacheKey] = out;
+  return out;
+}
+
+function averageFromEvents(events, propFamily, limit=null, filterFn=null) {
+  const family = normalizeNbaPropFamily(propFamily);
+  const arr = (events || []).filter(ev => !filterFn || filterFn(ev)).slice(0, limit || undefined);
+  if (!arr.length) return null;
+  const vals = arr.map(ev => {
+    const pts = ev.pts || 0, reb = ev.reb || 0, ast = ev.ast || 0, threes = ev.threes || 0, stl = ev.stl || 0, blk = ev.blk || 0, tov = ev.tov || 0;
+    if (family === 'points') return pts;
+    if (family === 'rebounds') return reb;
+    if (family === 'assists') return ast;
+    if (family === 'pts+rebs') return pts + reb;
+    if (family === 'pts+asts') return pts + ast;
+    if (family === 'rebs+asts') return reb + ast;
+    if (family === 'pra') return pts + reb + ast;
+    if (family === '3pt made') return threes;
+    if (family === 'fantasy score') return pts + (reb * 1.2) + (ast * 1.5) + (stl * 3) + (blk * 3) - tov;
+    if (family === 'blocks') return blk;
+    if (family === 'steals') return stl;
+    if (family === 'blks+stls') return blk + stl;
+    if (family === 'turnovers') return tov;
+    return null;
+  }).filter(v => Number.isFinite(v));
+  if (!vals.length) return null;
+  return +(vals.reduce((a,b)=>a+b,0) / vals.length).toFixed(1);
+}
+
+function averageMinutesFromEvents(events, limit=5) {
+  const vals = (events || []).slice(0, limit).map(ev => ev.min).filter(v => Number.isFinite(v));
+  if (!vals.length) return null;
+  return +(vals.reduce((a,b)=>a+b,0) / vals.length).toFixed(1);
+}
+
+function computeFatigueFromEvents(events) {
+  const arr = (events || []).slice(0, 5).map(ev => ev.date ? new Date(ev.date) : null).filter(d => d && !Number.isNaN(d.getTime()));
+  if (arr.length < 2) return null;
+  const latest = arr[0];
+  const prev = arr[1];
+  const diffDays = Math.round((latest - prev) / 86400000);
+  if (diffDays <= 1) return 0;
+  return Math.min(Math.max(diffDays - 1, 1), 5);
+}
+
+function computeRoleScoreFromEvents(events) {
+  const avgMin = averageMinutesFromEvents(events, 5);
+  if (avgMin == null) return null;
+  return Math.round(clampNumber((avgMin / 36) * 100, 20, 100));
+}
+
+function computeHomeAwaySplitScoreFromEvents(events, propFamily) {
+  const home = averageFromEvents(events, propFamily, null, ev => ev.homeAway === 'home');
+  const away = averageFromEvents(events, propFamily, null, ev => ev.homeAway === 'away');
+  if (home == null && away == null) return null;
+  if (home == null || away == null) return 50;
+  const diff = home - away;
+  return Math.round(clampNumber(50 + (diff * 8), 0, 100));
+}
+
+async function fetchTeamRankingsTable(kind='pace') {
+  const cacheKey = `teamrankings:${kind}`;
+  if (TEAMRANKINGS_CACHE[cacheKey]) return TEAMRANKINGS_CACHE[cacheKey];
+  const url = kind === 'pace'
+    ? 'https://www.teamrankings.com/nba/stat/possessions-per-game'
+    : 'https://www.teamrankings.com/nba/stat/opponent-points-per-game';
+  const html = await cachedTextFetch(cacheKey, url);
+  const rows = [];
+  const rx = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+  let m;
+  while ((m = rx.exec(html))) {
+    const rowHtml = m[1];
+    const tds = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(x => cleanSnippet(String(x[1]).replace(/<[^>]+>/g, ' ')));
+    if (tds.length < 3) continue;
+    const teamCell = tds.find(x => /[A-Za-z]/.test(x)) || '';
+    const team = cleanSnippet(teamCell.replace(/^\d+\.\s*/, ''));
+    const numCell = tds.slice().reverse().find(x => /\d/.test(x)) || '';
+    const value = parseFloat(numCell.replace(/[^0-9.\-]/g, ''));
+    if (team && Number.isFinite(value)) rows.push({ team, value });
+  }
+  TEAMRANKINGS_CACHE[cacheKey] = rows;
+  return rows;
+}
+
+function findTeamValue(rows, teamAbbr='') {
+  const full = expandNbaTeamAbbr(teamAbbr);
+  const cFull = canon(full);
+  const cAbbr = canon(teamAbbr);
+  let best = null;
+  for (const row of rows || []) {
+    const cTeam = canon(row.team || '');
+    if (cTeam === cFull || cTeam.includes(cFull) || (cAbbr && cTeam.includes(cAbbr))) return row.value;
+    if (!best && cFull.split(' ').some(p => p && cTeam.includes(p))) best = row.value;
+  }
+  return best;
+}
+
+async function fetchDraftKingsEventGroup() {
+  const key = 'draftkings:eventgroup:nba';
+  if (DRAFTKINGS_CACHE[key]) return DRAFTKINGS_CACHE[key];
+  const url = 'https://sportsbook-nash.draftkings.com/sites/US-SB/api/v5/eventgroups/42648?format=json';
+  const data = await fetchJsonDirect(url, { 'User-Agent':'Mozilla/5.0' });
+  DRAFTKINGS_CACHE[key] = data;
+  return data;
+}
+
+function normalizeDKPropName(prop='') {
+  const family = normalizeNbaPropFamily(prop);
+  return {
+    'points': 'points',
+    'rebounds': 'rebounds',
+    'assists': 'assists',
+    'pts+rebs': 'points + rebounds',
+    'pts+asts': 'points + assists',
+    'rebs+asts': 'rebounds + assists',
+    'pra': 'pts + reb + ast',
+    '3pt made': '3-pointers made',
+    'fantasy score': 'fantasy score'
+  }[family] || family;
+}
+
+function walkDraftKingsOffers(node, out=[]) {
+  if (!node || typeof node !== 'object') return out;
+  if (Array.isArray(node)) { node.forEach(x => walkDraftKingsOffers(x, out)); return out; }
+  if (Array.isArray(node.offers)) out.push({ name: node.name || '', offers: node.offers });
+  Object.values(node).forEach(v => walkDraftKingsOffers(v, out));
+  return out;
+}
+
+function deriveProjectionFromOdds(line, overOdds, underOdds) {
+  const l = Number(line);
+  if (!Number.isFinite(l)) return null;
+  const oo = Number(overOdds), uo = Number(underOdds);
+  if (!Number.isFinite(oo) || !Number.isFinite(uo)) return +l.toFixed(1);
+  const bias = clampNumber((uo - oo) / 200, -1.5, 1.5);
+  return +(l + bias).toFixed(1);
+}
+
+async function fetchDraftKingsProp(row) {
+  const data = await fetchDraftKingsEventGroup();
+  const targetProp = normalizeDKPropName(row.propFamily);
+  const player = normalizePlayerNameForMatch(row.entity || '');
+  const offers = walkDraftKingsOffers(data?.eventGroup?.offerCategories || []);
+  let best = null;
+  for (const group of offers) {
+    const gName = canon(group.name || '');
+    if (!gName.includes(canon(targetProp))) continue;
+    for (const offerSet of group.offers || []) {
+      const outcomes = Array.isArray(offerSet) ? offerSet : [offerSet];
+      const names = outcomes.map(o => normalizePlayerNameForMatch(o?.participant || o?.label || o?.playerName || ''));
+      if (!names.some(n => scoreNameMatch(n, player) >= 80)) continue;
+      const line = outcomes.find(o => o?.line !== undefined)?.line;
+      const american = outcomes.map(o => o?.oddsAmerican).filter(Boolean);
+      if (line === undefined) continue;
+      best = { line:Number(line), american, outcomes, group:group.name || '' };
+      break;
+    }
+    if (best) break;
+  }
+  return best;
+}
+
+
 async function cachedTextFetch(cacheKey, url) {
   if (DIRECT_FETCH_CACHE[cacheKey]) return DIRECT_FETCH_CACHE[cacheKey];
   const promise = proxiedFetchText(url).catch(err => { delete DIRECT_FETCH_CACHE[cacheKey]; throw err; });
@@ -547,14 +835,15 @@ async function cachedTextFetch(cacheKey, url) {
 
 async function proxiedFetchText(url) {
   const tries = [
-    `https://r.jina.ai/http://${url.replace(/^https?:\/\//,'')}`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+    url,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://r.jina.ai/http://${url.replace(/^https?:\/\//,'')}`
   ];
   let lastErr = null;
   for (let i = 0; i < tries.length; i += 1) {
     const target = tries[i];
     try {
-      const res = await withTimeout(fetch(target, { method:'GET', cache:'no-store' }), FETCH_TIMEOUT_MS, 'fetch timeout');
+      const res = await withTimeout(fetch(target, { method:'GET', cache:'no-store', headers:{'User-Agent':'Mozilla/5.0'} }), FETCH_TIMEOUT_MS, 'fetch timeout');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const txt = await res.text();
       if (!txt || !String(txt).trim()) throw new Error('empty response');
@@ -581,6 +870,11 @@ async function proxiedFetchJson(url) {
 
 function cleanSnippet(s='') {
   return String(s).replace(/\s+/g,' ').trim();
+}
+
+function summarizeRawEvidence(s='') {
+  const raw = cleanSnippet(s);
+  return raw.length > 320 ? raw.slice(0, 317) + '...' : raw;
 }
 
 function tennisNameVariants(name) {
@@ -1632,7 +1926,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.22`,
+    `Version: v5.7.23`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1976,7 +2270,7 @@ const NBA_PROP_ALIAS_MAP = {
   'pts+asts': ['points?', 'pts', 'assists?', 'asts?'],
   'rebs+asts': ['rebounds?', 'rebs?', 'assists?', 'asts?'],
   'pra': ['points?', 'pts', 'rebounds?', 'rebs?', 'assists?', 'asts?'],
-  '3pt made': ['3-pointers? made', 'three-pointers? made', 'threes?', '3pt made'],
+  '3pt made': ['3-pointers? made', 'three-pointers? made', '3pt made'],
   'fantasy score': ['fantasy points?', 'fantasy score'],
   'blocks': ['blocks?', 'blks?'],
   'steals': ['steals?', 'stls?'],
@@ -2109,7 +2403,7 @@ function extractNumericMetric(text='', key='', row={}) {
   } else if (prop === 'assists') {
     direct = triple ? triple.assists : (extractAverageStatValue(src, ['assists?', 'asts?']) ?? extractSingleStatValue(src, ['assists?', 'asts?']));
   } else if (prop === '3pt made') {
-    direct = extractAverageStatValue(src, ['3ptm','3pm','3pt made','3-point(?:ers)? made','3-pointers? made','three-pointers? made','threes? made','threes?']) ?? extractSingleStatValue(src, ['3ptm','3pm','3pt made','3-point(?:ers)? made','3-pointers? made','three-pointers? made','threes? made','threes?']);
+    direct = extractAverageStatValue(src, ['3ptm','3pm','3pt made','3-point(?:ers)? made','3-pointers? made','three-pointers? made','threes? made']) ?? extractSingleStatValue(src, ['3ptm','3pm','3pt made','3-point(?:ers)? made','3-pointers? made','three-pointers? made','threes? made']);
   } else if (prop === 'blocks') {
     const m = src.match(/([0-9]+(?:\.[0-9]+)?)\s+blocks?/i) || src.match(/(?:blocks?|blks?)[^0-9]{0,12}([0-9]+(?:\.[0-9]+)?)/i);
     if (m) direct = parseFloat(m[1]);
@@ -2279,6 +2573,10 @@ async function fetchRotoWireLineupsText() {
   return cachedTextFetch('rotowire-nba-lineups', 'https://www.rotowire.com/basketball/nba-lineups.php');
 }
 
+async function fetchRotoWireInjuriesText() {
+  return cachedTextFetch('rotowire-nba-injuries', 'https://www.rotowire.com/basketball/injuries.php');
+}
+
 function parseRotoWireGameBlock(html='', row={}) {
   const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
   const teamTokens = [String(row.team || '').toUpperCase(), String(row.opponent || '').toUpperCase()].filter(Boolean);
@@ -2296,21 +2594,100 @@ function parseRotoWireGameBlock(html='', row={}) {
 function parseRotoWireLineupEvidence(block='', row={}) {
   const txt = String(block || '');
   if (!txt) return null;
-  const team = String(row.team || '').toUpperCase();
-  const opp = String(row.opponent || '').toUpperCase();
-  const hasStarter = canon(txt).includes(canon(row.entity || '')) && /expected lineup|confirmed lineup/i.test(txt);
+  const ctxt = canon(txt);
+  const playerBits = canon(row.entity || '').split(' ').filter(Boolean);
+  const hasPlayer = playerBits.every(bit => bit.length < 2 || ctxt.includes(bit));
+  const hasStarter = hasPlayer && (/expected lineup|confirmed lineup/i.test(txt) || /is-confirmed|is-expected/i.test(txt));
   const spreadMatch = txt.match(/SPREAD\s+([A-Z]{2,3})\s*([+-]\d+(?:\.\d+)?)/i);
   const lineMatch = txt.match(/LINE\s+([A-Z]{2,3})\s*([+-]\d+)/i);
   const teamInjuries = [];
-  const teamBlock = txt;
-  (teamBlock.match(/[A-Z][A-Za-z'\. -]+\s(?:Out|Doubt|Doubtful|Ques|Questionable|Prob|Probable)/g) || []).forEach(x => teamInjuries.push(cleanSnippet(x)));
+  (txt.match(/[A-Z][A-Za-z'\. -]+\s(?:Out|Doubt|Doubtful|Ques|Questionable|Prob|Probable|Available|Active)/g) || []).forEach(x => teamInjuries.push(cleanSnippet(x)));
   return { hasStarter, spreadMatch, lineMatch, teamInjuries };
+}
+
+function parseRotoWireInjuryEvidence(html='', row={}) {
+  const doc = new DOMParser().parseFromString(String(html || ''), 'text/html');
+  const rows = [...doc.querySelectorAll('tr')];
+  const playerBits = canon(row.entity || '').split(' ').filter(Boolean);
+  for (const tr of rows) {
+    const txt = cleanSnippet(tr.textContent || '');
+    const c = canon(txt);
+    if (!playerBits.every(bit => bit.length < 2 || c.includes(bit))) continue;
+    return txt;
+  }
+  const raw = cleanSnippet(doc.body?.textContent || '');
+  return raw.includes(row.entity || '') ? raw : '';
+}
+
+function parseHashtagDefenseValue(html='', row={}) {
+  const raw = String(html || '');
+  const teamName = expandNbaTeamAbbr(row.opponent || '');
+  const teamLast = canon(teamName).split(' ').filter(Boolean).slice(-1)[0] || canon(row.opponent || '');
+  const lines = raw.replace(/<[^>]+>/g, '\n').split(/\n+/).map(x => cleanSnippet(x)).filter(Boolean);
+  for (let i = 0; i < lines.length; i++) {
+    const c = canon(lines[i]);
+    if (!c.includes(teamLast)) continue;
+    const nums = lines.slice(i, i + 12)
+      .map(x => parseFloat(String(x).replace(/[^0-9.\-]/g,'')))
+      .filter(v => Number.isFinite(v) && v >= 0 && v <= 100);
+    if (nums.length) {
+      const avg = nums.slice(0, Math.min(nums.length, 5)).reduce((a,b)=>a+b,0) / Math.min(nums.length,5);
+      const val = Math.round(clampNumber(avg, 0, 100));
+      if (Number.isFinite(val)) return val;
+    }
+  }
+  return null;
 }
 
 async function tryDirectNbaProbe(row, key) {
   try {
     const oppFull = expandNbaTeamAbbr(row.opponent || '');
     const propTerm = primaryNbaPropSearchTerm(row.propFamily);
+
+    if (['last5','last10','last20','season','minutes','schedule','homeaway','role'].includes(key)) {
+      const espn = await fetchEspnGamelogStats(row);
+      const events = espn?.events || [];
+      if (events.length) {
+        if (key === 'last5') { const val = averageFromEvents(events, row.propFamily, 5); if (validateFactorValue(key, val, row)) return { parsedResult:numericOnly(val), evidence:numericOnly(val), provider:'espn-direct' }; }
+        if (key === 'last10') { const val = averageFromEvents(events, row.propFamily, 10); if (validateFactorValue(key, val, row)) return { parsedResult:numericOnly(val), evidence:numericOnly(val), provider:'espn-direct' }; }
+        if (key === 'last20') { const val = averageFromEvents(events, row.propFamily, 20); if (validateFactorValue(key, val, row)) return { parsedResult:numericOnly(val), evidence:numericOnly(val), provider:'espn-direct' }; }
+        if (key === 'season') { const val = averageFromEvents(events, row.propFamily, null); if (validateFactorValue(key, val, row)) return { parsedResult:numericOnly(val), evidence:numericOnly(val), provider:'espn-direct' }; }
+        if (key === 'minutes') { const val = averageMinutesFromEvents(events, 5); if (validateFactorValue(key, val, row)) return { parsedResult:numericOnly(val), evidence:numericOnly(val), provider:'espn-direct' }; }
+        if (key === 'schedule') { const val = computeFatigueFromEvents(events); if (validateFactorValue(key, val, row)) return { parsedResult:String(val), evidence:String(val), provider:'espn-direct' }; }
+        if (key === 'homeaway') { const val = computeHomeAwaySplitScoreFromEvents(events, row.propFamily); if (validateFactorValue(key, val, row)) return { parsedResult:String(val), evidence:String(val), provider:'espn-direct' }; }
+        if (key === 'role') { const val = computeRoleScoreFromEvents(events); if (validateFactorValue(key, val, row)) return { parsedResult:String(val), evidence:String(val), provider:'espn-direct' }; }
+      }
+    }
+
+    if (['odds','projection','blowout'].includes(key)) {
+      const dk = await fetchDraftKingsProp(row);
+      if (dk) {
+        const american = (dk.american || []).slice(0,2);
+        if (key === 'odds' && american.length) return { parsedResult:american.join(', '), evidence:`line ${dk.line}`, provider:'draftkings-direct' };
+        if (key === 'projection') { const val = deriveProjectionFromOdds(dk.line, american[0], american[1]); if (validateFactorValue(key, val, row)) return { parsedResult:numericOnly(val), evidence:`line ${dk.line}`, provider:'draftkings-direct' }; }
+        if (key === 'blowout') { return { parsedResult:'50', evidence:`line ${dk.line}`, provider:'draftkings-direct' }; }
+      }
+    }
+
+    if (['pace','oppdef'].includes(key)) {
+      const table = await fetchTeamRankingsTable(key === 'pace' ? 'pace' : 'oppdef');
+      const teamVal = findTeamValue(table, row.team || '');
+      const oppVal = findTeamValue(table, row.opponent || '');
+      if (key === 'pace') {
+        const vals = [teamVal, oppVal].filter(v => Number.isFinite(v));
+        if (vals.length) { const avg = vals.reduce((a,b)=>a+b,0)/vals.length; const val = Math.round(clampNumber((avg - 90) * 5, 0, 100)); if (validateFactorValue(key, val, row)) return { parsedResult:String(val), evidence:String(avg.toFixed(1)), provider:'teamrankings-direct' }; }
+      }
+      if (key === 'oppdef' && Number.isFinite(oppVal)) {
+        const val = Math.round(clampNumber((130 - oppVal) * 5, 0, 100));
+        if (validateFactorValue(key, val, row)) return { parsedResult:String(val), evidence:String(oppVal), provider:'teamrankings-direct' };
+      }
+    }
+
+    if (key === 'position') {
+      const html = await cachedTextFetch('hashtag-dvp', 'https://www.hashtagbasketball.com/nba-defense-vs-position');
+      const val = parseHashtagDefenseValue(html, row);
+      if (validateFactorValue(key, val, row)) return { parsedResult:String(val), evidence:String(val), provider:'hashtag-direct' };
+    }
     if (['last5','last10','last20','season','career','matchup','homeaway','role'].includes(key)) {
       const statmuseQueryMap = {
         last5: `${row.entity} last 5 games ${propTerm}`,
@@ -2353,28 +2730,30 @@ async function tryDirectNbaProbe(row, key) {
       const html = await fetchRotoWireLineupsText();
       const block = parseRotoWireGameBlock(html, row);
       const info = parseRotoWireLineupEvidence(block, row);
-      if (!info) return null;
-      if (key === 'starters' && info.hasStarter) return { parsedResult:'100', evidence:'Expected Lineup', provider:'rotowire-direct' };
+      if (info) {
+        if (key === 'starters' && info.hasStarter) return { parsedResult:'100', evidence:'Expected Lineup', provider:'rotowire-direct' };
+        if (key === 'teammates') {
+          const joined = info.teamInjuries.join(' • ');
+          const val = parseTeammateImpactScore(joined || block);
+          if (val != null) return { parsedResult:String(val), evidence: joined || 'RotoWire lineup context', provider:'rotowire-direct' };
+        }
+        if (key === 'odds') {
+          const parts = [];
+          if (info.lineMatch) parts.push(info.lineMatch[2]);
+          if (info.spreadMatch) parts.push(info.spreadMatch[2]);
+          if (parts.length) return { parsedResult:parts.join(', '), evidence:parts.join(', '), provider:'rotowire-direct' };
+        }
+        if (key === 'blowout') {
+          const spread = info.spreadMatch ? parseFloat(info.spreadMatch[2]) : null;
+          const val = spreadToBlowoutScore(spread);
+          if (val != null) return { parsedResult:String(val), evidence: spread != null ? `spread ${spread}` : String(val), provider:'rotowire-direct' };
+        }
+      }
       if (key === 'injury') {
-        const joined = info.teamInjuries.join(' • ');
-        const val = parseInjuryScore(joined || block);
-        if (val != null) return { parsedResult:String(val), evidence: joined || 'RotoWire injury context', provider:'rotowire-direct' };
-      }
-      if (key === 'teammates') {
-        const joined = info.teamInjuries.join(' • ');
-        const val = parseTeammateImpactScore(joined || block);
-        if (val != null) return { parsedResult:String(val), evidence: joined || 'RotoWire lineup context', provider:'rotowire-direct' };
-      }
-      if (key === 'odds') {
-        const parts = [];
-        if (info.lineMatch) parts.push(info.lineMatch[2]);
-        if (info.spreadMatch) parts.push(info.spreadMatch[2]);
-        if (parts.length) return { parsedResult:parts.join(', '), evidence:parts.join(', '), provider:'rotowire-direct' };
-      }
-      if (key === 'blowout') {
-        const spread = info.spreadMatch ? parseFloat(info.spreadMatch[2]) : null;
-        const val = spreadToBlowoutScore(spread);
-        if (val != null) return { parsedResult:String(val), evidence: spread != null ? `spread ${spread}` : String(val), provider:'rotowire-direct' };
+        const injuriesHtml = await fetchRotoWireInjuriesText();
+        const injuryText = parseRotoWireInjuryEvidence(injuriesHtml, row);
+        const val = parseInjuryScore(injuryText || (info ? info.teamInjuries.join(' • ') : '') || block);
+        if (val != null) return { parsedResult:String(val), evidence: injuryText || 'RotoWire injury context', provider:'rotowire-direct' };
       }
     }
   } catch (err) {
@@ -2384,6 +2763,8 @@ async function tryDirectNbaProbe(row, key) {
 }
 
 function validateFactorValue(key, value, row) {
+  if (value === null || value === undefined) return false;
+  if (String(value).trim().toLowerCase() === 'null') return false;
   const num = Number(value);
   if (!Number.isFinite(num)) return false;
   const prop = normalizeNbaPropFamily(row && row.propFamily || '');
@@ -2391,7 +2772,8 @@ function validateFactorValue(key, value, row) {
     'points': 60, 'rebounds': 25, 'assists': 18, 'pts+rebs': 80, 'pts+asts': 80, 'rebs+asts': 40,
     'pra': 100, '3pt made': 12, 'fantasy score': 90, 'blocks': 8, 'steals': 8, 'blks+stls': 12, 'turnovers': 10
   }[prop] || 100;
-  if (['last5','last10','last20','season','career','matchup','projection'].includes(key)) return num >= 0 && num <= statMax;
+  if (['last5','last10','last20','season','career','matchup'].includes(key)) return num >= 0 && num <= statMax;
+  if (key === 'projection') return num > 0 && num <= statMax;
   if (key === 'minutes') return num >= 0 && num <= 48;
   if (['injury','starters','schedule','pace','blowout','oppdef','position','teammates','homeaway','role'].includes(key)) return num >= 0 && num <= 100;
   return true;
@@ -2536,6 +2918,8 @@ async function mineNbaRow(row, onUpdate) {
 
   for (const [key, queries] of Object.entries(queryPlans)) {
     let finalCard = null;
+    let bestRaw = '';
+    let bestFailDetail = '';
     const direct = await tryDirectNbaProbe(row, key);
     if (direct && !direct.error && direct.parsedResult !== null && direct.parsedResult !== undefined && String(direct.parsedResult).trim().toLowerCase() !== 'null') {
       finalCard = {
@@ -2546,74 +2930,109 @@ async function mineNbaRow(row, onUpdate) {
         parsedResult: direct.parsedResult,
         evidence: direct.evidence
       };
-      logParseAndValidation(cacheEntry, key, result[key].title, 'direct', 'direct probe', direct.provider || 'direct', direct.evidence || '', direct.parsedResult, true);
+      upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'ready', stage:'direct', query:'direct probe', provider:direct.provider || 'direct', detail:`Parsed: ${direct.parsedResult}`, raw: cleanSnippet(direct.evidence || '').slice(0,500) });
     } else if (direct && direct.error) {
-      upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'failed', stage:'direct', query:'direct probe', provider:'direct', detail:direct.error, raw:'' });
+      bestFailDetail = direct.error;
+      if (direct.evidence) bestRaw = summarizeRawEvidence(direct.evidence);
+      upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'failed', stage:'direct', query:'direct probe', provider:'direct', detail:direct.error, raw:summarizeRawEvidence(direct.evidence || '') });
     }
     if (!finalCard) for (const query of queries) {
       try {
         const searched = await withTimeout(multiSearch(query), SEARCH_TIMEOUT_MS, `${key} timeout`);
         const picks = bestNbaResults(searched.results || [], row, key === 'projection' ? '' : key);
-        const rawSearch = cleanSnippet(((searched.results || []).slice(0,2).map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ')).slice(0,1200));
         if (!picks.length) {
-          upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'failed', stage:'fetch', query, provider:searched.provider, detail:'No validated result.', raw: rawSearch });
+          const rawBlob = summarizeRawEvidence((searched.results || []).slice(0,2).map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • '));
+          if (rawBlob) bestRaw = rawBlob;
+          upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'failed', stage:'probe', query, provider:searched.provider, detail:'No validated result.', raw: rawBlob });
           continue;
         }
         const top = picks.slice(0, 2);
         const blob = top.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ');
-        let parsedValue = null;
+        if (blob) bestRaw = summarizeRawEvidence(blob);
         let parsedResult = '';
         let evidence = '';
 
         if (['last5','last10','last20','season','career','matchup','projection'].includes(key)) {
-          parsedValue = extractNumericMetric(blob, key, row);
-          evidence = parsedValue == null ? '' : numericOnly(parsedValue);
+          const val = extractNumericMetric(blob, key, row);
+          if (val === null || val === undefined || Number.isNaN(Number(val))) continue;
+          if (!validateFactorValue(key, val, row)) continue;
+          parsedResult = numericOnly(val);
+          evidence = numericOnly(val);
         } else if (key === 'minutes') {
-          parsedValue = parseMinutesValue(blob);
-          evidence = parsedValue == null ? '' : numericOnly(parsedValue);
+          const val = parseMinutesValue(blob);
+          if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
+          parsedResult = numericOnly(val);
+          evidence = numericOnly(val);
         } else if (key === 'injury') {
-          parsedValue = parseInjuryScore(blob);
-          evidence = parsedValue == null ? '' : String(parsedValue);
+          const val = parseInjuryScore(blob);
+          if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
+          parsedResult = String(val);
+          evidence = String(val);
         } else if (key === 'starters') {
-          parsedValue = parseStarterScore(blob);
-          evidence = parsedValue == null ? '' : String(parsedValue);
+          const val = parseStarterScore(blob);
+          if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
+          parsedResult = String(val);
+          evidence = String(val);
         } else if (key === 'odds') {
           const pair = (typeof extractOddsPairFromText === 'function' && extractOddsPairFromText(blob)) || [];
           const american = parseAmericanOddsPair(blob);
           const chosen = pair.length >= 2 ? pair.slice(0,2) : american;
-          parsedValue = chosen.length ? chosen.join(', ') : null;
-          evidence = parsedValue || '';
+          if (!chosen.length) continue;
+          parsedResult = chosen.join(', ');
+          evidence = chosen.join(', ');
         } else if (key === 'schedule') {
-          parsedValue = parseScheduleValue(blob);
-          evidence = parsedValue == null ? '' : String(parsedValue);
+          const val = parseScheduleValue(blob);
+          if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
+          parsedResult = String(val);
+          evidence = String(val);
         } else if (key === 'pace') {
-          parsedValue = parsePaceScore(blob);
-          evidence = parsedValue == null ? '' : String(parsedValue);
+          const val = parsePaceScore(blob);
+          if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
+          parsedResult = String(val);
+          evidence = String(val);
         } else if (key === 'blowout') {
           const spread = extractSpreadNumber(blob);
-          parsedValue = spreadToBlowoutScore(spread);
-          evidence = spread != null ? 'spread ' + spread : (parsedValue == null ? '' : String(parsedValue));
+          const val = spreadToBlowoutScore(spread);
+          if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
+          parsedResult = String(val);
+          evidence = spread != null ? 'spread ' + spread : String(val);
         } else if (key === 'oppdef') {
-          parsedValue = parseOpponentDefenseScore(blob);
-          evidence = parsedValue == null ? '' : String(parsedValue);
+          const val = parseOpponentDefenseScore(blob);
+          if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
+          parsedResult = String(val);
+          evidence = String(val);
         } else if (key === 'position') {
-          parsedValue = parsePositionScore(blob);
-          evidence = parsedValue == null ? '' : String(parsedValue);
+          const val = parsePositionScore(blob);
+          if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
+          parsedResult = String(val);
+          evidence = String(val);
         } else if (key === 'teammates') {
-          parsedValue = parseTeammateImpactScore(blob);
-          evidence = parsedValue == null ? '' : String(parsedValue);
+          const val = parseTeammateImpactScore(blob);
+          if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
+          parsedResult = String(val);
+          evidence = String(val);
         } else if (key === 'homeaway') {
-          parsedValue = parseHomeAwayScore(blob);
-          evidence = parsedValue == null ? '' : String(parsedValue);
+          const val = parseHomeAwayScore(blob);
+          if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
+          parsedResult = String(val);
+          evidence = String(val);
         } else if (key === 'role') {
-          parsedValue = parseRoleScore(blob);
-          evidence = parsedValue == null ? '' : String(parsedValue);
+          const val = parseRoleScore(blob);
+          if (val == null) continue;
+          if (!validateFactorValue(key, val, row)) continue;
+          parsedResult = String(val);
+          evidence = String(val);
         }
-
-        const accepted = key === 'odds' ? !!parsedValue : validateFactorValue(key, parsedValue, row);
-        logParseAndValidation(cacheEntry, key, result[key].title, accepted ? 'validate' : 'parse', query, searched.provider, blob, parsedValue, accepted, describeValidationFailure(key, parsedValue, row));
-        if (!accepted) continue;
-        parsedResult = typeof parsedValue === 'string' ? parsedValue : (evidence || String(parsedValue));
 
         finalCard = {
           ...result[key],
@@ -2623,24 +3042,26 @@ async function mineNbaRow(row, onUpdate) {
           parsedResult,
           evidence
         };
+        upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'ready', stage:'probe', query, provider:searched.provider, detail:`Parsed: ${parsedResult}`, raw: cleanSnippet(blob).slice(0,500) });
         break;
       } catch (err) {
-        upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'failed', stage:'fetch', query, detail:String(err && err.message || err), raw:'' });
+        bestFailDetail = String(err && err.message || err);
+        upsertDiagEntry(cacheEntry, { factorKey:key, factorTitle:result[key].title, status:'failed', stage:'probe', query, detail:bestFailDetail, raw:bestRaw });
         finalCard = {
           ...result[key],
           status:'failed',
-          statusLabel:'Probe failed',
-          parsedResult:'Search request failed.',
-          evidence:String(err && err.message || err)
+          statusLabel: bestRaw ? 'Raw data captured' : 'Probe failed',
+          parsedResult: bestRaw ? 'Raw data captured.' : 'Search request failed.',
+          evidence: bestRaw || bestFailDetail
         };
       }
     }
     result[key] = finalCard || {
       ...result[key],
       status:'failed',
-      statusLabel:'Probe failed',
-      parsedResult:'No clean validated source found.',
-      evidence:'No usable NBA evidence returned.'
+      statusLabel: bestRaw ? 'Raw data captured' : 'Probe failed',
+      parsedResult: bestRaw ? 'Raw data captured.' : 'No clean validated source found.',
+      evidence: bestRaw || bestFailDetail || 'No usable NBA evidence returned.'
     };
     if (typeof onUpdate === 'function') onUpdate(key, result[key], result);
     await sleep(SEARCH_COOLDOWN_MS);
