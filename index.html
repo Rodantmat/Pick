@@ -1571,23 +1571,82 @@ function parseAmericanOddsPair(text='') {
 }
 
 function extractOddsFromText(text='') {
-  const nums = [...String(text || '').matchAll(/(?:\+[0-9]{3}|-[0-9]{3}|\d+\.\d{2})/g)].map(m => m[0]);
+  const nums = [...String(text || '').matchAll(/(?:\+[0-9]{3}|-[0-9]{3}|\b\d+\.\d{2}\b)/g)].map(m => m[0]);
   return [...new Set(nums)].slice(0, 4);
 }
 
-function parseMinutesValue(text='') {
+function extractSeasonAverageMinutes(text='') {
   const src = String(text || '');
   const patterns = [
-    /([0-9]+(?:\.[0-9]+)?)\s+minutes?/i,
-    /minutes?[^0-9]{0,20}([0-9]+(?:\.[0-9]+)?)/i,
-    /projected minutes?[^0-9]{0,20}([0-9]+(?:\.[0-9]+)?)/i,
-    /expected minutes?[^0-9]{0,20}([0-9]+(?:\.[0-9]+)?)/i
+    /season average(?: minutes?)?[^0-9]{0,20}([0-9]+(?:\.[0-9]+)?)/i,
+    /averag(?:ed|es)?[^0-9]{0,20}([0-9]+(?:\.[0-9]+)?)\s+minutes?/i,
+    /([0-9]+(?:\.[0-9]+)?)\s+minutes?\s+per game/i,
+    /minutes?\s+per game[^0-9]{0,20}([0-9]+(?:\.[0-9]+)?)/i
   ];
   for (const rx of patterns) {
     const m = src.match(rx);
-    if (m) return parseFloat(m[1]);
+    if (m) {
+      const n = parseFloat(m[1]);
+      if (n > 0 && n <= 48) return n;
+    }
   }
   return null;
+}
+
+function parseMinutesProfile(text='') {
+  const src = String(text || '');
+  const seasonAverage = extractSeasonAverageMinutes(src);
+  const projectionPatterns = [
+    /projected minutes?[^0-9]{0,20}([0-9]+(?:\.[0-9]+)?)/i,
+    /expected minutes?[^0-9]{0,20}([0-9]+(?:\.[0-9]+)?)/i,
+    /([0-9]+(?:\.[0-9]+)?)\s+projected minutes?/i,
+    /([0-9]+(?:\.[0-9]+)?)\s+minutes?/i,
+    /minutes?[^0-9]{0,20}([0-9]+(?:\.[0-9]+)?)/i
+  ];
+  let projection = null;
+  for (const rx of projectionPatterns) {
+    const m = src.match(rx);
+    if (m) {
+      projection = parseFloat(m[1]);
+      break;
+    }
+  }
+  if (projection != null && projection > 48) {
+    projection = seasonAverage != null ? seasonAverage : null;
+  }
+  if (projection != null && projection <= 0) projection = null;
+  return { projection, seasonAverage };
+}
+
+function parseMinutesValue(text='') {
+  return parseMinutesProfile(text).projection;
+}
+
+function parseScheduleFatigueScore(text='') {
+  const c = canon(text || '');
+  if (!c) return null;
+  if (/back[- ]to[- ]back|second night of a back[- ]to[- ]back|no rest/.test(c)) return 0;
+  if (/three days rest|3 days rest|third day rest|4 days rest|four days rest/.test(c)) return 100;
+  if (/two days rest|2 days rest/.test(c)) return 85;
+  if (/one day rest|1 day rest/.test(c)) return 60;
+  const nums = [...String(text || '').matchAll(/\b([0-9]+(?:\.[0-9]+)?)\b/g)].map(m => parseFloat(m[1])).filter(n => !Number.isNaN(n));
+  const restLike = nums.find(n => n >= 0 && n <= 7);
+  if (restLike != null) return Math.max(0, Math.min(100, Math.round((restLike / 2) * 100)));
+  const high = nums.find(n => n > 7);
+  if (high != null) {
+    const normalized = Math.round(100 - Math.min(100, Math.max(0, high)));
+    return Math.max(0, Math.min(100, normalized));
+  }
+  return null;
+}
+
+function inferOddsFromRawParse(raw='') {
+  const american = parseAmericanOddsPair(raw);
+  if (american.length) return american.join(', ');
+  const c = canon(raw || '');
+  if (c.includes('favorite')) return 'favorite';
+  if (c.includes('underdog')) return 'underdog';
+  return '';
 }
 
 function parseInjuryScore(text='') {
@@ -1718,7 +1777,7 @@ function extractOddsPairFromText(text='') {
 }
 
 function extractOddsFromText(text='') {
-  const nums = [...String(text || '').matchAll(/(?:\\+\\d{3}|\\-\\d{3}|\\b\\d+\\.\\d{2}\\b)/g)].map(m => m[0]);
+  const nums = [...String(text || '').matchAll(/(?:\+[0-9]{3}|-[0-9]{3}|\b\d+\.\d{2}\b)/g)].map(m => m[0]);
   return [...new Set(nums)].slice(0, 4);
 }
 
@@ -1789,6 +1848,39 @@ function buildCoverageText(propFamily='') {
   if (prop === 'pra') return 'wired:last5,last10,last20,season,career,matchup,odds,projection,minutes,injury,starters,schedule | pending:none';
   return 'wired:trend,history,matchup,odds,projection,minutes,injury,starters,schedule | pending:prop-specific refinement';
 }
+
+function cardNumericValue(card) {
+  if (!card) return null;
+  const raw = Number(card.parsedResult);
+  return Number.isFinite(raw) ? raw : null;
+}
+
+function calculateInternalProjection(row, cards) {
+  const last5 = cardNumericValue(cards.last5);
+  const last10 = cardNumericValue(cards.last10);
+  const season = cardNumericValue(cards.season);
+  if (last5 == null || last10 == null || season == null) return null;
+
+  let projection = (last5 * 0.4) + (last10 * 0.3) + (season * 0.3);
+
+  const projectedMinutes = cardNumericValue(cards.minutes);
+  const seasonAverageMinutes = cards.minutes && cards.minutes.seasonAverageMinutes != null
+    ? Number(cards.minutes.seasonAverageMinutes)
+    : null;
+
+  if (projectedMinutes != null && seasonAverageMinutes != null && projectedMinutes > seasonAverageMinutes) {
+    projection *= 1.10;
+  }
+
+  const line = parseFloat(row?.line || '');
+  const edge = Number.isFinite(line) ? (projection - line) : null;
+
+  return {
+    projection: +projection.toFixed(1),
+    edge: edge == null ? null : +edge.toFixed(1)
+  };
+}
+
 async function mineNbaRow(row) {
   const result = {};
   NBA_MINING_FACTORS.forEach(f => {
@@ -1813,10 +1905,10 @@ async function mineNbaRow(row) {
     season: [`${row.entity} season ${row.propFamily} statmuse nba`, `${row.entity} season averages points rebounds assists nba`, `${row.entity} season stats ${row.propFamily} espn nba`],
     career: [`${row.entity} career ${row.propFamily} statmuse nba`, `${row.entity} career averages points rebounds assists nba`, `${row.entity} career stats ${row.propFamily} espn nba`],
     matchup: [`${row.entity} vs ${oppFull || row.opponent} ${row.propFamily} statmuse nba`, `${row.entity} ${oppFull || row.opponent} points rebounds assists statmuse`, `${row.entity} ${oppFull || row.opponent} record nba`],
-    odds: [`${teamFull || row.team} vs ${oppFull || row.opponent} odds nba sportsbook`, `${teamFull || row.team} ${oppFull || row.opponent} betting odds nba`, `${teamFull || row.team} ${oppFull || row.opponent} draftkings moneyline`, `${teamFull || row.team} ${oppFull || row.opponent} fanduel moneyline`, `${teamFull || row.team} ${oppFull || row.opponent} oddschecker covers`],
+    odds: [`${teamFull || row.team} vs ${oppFull || row.opponent} betting odds`],
     projection: [`${row.entity} ${row.propFamily} projection today`, `${row.entity} projected ${row.propFamily} tonight nba`, `${row.entity} fantasy projection ${row.propFamily} nba`],
-    minutes: [`${row.entity} projected minutes tonight`, `${row.entity} minutes projection nba`, `${row.entity} expected minutes nba`],
-    injury: [`${row.entity} injury report today nba`, `${row.entity} status today nba`, `${row.entity} probable questionable out nba`],
+    minutes: [`${row.entity} projected minutes tonight`, `${row.entity} minutes projection nba`, `${row.entity} expected minutes nba`, `${row.entity} season average minutes nba`],
+    injury: [`${row.entity} NBA injury status`],
     starters: [`${teamFull || row.team} starting lineup today nba`, `${row.entity} starting tonight nba`, `${teamFull || row.team} starters nba today`],
     schedule: [`${row.entity} recent games rest days nba`, `${row.entity} game log espn nba`, `${row.entity} schedule last games nba`]
   };
@@ -1825,7 +1917,8 @@ async function mineNbaRow(row) {
     let finalCard = null;
     for (const query of queries) {
       try {
-        const searched = await withTimeout(multiSearch(query), key === 'odds' ? 15000 : 10000, `${key} timeout`);
+        const timeoutMs = (key === 'odds' || key === 'injury') ? 8000 : (key === 'minutes' ? 9000 : 10000);
+        const searched = await withTimeout(multiSearch(query), timeoutMs, `${key} timeout`);
         const picks = bestNbaResults(searched.results || [], row, key === 'projection' ? '' : key);
         if (!picks.length) continue;
         const top = picks.slice(0, 2);
@@ -1839,10 +1932,14 @@ async function mineNbaRow(row) {
           parsedResult = numericOnly(val);
           evidence = numericOnly(val);
         } else if (key === 'minutes') {
-          const val = parseMinutesValue(blob);
-          if (val == null) continue;
-          parsedResult = numericOnly(val);
-          evidence = numericOnly(val);
+          const minutesProfile = parseMinutesProfile(blob);
+          const val = minutesProfile.projection;
+          if (val == null && minutesProfile.seasonAverage == null) continue;
+          parsedResult = numericOnly(val != null ? val : minutesProfile.seasonAverage);
+          evidence = val != null && minutesProfile.seasonAverage != null
+            ? `${numericOnly(val)} • season avg ${numericOnly(minutesProfile.seasonAverage)}`
+            : numericOnly(val != null ? val : minutesProfile.seasonAverage);
+          result[key].seasonAverageMinutes = minutesProfile.seasonAverage;
         } else if (key === 'injury') {
           const val = parseInjuryScore(blob);
           if (val == null) continue;
@@ -1861,9 +1958,10 @@ async function mineNbaRow(row) {
           parsedResult = chosen.join(', ');
           evidence = chosen.join(', ');
         } else if (key === 'schedule') {
-          const num = blob.match(/\b([0-9]+)\b/);
-          parsedResult = num ? num[1] : cleanSnippet(top[0]?.title || top[0]?.snippet || '');
-          evidence = parsedResult;
+          const val = parseScheduleFatigueScore(blob);
+          if (val == null) continue;
+          parsedResult = String(val);
+          evidence = `Fatigue score ${val}`;
         }
 
         finalCard = {
@@ -1874,6 +1972,9 @@ async function mineNbaRow(row) {
           parsedResult,
           evidence
         };
+        if (key === 'minutes' && result[key].seasonAverageMinutes != null) {
+          finalCard.seasonAverageMinutes = result[key].seasonAverageMinutes;
+        }
         break;
       } catch (err) {
         finalCard = {
@@ -1891,6 +1992,30 @@ async function mineNbaRow(row) {
       statusLabel:'Probe failed',
       parsedResult:'No clean validated source found.',
       evidence:'No usable NBA evidence returned.'
+    };
+  }
+
+  if (result.odds.status !== 'ready') {
+    const inferredOdds = inferOddsFromRawParse(`${row.rawText || ''} ${row.lineText || ''}`);
+    if (inferredOdds) {
+      result.odds = {
+        ...result.odds,
+        status:'ready',
+        statusLabel:'Internal raw-parse fallback',
+        parsedResult: inferredOdds,
+        evidence: inferredOdds
+      };
+    }
+  }
+
+  const internalProjection = calculateInternalProjection(row, result);
+  if (result.projection.status !== 'ready' && internalProjection) {
+    result.projection = {
+      ...result.projection,
+      status:'ready',
+      statusLabel:'Internal projection fallback',
+      parsedResult: `Calculated Edge ${internalProjection.edge == null ? '—' : internalProjection.edge > 0 ? '+' + internalProjection.edge : internalProjection.edge}`,
+      evidence: `Weighted projection ${internalProjection.projection}${internalProjection.edge == null ? '' : ` • edge ${internalProjection.edge > 0 ? '+' + internalProjection.edge : internalProjection.edge}`}`
     };
   }
 
@@ -1913,33 +2038,39 @@ async function mineNbaRow(row) {
     applyCard('season', gemini.season, gemini.source_map.season);
     applyCard('career', gemini.career, gemini.source_map.career);
     applyCard('matchup', gemini.matchup, gemini.source_map.matchup);
-    result.odds = {
-      ...result.odds,
-      status:'ready',
-      statusLabel:'Gemini structured fallback',
-      sourcesLabel: `${result.odds.sourcesLabel} • winner: Gemini`,
-      parsedResult: `${gemini.odds_decimal[0]}, ${gemini.odds_decimal[1]}`,
-      evidence: `${gemini.odds_american[0]}, ${gemini.odds_american[1]}`
-    };
-    applyCard('projection', gemini.projection, gemini.source_map.projection);
-    applyCard('minutes', gemini.minutes, gemini.source_map.minutes);
-    result.injury = {
-      ...result.injury,
-      status:'ready',
-      statusLabel:'Gemini structured fallback',
-      sourcesLabel: `${result.injury.sourcesLabel} • winner: Gemini`,
-      parsedResult: gemini.injury_score,
-      evidence: gemini.injury_status
-    };
-    result.starters = {
-      ...result.starters,
-      status:'ready',
-      statusLabel:'Gemini structured fallback',
-      sourcesLabel: `${result.starters.sourcesLabel} • winner: Gemini`,
-      parsedResult: gemini.starter_score,
-      evidence: gemini.starter_status
-    };
-    applyCard('schedule', gemini.rest_days, gemini.source_map.schedule);
+    if (result.odds.status !== 'ready') {
+      result.odds = {
+        ...result.odds,
+        status:'ready',
+        statusLabel:'Gemini structured fallback',
+        sourcesLabel: `${result.odds.sourcesLabel} • winner: Gemini`,
+        parsedResult: `${gemini.odds_decimal[0]}, ${gemini.odds_decimal[1]}`,
+        evidence: `${gemini.odds_american[0]}, ${gemini.odds_american[1]}`
+      };
+    }
+    if (result.projection.status !== 'ready') applyCard('projection', gemini.projection, gemini.source_map.projection);
+    if (result.minutes.status !== 'ready') applyCard('minutes', gemini.minutes, gemini.source_map.minutes);
+    if (result.injury.status !== 'ready') {
+      result.injury = {
+        ...result.injury,
+        status:'ready',
+        statusLabel:'Gemini structured fallback',
+        sourcesLabel: `${result.injury.sourcesLabel} • winner: Gemini`,
+        parsedResult: gemini.injury_score,
+        evidence: gemini.injury_status
+      };
+    }
+    if (result.starters.status !== 'ready') {
+      result.starters = {
+        ...result.starters,
+        status:'ready',
+        statusLabel:'Gemini structured fallback',
+        sourcesLabel: `${result.starters.sourcesLabel} • winner: Gemini`,
+        parsedResult: gemini.starter_score,
+        evidence: gemini.starter_status
+      };
+    }
+    if (result.schedule.status !== 'ready') applyCard('schedule', gemini.rest_days, gemini.source_map.schedule);
   }
 
   result.coverage = {
