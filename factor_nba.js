@@ -40,7 +40,12 @@ function queryFor(row, purpose){ return `${row.entity} ${purpose} nba`; }
 async function safeSearch(row, key, purpose){
   const res = await searchWebOneQuery(queryFor(row, purpose));
   const text = `${res.title} ${res.snippet} ${res.pageContent||''}`.replace(/\s+/g,' ').trim();
-  upsertDiagEntry(row, key, { searchQuery: queryFor(row,purpose), rawSearch: rawPreview(text), resultUrl: res.url||'' });
+  upsertDiagEntry(row, key, {
+    searchQuery: queryFor(row,purpose),
+    rawSearch: rawPreview(text, 500),
+    resultUrl: res.url || '',
+    searchResults: (res.allResults || []).map(r => ({ title:r.title, url:r.url })).slice(0,3)
+  });
   return text;
 }
 
@@ -68,24 +73,49 @@ function parseAverageSentence(text, row){
 function bestSearchValue(text, row, key){
   const cleaned = String(text||'').replace(/\s+/g,' ').trim();
   if (!cleaned) return null;
-  if (/title:\s+.*at duckduckgo|url source:\s*http:\/\/duckduckgo|markdown content:/i.test(cleaned)) return null;
-  if (/duckduckgo html|duckduckgo\.com\/html\?/i.test(cleaned)) return null;
-  if (/no results found|sign in|subscribe now|advertisement/i.test(cleaned)) return null;
+  if (/no results found|subscribe now|advertisement/i.test(cleaned)) return null;
   const parsed = parseAverageSentence(cleaned, row);
   if (parsed != null && parsed >= 0 && parsed < 100) return parsed;
-  const titleStatMuse = cleaned.match(/(?:last\s+(5|10|20)\s+games|season averages|career stats)[^\d]{0,40}(\d+(?:\.\d+)?)/i);
-  if (titleStatMuse) { const n = Number(titleStatMuse[2]); if (Number.isFinite(n) && n>=0 && n<100) return n; }
+
+  const avgCombo = cleaned.match(/has averaged\s+(\d+(?:\.\d+)?)\s+points?,\s+(\d+(?:\.\d+)?)\s+rebounds?\s+and\s+(\d+(?:\.\d+)?)\s+assists?/i);
+  if (avgCombo) {
+    const pts=Number(avgCombo[1]), reb=Number(avgCombo[2]), ast=Number(avgCombo[3]);
+    if (row.propFamily === 'Points') return pts;
+    if (row.propFamily === 'Rebounds') return reb;
+    if (row.propFamily === 'Assists') return ast;
+    if (row.propFamily === 'PRA') return pts+reb+ast;
+    if (row.propFamily === 'Pts+Rebs') return pts+reb;
+    if (row.propFamily === 'Pts+Asts') return pts+ast;
+    if (row.propFamily === 'Rebs+Asts') return reb+ast;
+  }
+  const avgThrees = cleaned.match(/has averaged\s+(\d+(?:\.\d+)?)\s+(?:3-pointers?|threes|three point field goals made)/i);
+  if (avgThrees && row.propFamily === '3PTM') return Number(avgThrees[1]);
+
   if (key === 'minutes') {
-    const m = cleaned.match(/(\d+(?:\.\d+)?)\s+minutes?/i);
+    const m = cleaned.match(/(?:averag(?:e|ed)|minutes? per game).{0,40}?(\d+(?:\.\d+)?)\s+minutes?/i);
     if (m) return Number(m[1]);
   }
   if (key === 'homeaway') {
-    const m = cleaned.match(/home[^\d]{0,20}(\d+(?:\.\d+)?)|away[^\d]{0,20}(\d+(?:\.\d+)?)/i);
-    if (m) return Number(m[1] || m[2]);
+    const m = cleaned.match(/(?:home|away).{0,80}?(\d+(?:\.\d+)?)\s+(?:points|rebounds|assists|minutes)/i);
+    if (m) return Number(m[1]);
+  }
+  if (key === 'starters') {
+    if (/will start|starting lineup|expected lineup|confirmed lineup/i.test(cleaned)) return 100;
+    if (/bench|coming off the bench/i.test(cleaned)) return 20;
+  }
+  if (key === 'injury') {
+    if (/out for season|out/i.test(cleaned)) return 0;
+    if (/doubtful/i.test(cleaned)) return 10;
+    if (/questionable/i.test(cleaned)) return 50;
+    if (/probable/i.test(cleaned)) return 90;
+    if (/available|active/i.test(cleaned)) return 100;
+  }
+  if (key === 'schedule') {
+    const yearCount = (cleaned.match(/20\d{2}/g) || []).length;
+    if (yearCount >= 2) return Math.min(4, yearCount - 1);
   }
   return null;
 }
-
 
 export async function mineNbaRow(row){
   ensureDiagState(row);

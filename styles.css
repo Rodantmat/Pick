@@ -66,3 +66,5 @@ thead th { background:#121d35; position:sticky; top:0; }
 .mining-meta b { color:var(--text); }
 .version-pill { display:inline-block; margin-left:10px; padding:4px 10px; border-radius:999px; border:1px solid var(--line); background:#111b31; color:var(--accent-2); font-size:13px; font-weight:700; vertical-align:middle; }
 @media (max-width:700px){ .hero-inline { flex-direction:column; } .league-grid { grid-template-columns:1fr 1fr; } .hero h1 { font-size:26px; } }
+
+.diag-panel{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;white-space:pre-wrap;line-height:1.45;background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;overflow:auto;max-height:320px}.diag-entry{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)}.diag-entry:last-child{border-bottom:none}.diag-key{color:#93c5fd;font-weight:700}.diag-mini{color:#cbd5e1}
