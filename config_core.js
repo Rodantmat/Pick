@@ -1,7 +1,7 @@
-export const VERSION = 'v5.7.34 modular';
+export const VERSION = 'v5.7.35 modular';
 export const SEARCH_TIMEOUT_MS = 5000;
 export const FETCH_TIMEOUT_MS = 6500;
-export const STORAGE_KEY = 'pickcalc-prompt1-v5-7-34-modular';
+export const STORAGE_KEY = 'pickcalc-prompt1-v5-7-35-modular';
 
 export const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
@@ -15,6 +15,10 @@ export const LEAGUES = [
   { id:'nba', label:'NBA', sport:'NBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Pts+Rebs+Asts','3PTM','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
   { id:'wnba', label:'WNBA', sport:'WNBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Pts+Rebs+Asts','3PTM','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
   { id:'cbb', label:'CBB', sport:'CBB', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Pts+Rebs+Asts','3PTM','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
+  { id:'nhl', label:'NHL', sport:'NHL', propCatalog:['Goals','Assists','Points','Shots On Goal','Blocked Shots','Saves'] },
+  { id:'mlb', label:'MLB', sport:'MLB', propCatalog:['Hits','Runs','RBIs','Bases','Strikeouts','Pitching Outs'] },
+  { id:'soccer', label:'Soccer', sport:'SOCCER', propCatalog:['Shots','Shots On Target','Goals','Assists','Passes','Tackles'] },
+  { id:'golf', label:'Golf', sport:'GOLF', propCatalog:['Birdies','Pars','Bogeys','Strokes'] },
   { id:'tennis', label:'Tennis', sport:'TENNIS', propCatalog:['Total Games','Break Points Won','Double Faults','Aces','Games Won','Sets Won'] }
 ];
 

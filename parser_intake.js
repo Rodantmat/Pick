@@ -1,4 +1,4 @@
-import { LEAGUES, DISPLAY_PROP_ALIASES, TYPE_META } from './config_core.js';
+import { LEAGUES, DISPLAY_PROP_ALIASES } from './config_core.js';
 import { canon, norm } from './utils_core.js';
 
 function buildPropLookup(){
@@ -12,6 +12,21 @@ function buildPropLookup(){
   return entries.sort((a,b)=>b.key.length-a.key.length);
 }
 const PROP_LOOKUP = buildPropLookup();
+
+function dedupeRepeatedEntity(name=''){
+  const raw = norm(name).trim();
+  if (!raw) return '';
+  const repeated = raw.match(/^(.+?)\s{2,}\1$/i);
+  if (repeated) return repeated[1].trim();
+  const tokens = raw.split(/\s+/);
+  if (tokens.length >= 4 && tokens.length % 2 === 0) {
+    const half = tokens.length / 2;
+    if (tokens.slice(0,half).join(' ').toLowerCase() === tokens.slice(half).join(' ').toLowerCase()) {
+      return tokens.slice(0,half).join(' ');
+    }
+  }
+  return raw;
+}
 
 export function normalizeNbaPropFamily(prop=''){
   const p = canon(prop);
@@ -49,7 +64,7 @@ function splitChunks(text){
 }
 
 function extractOpponent(text){ const m = text.match(/\bvs\s+([A-Z]{2,4})\b/i); return m?m[1].toUpperCase():''; }
-function extractTeam(text){ const m = text.match(/\b([A-Z]{2,4})\s*-\s*[A-Z]/); return m?m[1].toUpperCase():''; }
+function extractTeam(text){ const m = text.match(/\b([A-Z]{2,4})\s*-\s*[A-Z]\b/); return m?m[1].toUpperCase():''; }
 function extractLine(text){ const m = text.match(/\b(\d+(?:\.\d+)?)\b(?=\s+(?:3PTM|3PT|Points|Rebounds|Assists|PRA|Rebs\+Asts|Pts\+Asts|Pts\+Rebs|Fantasy))/i) || text.match(/\b(\d+(?:\.\d+)?)\b/); return m?m[1]:''; }
 
 function extractProp(text){
@@ -61,12 +76,15 @@ function extractProp(text){
 }
 
 function extractPlayer(text){
-  const cleaned = text.replace(/Goblin|Demon|Regular|Taco|Free Pick|More/gi,' ').replace(/\bvs\b[\s\S]*$/i,' ').replace(/\b[A-Z]{2,4}\s*-\s*[A-Z]\b/g,' ');
+  const cleaned = text
+    .replace(/Goblin|Demon|Regular|Taco|Free Pick|More/gi,' ')
+    .replace(/\bvs\b[\s\S]*$/i,' ')
+    .replace(/\b[A-Z]{2,4}\s*-\s*[A-Z]\b/g,' ');
   const lines = cleaned.split(/\n/).map(s=>s.trim()).filter(Boolean);
   let best = lines.find(l => /^[A-Z][a-z]+(?:\s+[A-Z][a-z'.-]+){1,3}$/.test(l));
-  if (best) return best;
+  if (best) return dedupeRepeatedEntity(best);
   const m = cleaned.match(/([A-Z][a-z'.-]+\s+[A-Z][a-z'.-]+(?:\s+[A-Z][a-z'.-]+)*)/);
-  return m ? m[1].trim() : '';
+  return m ? dedupeRepeatedEntity(m[1].trim()) : '';
 }
 
 function parseChunk(chunk, idx, selectedLeagueIds){
@@ -74,7 +92,7 @@ function parseChunk(chunk, idx, selectedLeagueIds){
   const leagueId = selectedLeagueIds.find(id=>['nba','wnba','cbb'].includes(id)) || 'nba';
   const prop = canonicalCatalogProp(leagueId, extractProp(text));
   if (!prop) return null;
-  const entity = extractPlayer(text);
+  const entity = dedupeRepeatedEntity(extractPlayer(text));
   if (!entity) return null;
   const line = extractLine(text);
   const team = extractTeam(text);

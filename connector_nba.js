@@ -46,3 +46,26 @@ export function extractTeamMetrics(json, teamTricode){
   if (!row) return null;
   return { pace: Number(row[idxPace]), defRating: Number(row[idxDef]) };
 }
+
+
+export async function fetchBbrRatings(){
+  const url = 'https://www.basketball-reference.com/leagues/NBA_2026_ratings.html';
+  const res = await withTimeout(fetch(url,{headers:{'User-Agent':'Mozilla/5.0'}}), FETCH_TIMEOUT_MS, 'fetch timeout');
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return await res.text();
+}
+
+export function extractBbrTeamMetrics(html, teamTricode){
+  const full = TEAM_TRICODES[teamTricode] || teamTricode;
+  const body = String(html||'');
+  const rows = [...body.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].map(m=>m[1]);
+  for (const row of rows) {
+    if (!new RegExp(full.replace(/ /g,'\s+'),'i').test(row)) continue;
+    const tds = [...row.matchAll(/<td[^>]*data-stat="([^"]+)"[^>]*>([\s\S]*?)<\/td>/gi)];
+    const obj = Object.fromEntries(tds.map(m=>[m[1], m[2].replace(/<[^>]+>/g,'').trim()]));
+    const pace = Number(obj.pace);
+    const defRating = Number(obj.def_rtg);
+    return { pace: Number.isFinite(pace)?pace:null, defRating: Number.isFinite(defRating)?defRating:null };
+  }
+  return null;
+}

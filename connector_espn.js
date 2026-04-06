@@ -101,3 +101,43 @@ export function computeScheduleFatigue(events){
   const count = dates.filter(d => (now - d) <= 5*24*3600*1000).length;
   return Math.max(0, count-1);
 }
+
+
+export async function fetchEspnCoreStats(playerName){
+  const athlete = await searchEspnAthlete(playerName);
+  if (!athlete?.id) throw new Error('ESPN athlete id not found');
+  const url = `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/seasons/2026/types/2/athletes/${athlete.id}/statistics`;
+  const json = await fetchJson(url, { 'User-Agent':'Mozilla/5.0', 'Accept':'application/json' });
+  const categories = json?.splits?.categories || [];
+  const pick = (want) => {
+    for (const cat of categories) {
+      for (const st of (cat.stats||[])) {
+        if (String(st.name||'').toLowerCase() === want.toLowerCase()) return Number(st.value);
+      }
+    }
+    return null;
+  };
+  return {
+    athleteId: athlete.id,
+    points: pick('avgPoints'),
+    rebounds: pick('avgRebounds'),
+    assists: pick('avgAssists'),
+    threes: pick('avgThreePointFieldGoalsMade')
+  };
+}
+
+export function computePropFromTotals(stats, propFamily){
+  if (!stats) return null;
+  switch (propFamily) {
+    case 'Points': return stats.points;
+    case 'Rebounds': return stats.rebounds;
+    case 'Assists': return stats.assists;
+    case '3PTM': return stats.threes;
+    case 'PRA':
+    case 'Pts+Rebs+Asts': return (stats.points??0)+(stats.rebounds??0)+(stats.assists??0);
+    case 'Pts+Rebs': return (stats.points??0)+(stats.rebounds??0);
+    case 'Pts+Asts': return (stats.points??0)+(stats.assists??0);
+    case 'Rebs+Asts': return (stats.rebounds??0)+(stats.assists??0);
+    default: return null;
+  }
+}
