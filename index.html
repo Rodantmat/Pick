@@ -131,7 +131,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.31</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.32</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -177,8 +177,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.31</h1>
-          <p id="analysisVersion">Version: v5.7.31</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.32</h1>
+          <p id="analysisVersion">Version: v5.7.32</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -584,6 +584,91 @@ async function proxiedFetchJson(url) {
 function cleanSnippet(s='') {
   return String(s).replace(/\s+/g,' ').trim();
 }
+
+
+function sleep(ms=0) {
+  return new Promise(resolve => setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+}
+
+function clampNumber(value, min=0, max=100) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return Number(min);
+  return Math.min(Number(max), Math.max(Number(min), n));
+}
+
+function looksLikeGarbageSourcePayload(blob='') {
+  const t = cleanSnippet(String(blob || ''));
+  if (!t) return true;
+  const c = canon(t);
+  return c.includes('function settheme') ||
+    c.includes('webpack') ||
+    c.includes('http error 404') ||
+    c.includes('access denied') ||
+    c.includes('<!doctype html') ||
+    c.includes('window.performance') ||
+    c.includes('subscription') ||
+    c.includes('buy now') ||
+    c.includes('perimeterx') ||
+    c.includes('incapsula');
+}
+
+function extractNumericMetric(text='', key='', row=null) {
+  const cleaned = cleanSnippet(String(text || ''));
+  if (!cleaned || looksLikeGarbageSourcePayload(cleaned)) return null;
+  const triple = extractStatTripleGeneric(cleaned) || extractPRAFromText(cleaned);
+  if (triple && row) {
+    const val = eventStatValue(triple, row.propFamily || '');
+    if (Number.isFinite(Number(val))) return Number(val);
+  }
+  const nums = [...cleaned.matchAll(/\b\d+(?:\.\d+)?\b/g)].map(m => parseFloat(m[0]));
+  return nums.find(n => validateFactorValue(key, n, row)) ?? null;
+}
+
+function parseMinutesValue(text='') {
+  const cleaned = cleanSnippet(String(text || ''));
+  const mmss = cleaned.match(/\b(\d{1,2}:\d{2})\b/);
+  if (mmss) {
+    const d = mmssToDecimal(mmss[1]);
+    if (Number.isFinite(d) && d >= 0 && d <= 48) return d;
+  }
+  const nums = [...cleaned.matchAll(/\b\d+(?:\.\d+)?\b/g)].map(m => parseFloat(m[0]));
+  return nums.find(n => n >= 0 && n <= 48) ?? null;
+}
+
+function parseScheduleValue(text='') {
+  const c = canon(text || '');
+  if (!c) return null;
+  if (c.includes('back-to-back') || c.includes('back to back') || c.includes('second night')) return 2;
+  if (c.includes('3-in-4') || c.includes('three in four')) return 1;
+  if (c.includes('rest advantage') || c.includes('one day rest') || c.includes('two days rest') || c.includes('rested')) return 0;
+  const nums = [...String(text || '').matchAll(/\b\d+\b/g)].map(m => parseInt(m[0],10));
+  return nums.find(n => n >= 0 && n <= 3) ?? null;
+}
+
+function parseHomeAwayScore(text='') {
+  const c = canon(text || '');
+  if (!c) return null;
+  if (c.includes('home split') || c.includes('at home') || c.includes('home games')) return 100;
+  if (c.includes('road split') || c.includes('on the road') || c.includes('away games')) return 0;
+  if (c.includes('home') || c.includes('away') || c.includes('road')) return 50;
+  const nums = [...String(text || '').matchAll(/\b\d+(?:\.\d+)?\b/g)].map(m => parseFloat(m[0]));
+  return nums.find(n => n >= 0 && n <= 100) ?? null;
+}
+
+function averageMinutesFromEvents(events, limit=null) {
+  const rows = (events || []).filter(ev => Number.isFinite(mmssToDecimal(ev.minutes)));
+  const slice = limit ? rows.slice(0, limit) : rows;
+  if (!slice.length) return null;
+  const vals = slice.map(ev => mmssToDecimal(ev.minutes)).filter(v => Number.isFinite(v));
+  if (!vals.length) return null;
+  return +(vals.reduce((a,b)=>a+b,0) / vals.length).toFixed(1);
+}
+
+async function fetchEspnGamelogStats(row) {
+  const events = await fetchEspnGameLog(row);
+  return { events };
+}
+
 
 function tennisNameVariants(name) {
   const base = cleanSnippet(name);
@@ -1522,7 +1607,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.31`,
+    `Version: v5.7.32`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
