@@ -1,7 +1,7 @@
-export const VERSION = 'v5.7.36 modular';
+export const VERSION = 'v5.7.37 modular';
 export const SEARCH_TIMEOUT_MS = 5000;
 export const FETCH_TIMEOUT_MS = 6500;
-export const STORAGE_KEY = 'pickcalc-prompt1-v5-7-35-modular';
+export const STORAGE_KEY = 'pickcalc-prompt1-v5-7-37-modular';
 
 export const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
@@ -20,9 +20,9 @@ export const LEAGUES = [
   { id:'soccer', label:'Soccer', sport:'SOCCER', propCatalog:['Shots','Shots On Target','Goals','Assists','Passes','Tackles'] },
   { id:'golf', label:'Golf', sport:'GOLF', propCatalog:['Birdies','Pars','Bogeys','Strokes'] },
   { id:'tennis', label:'Tennis', sport:'TENNIS', propCatalog:['Total Games','Break Points Won','Double Faults','Aces','Games Won','Sets Won'] },
-  { id:'nfl', label:'NFL', sport:'NFL', propCatalog:['Passing Yards','Passing TDs','Rushing Yards','Receiving Yards','Receptions'] },
+  { id:'nfl', label:'NFL', sport:'NFL', propCatalog:['Passing Yards','Rushing Yards','Receiving Yards','Receptions','Longest Reception','Touchdowns'] },
   { id:'mma', label:'MMA', sport:'MMA', propCatalog:['Significant Strikes','Takedowns','Fantasy Score'] },
-  { id:'ncaaf', label:'NCAAF', sport:'NCAAF', propCatalog:['Passing Yards','Rushing Yards','Receiving Yards','Receptions'] }
+  { id:'ncaaf', label:'NCAAF', sport:'NCAAF', propCatalog:['Passing Yards','Rushing Yards','Receiving Yards','Receptions','Touchdowns'] }
 ];
 
 export const DISPLAY_PROP_ALIASES = {

@@ -14,9 +14,9 @@ function buildPropLookup(){
 const PROP_LOOKUP = buildPropLookup();
 
 function dedupeRepeatedEntity(name=''){
-  const raw = norm(name).replace(/\s+/g,' ').trim();
+  const raw = norm(name).trim();
   if (!raw) return '';
-  const repeated = raw.match(/^(.+?)\s+\1$/i);
+  const repeated = raw.match(/^(.+?)\s{2,}\1$/i);
   if (repeated) return repeated[1].trim();
   const tokens = raw.split(/\s+/);
   if (tokens.length >= 4 && tokens.length % 2 === 0) {
@@ -89,7 +89,7 @@ function extractPlayer(text){
 
 function parseChunk(chunk, idx, selectedLeagueIds){
   const text = chunk.replace(/([a-z])([A-Z][a-z])/g,'$1\n$2');
-  const leagueId = (selectedLeagueIds||[]).find(id=>LEAGUES.some(l=>l.id===id)) || 'nba';
+  const leagueId = selectedLeagueIds.find(id=>['nba','wnba','cbb'].includes(id)) || 'nba';
   const prop = canonicalCatalogProp(leagueId, extractProp(text));
   if (!prop) return null;
   const entity = dedupeRepeatedEntity(extractPlayer(text));
@@ -100,7 +100,7 @@ function parseChunk(chunk, idx, selectedLeagueIds){
   const type = detectType(text);
   return {
     rowId: `r${Date.now()}_${idx}_${Math.random().toString(36).slice(2,8)}`,
-    sport:(LEAGUES.find(l=>l.id===leagueId)?.sport||'NBA'), leagueId, entity, team, opponent,
+    sport:'NBA', leagueId, entity, team, opponent,
     propFamily: prop,
     propKey: canon(prop),
     line: line || '',
