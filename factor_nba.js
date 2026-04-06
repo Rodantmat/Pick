@@ -10,16 +10,23 @@ function baseCard(spec){
   return { ...spec, status: spec.live ? 'loading':'waiting', statusLabel: spec.live ? 'Loading live probe...' : 'Paused', sourcesLabel: spec.sources.join(' • '), parsedResult:'—', evidence: spec.live ? '—' : spec.note };
 }
 
-export function ensureNbaMining(row){
+export function ensureNbaMining(row, onUpdate){
+  row._onMiningUpdate = onUpdate || row._onMiningUpdate || null;
   if (row._miningLoaded) return;
   row.miningStatus = NBA_FACTORS.map(baseCard);
   row._miningLoaded = true;
   mineNbaRow(row).catch(err => console.error(err));
 }
 
+function notifyRowUpdate(row){
+  try { row._onMiningUpdate && row._onMiningUpdate(); } catch {}
+  try { window.dispatchEvent(new CustomEvent('pickcalc:nba-update',{detail:{rowId:row.rowId}})); } catch {}
+}
+
 function setCard(row, key, patch){
   const card = row.miningStatus.find(c=>c.key===key); if (!card) return;
   Object.assign(card, patch);
+  notifyRowUpdate(row);
 }
 
 function asReady(val, provider='direct', evidence=''){
@@ -32,9 +39,48 @@ function queryFor(row, purpose){ return `${row.entity} ${purpose} nba`; }
 
 async function safeSearch(row, key, purpose){
   const res = await searchWebOneQuery(queryFor(row, purpose));
-  const text = `${res.title} ${res.snippet}`;
+  const text = `${res.title} ${res.snippet}`.replace(/\s+/g,' ').trim();
   upsertDiagEntry(row, key, { searchQuery: queryFor(row,purpose), rawSearch: rawPreview(text) });
   return text;
+}
+
+function parseAverageSentence(text, row){
+  const t = String(text||'');
+  const avg = t.match(/averag(?:e|ed)[^\d]{0,20}(\d+(?:\.\d+)?)/i);
+  if (avg) return Number(avg[1]);
+  const p = row.propFamily;
+  const pts = t.match(/(\d+(?:\.\d+)?)\s+points?/i);
+  const reb = t.match(/(\d+(?:\.\d+)?)\s+rebounds?/i);
+  const ast = t.match(/(\d+(?:\.\d+)?)\s+assists?/i);
+  const threes = t.match(/(\d+(?:\.\d+)?)\s+(?:3-pointers?|three-pointers?|threes|3ptm|three point field goals made)/i);
+  const vals = { Points: pts && Number(pts[1]), Rebounds: reb && Number(reb[1]), Assists: ast && Number(ast[1]), '3PTM': threes && Number(threes[1]) };
+  if (p === 'Points') return vals.Points ?? null;
+  if (p === 'Rebounds') return vals.Rebounds ?? null;
+  if (p === 'Assists') return vals.Assists ?? null;
+  if (p === '3PTM') return vals['3PTM'] ?? null;
+  if (p === 'PRA' && vals.Points != null && vals.Rebounds != null && vals.Assists != null) return vals.Points + vals.Rebounds + vals.Assists;
+  if (p === 'Pts+Rebs' && vals.Points != null && vals.Rebounds != null) return vals.Points + vals.Rebounds;
+  if (p === 'Pts+Asts' && vals.Points != null && vals.Assists != null) return vals.Points + vals.Assists;
+  if (p === 'Rebs+Asts' && vals.Rebounds != null && vals.Assists != null) return vals.Rebounds + vals.Assists;
+  return null;
+}
+
+function bestSearchValue(text, row, key){
+  const cleaned = String(text||'').replace(/\s+/g,' ').trim();
+  if (!cleaned) return null;
+  if (/title:\s+.*at duckduckgo|url source:\s*http:\/\/duckduckgo|markdown content:/i.test(cleaned)) return null;
+  if (/duckduckgo html|duckduckgo\.com\/html\?/i.test(cleaned)) return null;
+  const parsed = parseAverageSentence(cleaned, row);
+  if (parsed != null && parsed >= 0 && parsed < 100) return parsed;
+  if (key === 'minutes') {
+    const m = cleaned.match(/(\d+(?:\.\d+)?)\s+minutes?/i);
+    if (m) return Number(m[1]);
+  }
+  if (key === 'homeaway') {
+    const m = cleaned.match(/home[^\d]{0,20}(\d+(?:\.\d+)?)|away[^\d]{0,20}(\d+(?:\.\d+)?)/i);
+    if (m) return Number(m[1] || m[2]);
+  }
+  return null;
 }
 
 
@@ -78,8 +124,7 @@ export async function mineNbaRow(row){
       }
       if (key === 'career') {
         const text = await safeSearch(row,key,`${row.propFamily} career stats per game`);
-        const nums = text.match(/\b\d+(?:\.\d+)?\b/g)?.map(Number).filter(n=>n<100) || [];
-        const val = nums.find(n=>n>0 && n<80) ?? null;
+        const val = bestSearchValue(text, row, key);
         if (val != null) { setCard(row,key,{ ...asReady((Math.round(val*10)/10).toFixed(1),'search'), sourcesLabel:'backup search • winner: ddg' }); continue; }
         setCard(row,key, asFailed('No trusted direct or search source returned usable data.')); continue;
       }
@@ -132,11 +177,10 @@ export async function mineNbaRow(row){
         }
       }
 
-      const fallbackPurposeMap = { last5:'last 5 games', last10:'last 10 games', last20:'last 20 games' };
+      const fallbackPurposeMap = { last5:'last 5 games', last10:'last 10 games', last20:'last 20 games', season:'season averages', minutes:'minutes', schedule:'recent schedule nba', homeaway:'home away splits nba' };
       if (fallbackPurposeMap[key] && row.entity && !/\s{2,}/.test(row.entity)) {
         const text = await safeSearch(row,key,`${row.propFamily} ${fallbackPurposeMap[key]}`);
-        const nums = text.match(/\b\d+(?:\.\d+)?\b/g)?.map(Number).filter(n=>n<100) || [];
-        const val = nums.find(n=>n>0 && n<80) ?? null;
+        const val = bestSearchValue(text, row, key);
         if (val != null) { setCard(row,key,{ ...asReady((Math.round(val*10)/10).toFixed(1),'search'), sourcesLabel:'backup search • winner: ddg' }); continue; }
       }
       setCard(row,key, asFailed('No trusted direct source returned usable data.'));

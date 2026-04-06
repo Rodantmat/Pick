@@ -1,10 +1,20 @@
-import { withTimeout, parseMinutesValue, average, canon } from './utils_core.js';
+import { withTimeout, parseMinutesValue, average, canon, jinaUrl } from './utils_core.js';
 import { FETCH_TIMEOUT_MS } from './config_core.js';
 
 async function fetchJson(url, headers={}){
-  const res = await withTimeout(fetch(url,{headers}), FETCH_TIMEOUT_MS, 'fetch timeout');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return await res.json();
+  try {
+    const res = await withTimeout(fetch(url,{headers}), FETCH_TIMEOUT_MS, 'fetch timeout');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    const proxy = await withTimeout(fetch(jinaUrl(url), { headers:{ 'Accept':'application/json,text/plain,*/*' } }), FETCH_TIMEOUT_MS + 1500, 'fetch timeout');
+    if (!proxy.ok) throw err;
+    const text = await proxy.text();
+    const clean = String(text||'').trim();
+    const start = clean.search(/[\[{]/);
+    if (start < 0) throw err;
+    return JSON.parse(clean.slice(start));
+  }
 }
 
 export async function searchEspnAthlete(playerName){

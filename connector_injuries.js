@@ -1,10 +1,16 @@
-import { withTimeout, canon } from './utils_core.js';
+import { withTimeout, canon, jinaUrl } from './utils_core.js';
 import { FETCH_TIMEOUT_MS } from './config_core.js';
 
 async function fetchText(url, headers={}){
-  const res = await withTimeout(fetch(url,{headers}), FETCH_TIMEOUT_MS, 'fetch timeout');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return await res.text();
+  try {
+    const res = await withTimeout(fetch(url,{headers}), FETCH_TIMEOUT_MS, 'fetch timeout');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
+  } catch (err) {
+    const res = await withTimeout(fetch(jinaUrl(url)), FETCH_TIMEOUT_MS + 1500, 'fetch timeout');
+    if (!res.ok) throw err;
+    return await res.text();
+  }
 }
 
 export async function fetchEspnInjuries(){

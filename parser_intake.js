@@ -100,7 +100,7 @@ function parseChunk(chunk, idx, selectedLeagueIds){
   const type = detectType(text);
   return {
     rowId: `r${Date.now()}_${idx}_${Math.random().toString(36).slice(2,8)}`,
-    sport:'NBA', leagueId, entity, team, opponent,
+    sport:(leagueId==='wnba'?'WNBA':leagueId==='cbb'?'CBB':'NBA'), leagueId, entity, team, opponent,
     propFamily: prop,
     propKey: canon(prop),
     line: line || '',

@@ -1,10 +1,20 @@
-import { withTimeout } from './utils_core.js';
+import { withTimeout, jinaUrl } from './utils_core.js';
 import { FETCH_TIMEOUT_MS, TEAM_TRICODES } from './config_core.js';
 
 async function fetchJson(url, headers={}){
-  const res = await withTimeout(fetch(url,{headers}), FETCH_TIMEOUT_MS, 'fetch timeout');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return await res.json();
+  try {
+    const res = await withTimeout(fetch(url,{headers}), FETCH_TIMEOUT_MS, 'fetch timeout');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    const proxy = await withTimeout(fetch(jinaUrl(url), { headers:{ 'Accept':'application/json,text/plain,*/*' } }), FETCH_TIMEOUT_MS + 1500, 'fetch timeout');
+    if (!proxy.ok) throw err;
+    const text = await proxy.text();
+    const clean = String(text||'').trim();
+    const start = clean.search(/[\[{]/);
+    if (start < 0) throw err;
+    return JSON.parse(clean.slice(start));
+  }
 }
 
 export async function fetchNbaScoreboard(){
@@ -50,9 +60,15 @@ export function extractTeamMetrics(json, teamTricode){
 
 export async function fetchBbrRatings(){
   const url = 'https://www.basketball-reference.com/leagues/NBA_2026_ratings.html';
-  const res = await withTimeout(fetch(url,{headers:{'User-Agent':'Mozilla/5.0'}}), FETCH_TIMEOUT_MS, 'fetch timeout');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return await res.text();
+  try {
+    const res = await withTimeout(fetch(url,{headers:{'User-Agent':'Mozilla/5.0'}}), FETCH_TIMEOUT_MS, 'fetch timeout');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
+  } catch (err) {
+    const res = await withTimeout(fetch(jinaUrl(url)), FETCH_TIMEOUT_MS + 1500, 'fetch timeout');
+    if (!res.ok) throw err;
+    return await res.text();
+  }
 }
 
 export function extractBbrTeamMetrics(html, teamTricode){

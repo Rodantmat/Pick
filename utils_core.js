@@ -16,3 +16,5 @@ export function numericMatches(text){ return [...String(text||'').matchAll(/\b\d
 export function isGarbageHtml(text=''){ const t = String(text||''); return /webpack|window\.performance|<!doctype html|<html/i.test(t); }
 export function dedupe(arr){ return [...new Set(arr)]; }
 export function titleCase(s=''){ return String(s).toLowerCase().replace(/\b\w/g,m=>m.toUpperCase()); }
+
+export function jinaUrl(url=''){ return 'https://r.jina.ai/http://' + String(url||'').replace(/^https?:\/\//,''); }

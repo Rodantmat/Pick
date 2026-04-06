@@ -17,11 +17,11 @@ function extractBestResult(markdown=''){
     const url = cleanSnippet(m[2] || '');
     const body = cleanSnippet((m[3] || '').replace(/Markdown Content:.*/i, ''));
     const joined = `${title} ${body}`.trim();
-    if (/duckduckgo|sign in|subscription|advertis|bettingpros|rotowire news|story\//i.test(joined)) continue;
+    if (/duckduckgo|at duckduckgo|sign in|subscription|advertis|bettingpros|rotowire news|story\//i.test(joined)) continue;
     if (isGarbageHtml(joined)) continue;
     return { title, snippet: body.slice(0, 500), url };
   }
-  return { title: '', snippet: cleanSnippet(text).slice(0, 500), url: 'duckduckgo' };
+  return { title: '', snippet: '', url: 'duckduckgo' };
 }
 
 export async function searchWebOneQuery(query){
