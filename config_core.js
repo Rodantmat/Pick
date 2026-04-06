@@ -1,4 +1,4 @@
-export const VERSION = 'v5.7.40 modular';
+export const VERSION = 'v5.7.41 modular';
 export const SEARCH_TIMEOUT_MS = 5000;
 export const FETCH_TIMEOUT_MS = 6500;
 export const STORAGE_KEY = 'pickcalc-prompt1-v5-7-40-modular';
