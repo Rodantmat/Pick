@@ -136,7 +136,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.20</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.21</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -182,8 +182,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.20</h1>
-          <p id="analysisVersion">Version: v5.7.20</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.21</h1>
+          <p id="analysisVersion">Version: v5.7.21</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -262,7 +262,7 @@ const LEAGUES = [
   { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
 ];
 
-const STORAGE_KEY = 'pickcalc-prompt1-v5-7-20';
+const STORAGE_KEY = 'pickcalc-prompt1-v5-7-21';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -1463,8 +1463,7 @@ async function yahooSearch(query) {
 async function multiSearch(query) {
   const providers = [
     { name: 'ddg', fn: ddgSearch },
-    { name: 'startpage', fn: startpageSearch },
-    { name: 'yahoo', fn: yahooSearch }
+    { name: 'startpage', fn: startpageSearch }
   ];
   let lastErr = null;
   for (let i = 0; i < providers.length; i += 1) {
@@ -1922,7 +1921,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.20`,
+    `Version: v5.7.21`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -2623,13 +2622,15 @@ function parseHashtagDefenseValue(html='', row={}) {
   for (let i = 0; i < lines.length; i++) {
     const c = canon(lines[i]);
     if (!c.includes(teamLast)) continue;
-    const nums = lines.slice(i, i + 8).map(x => parseFloat(String(x).replace(/[^0-9.\-]/g,''))).filter(v => Number.isFinite(v));
+    const nums = lines.slice(i, i + 12)
+      .map(x => parseFloat(String(x).replace(/[^0-9.\-]/g,'')))
+      .filter(v => Number.isFinite(v) && v >= 0 && v <= 100);
     if (nums.length) {
-      const avg = nums.slice(0,5).reduce((a,b)=>a+b,0) / Math.min(nums.length,5);
-      return Math.round(clampNumber(avg, 0, 100));
+      const avg = nums.slice(0, Math.min(nums.length, 5)).reduce((a,b)=>a+b,0) / Math.min(nums.length,5);
+      const val = Math.round(clampNumber(avg, 0, 100));
+      if (Number.isFinite(val)) return val;
     }
-  return null;
-}
+  }
   return null;
 }
 
@@ -2757,6 +2758,8 @@ async function tryDirectNbaProbe(row, key) {
 }
 
 function validateFactorValue(key, value, row) {
+  if (value === null || value === undefined) return false;
+  if (String(value).trim().toLowerCase() === 'null') return false;
   const num = Number(value);
   if (!Number.isFinite(num)) return false;
   const prop = normalizeNbaPropFamily(row && row.propFamily || '');
@@ -2764,7 +2767,8 @@ function validateFactorValue(key, value, row) {
     'points': 60, 'rebounds': 25, 'assists': 18, 'pts+rebs': 80, 'pts+asts': 80, 'rebs+asts': 40,
     'pra': 100, '3pt made': 12, 'fantasy score': 90, 'blocks': 8, 'steals': 8, 'blks+stls': 12, 'turnovers': 10
   }[prop] || 100;
-  if (['last5','last10','last20','season','career','matchup','projection'].includes(key)) return num >= 0 && num <= statMax;
+  if (['last5','last10','last20','season','career','matchup'].includes(key)) return num >= 0 && num <= statMax;
+  if (key === 'projection') return num > 0 && num <= statMax;
   if (key === 'minutes') return num >= 0 && num <= 48;
   if (['injury','starters','schedule','pace','blowout','oppdef','position','teammates','homeaway','role'].includes(key)) return num >= 0 && num <= 100;
   return true;
@@ -2910,7 +2914,7 @@ async function mineNbaRow(row, onUpdate) {
   for (const [key, queries] of Object.entries(queryPlans)) {
     let finalCard = null;
     const direct = await tryDirectNbaProbe(row, key);
-    if (direct && !direct.error) {
+    if (direct && !direct.error && direct.parsedResult !== null && direct.parsedResult !== undefined && String(direct.parsedResult).trim().toLowerCase() !== 'null') {
       finalCard = {
         ...result[key],
         status:'ready',
