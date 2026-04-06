@@ -63,9 +63,10 @@ function splitChunks(text){
   return norm(text).replace(/([a-z])([A-Z][a-z])/g,'$1\n$2').split(/\n{2,}|\r\n\r\n/).map(s=>s.trim()).filter(Boolean);
 }
 
-function extractOpponent(text){ const m = text.match(/\bvs\s+([A-Z]{2,4})\b/i); return m?m[1].toUpperCase():''; }
+function extractOpponent(text){ const m = text.match(/\bvs\s+([A-Z]{2,4})\b/i) || text.match(/\b@\s*([A-Z]{2,4})\b/i); return m?m[1].toUpperCase():''; }
 function extractTeam(text){ const m = text.match(/\b([A-Z]{2,4})\s*-\s*[A-Z]\b/); return m?m[1].toUpperCase():''; }
 function extractLine(text){ const m = text.match(/\b(\d+(?:\.\d+)?)\b(?=\s+(?:3PTM|3PT|Points|Rebounds|Assists|PRA|Rebs\+Asts|Pts\+Asts|Pts\+Rebs|Fantasy))/i) || text.match(/\b(\d+(?:\.\d+)?)\b/); return m?m[1]:''; }
+function extractVenueHint(text){ if (/\bvs\b/i.test(text)) return false; if (/\b@\s*[A-Z]{2,4}\b/i.test(text)) return true; return null; }
 
 function extractProp(text){
   const candidates = ['3PTM','Rebs+Asts','Pts+Asts','Pts+Rebs','Fantasy Score','Rebounds','Assists','Points','PRA'];
@@ -98,6 +99,7 @@ function parseChunk(chunk, idx, selectedLeagueIds){
   const team = extractTeam(text);
   const opponent = extractOpponent(text);
   const type = detectType(text);
+  const isAwayHint = extractVenueHint(text);
   return {
     rowId: `r${Date.now()}_${idx}_${Math.random().toString(36).slice(2,8)}`,
     sport:(leagueId==='wnba'?'WNBA':leagueId==='cbb'?'CBB':'NBA'), leagueId, entity, team, opponent,
@@ -105,7 +107,7 @@ function parseChunk(chunk, idx, selectedLeagueIds){
     propKey: canon(prop),
     line: line || '',
     lineText: `${prop} ${line || ''}`.trim(),
-    type, rawChunk: chunk
+    type, isAwayHint, rawChunk: chunk
   };
 }
 

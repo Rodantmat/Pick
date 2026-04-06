@@ -57,7 +57,6 @@ export function extractTeamMetrics(json, teamTricode){
   return { pace: Number(row[idxPace]), defRating: Number(row[idxDef]) };
 }
 
-
 export async function fetchBbrRatings(){
   const url = 'https://www.basketball-reference.com/leagues/NBA_2026_ratings.html';
   try {
@@ -74,14 +73,33 @@ export async function fetchBbrRatings(){
 export function extractBbrTeamMetrics(html, teamTricode){
   const full = TEAM_TRICODES[teamTricode] || teamTricode;
   const body = String(html||'');
+  const fullRe = new RegExp(full.replace(/ /g,'\\s+'),'i');
+
+  // HTML table path
   const rows = [...body.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].map(m=>m[1]);
   for (const row of rows) {
-    if (!new RegExp(full.replace(/ /g,'\s+'),'i').test(row)) continue;
+    if (!fullRe.test(row)) continue;
     const tds = [...row.matchAll(/<td[^>]*data-stat="([^"]+)"[^>]*>([\s\S]*?)<\/td>/gi)];
     const obj = Object.fromEntries(tds.map(m=>[m[1], m[2].replace(/<[^>]+>/g,'').trim()]));
     const pace = Number(obj.pace);
     const defRating = Number(obj.def_rtg);
-    return { pace: Number.isFinite(pace)?pace:null, defRating: Number.isFinite(defRating)?defRating:null };
+    if (Number.isFinite(pace) || Number.isFinite(defRating)) {
+      return { pace: Number.isFinite(pace)?pace:null, defRating: Number.isFinite(defRating)?defRating:null };
+    }
+  }
+
+  // Markdown/text path from jina fallback
+  const lines = body.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  for (const line of lines) {
+    if (!line.includes('|')) continue;
+    if (!fullRe.test(line)) continue;
+    const cols = line.split('|').map(s=>s.trim()).filter(Boolean);
+    const nums = cols.map(c=>Number(c)).filter(Number.isFinite);
+    if (nums.length >= 2) {
+      const pace = nums.find(n=>n>85 && n<115) ?? null;
+      const defRating = nums.find(n=>n>95 && n<130 && n!==pace) ?? null;
+      if (pace != null || defRating != null) return { pace, defRating };
+    }
   }
   return null;
 }

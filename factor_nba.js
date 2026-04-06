@@ -39,8 +39,8 @@ function queryFor(row, purpose){ return `${row.entity} ${purpose} nba`; }
 
 async function safeSearch(row, key, purpose){
   const res = await searchWebOneQuery(queryFor(row, purpose));
-  const text = `${res.title} ${res.snippet}`.replace(/\s+/g,' ').trim();
-  upsertDiagEntry(row, key, { searchQuery: queryFor(row,purpose), rawSearch: rawPreview(text) });
+  const text = `${res.title} ${res.snippet} ${res.pageContent||''}`.replace(/\s+/g,' ').trim();
+  upsertDiagEntry(row, key, { searchQuery: queryFor(row,purpose), rawSearch: rawPreview(text), resultUrl: res.url||'' });
   return text;
 }
 
@@ -70,8 +70,11 @@ function bestSearchValue(text, row, key){
   if (!cleaned) return null;
   if (/title:\s+.*at duckduckgo|url source:\s*http:\/\/duckduckgo|markdown content:/i.test(cleaned)) return null;
   if (/duckduckgo html|duckduckgo\.com\/html\?/i.test(cleaned)) return null;
+  if (/no results found|sign in|subscribe now|advertisement/i.test(cleaned)) return null;
   const parsed = parseAverageSentence(cleaned, row);
   if (parsed != null && parsed >= 0 && parsed < 100) return parsed;
+  const titleStatMuse = cleaned.match(/(?:last\s+(5|10|20)\s+games|season averages|career stats)[^\d]{0,40}(\d+(?:\.\d+)?)/i);
+  if (titleStatMuse) { const n = Number(titleStatMuse[2]); if (Number.isFinite(n) && n>=0 && n<100) return n; }
   if (key === 'minutes') {
     const m = cleaned.match(/(\d+(?:\.\d+)?)\s+minutes?/i);
     if (m) return Number(m[1]);
@@ -129,10 +132,10 @@ export async function mineNbaRow(row){
         setCard(row,key, asFailed('No trusted direct or search source returned usable data.')); continue;
       }
       if (key === 'projection') {
-        if (espnBundle?.events?.length) {
-          const l5 = computePropAverage(espnBundle.events,row.propFamily,5) ?? 0;
-          const season = (espnCore ? computePropFromTotals(espnCore,row.propFamily) : null) ?? computePropAverage(espnBundle.events,row.propFamily,espnBundle.events.length) ?? l5;
-          const projection = Math.round((((l5*0.6)+(season*0.4)))*10)/10;
+        const l5 = espnBundle?.events?.length ? (computePropAverage(espnBundle.events,row.propFamily,5) ?? 0) : null;
+        const season = (espnCore ? computePropFromTotals(espnCore,row.propFamily) : null) ?? (espnBundle?.events?.length ? computePropAverage(espnBundle.events,row.propFamily,espnBundle.events.length) : null);
+        if (l5 != null || season != null) {
+          const projection = Math.round((((l5 ?? season ?? 0)*0.6)+((season ?? l5 ?? 0)*0.4))*10)/10;
           setCard(row,key,{ ...asReady(projection,'direct'), sourcesLabel:'Internal derived from ESPN history' });
           continue;
         }
@@ -152,12 +155,9 @@ export async function mineNbaRow(row){
         const val = /will start|starting lineup|expected lineup|confirmed lineup/i.test(search) ? 100 : (/bench|coming off the bench/i.test(search)?20:null);
         if (val != null) { setCard(row,key,{ ...asReady(val,'search', String(val)), sourcesLabel:'backup search • winner: ddg' }); continue; }
       }
-      if (key === 'schedule' && scoreboard && espnBundle?.events?.length) {
-        const gc = getGameContext(scoreboard,row.team,row.opponent);
-        if (gc) {
-          const fatigue = computeScheduleFatigue(espnBundle.events);
-          if (fatigue != null) { setCard(row,key,{ ...asReady(fatigue,'direct'), sourcesLabel:'NBA CDN scoreboard + ESPN history', evidence:String(fatigue) }); continue; }
-        }
+      if (key === 'schedule' && espnBundle?.events?.length) {
+        const fatigue = computeScheduleFatigue(espnBundle.events);
+        if (fatigue != null) { setCard(row,key,{ ...asReady(fatigue,'direct'), sourcesLabel: scoreboard ? 'NBA CDN scoreboard + ESPN history' : 'ESPN history', evidence:String(fatigue) }); continue; }
       }
       if (key === 'pace') {
         let metric = nbaAdv ? extractTeamMetrics(nbaAdv,row.team) : null;
@@ -169,21 +169,22 @@ export async function mineNbaRow(row){
         if ((!metric || metric.defRating == null) && bbrRatings) metric = extractBbrTeamMetrics(bbrRatings,row.opponent);
         if (metric?.defRating != null) { setCard(row,key,{ ...asReady(Math.round(metric.defRating), 'direct', String(metric.defRating)), sourcesLabel: nbaAdv ? 'NBA stats advanced' : 'Basketball-Reference backup' }); continue; }
       }
-      if (key === 'homeaway' && espnBundle?.events?.length && scoreboard) {
-        const gc = getGameContext(scoreboard,row.team,row.opponent);
-        if (gc) {
-          const score = computeHomeAwaySplitScore(espnBundle.events,!gc.isHome);
-          if (score != null) { setCard(row,key,{ ...asReady(score,'direct'), sourcesLabel:'ESPN direct' }); continue; }
+      if (key === 'homeaway' && espnBundle?.events?.length) {
+        const gc = scoreboard ? getGameContext(scoreboard,row.team,row.opponent) : null;
+        const currentAway = gc ? !gc.isHome : row.isAwayHint;
+        if (currentAway !== null && currentAway !== undefined) {
+          const score = computeHomeAwaySplitScore(espnBundle.events,currentAway);
+          if (score != null) { setCard(row,key,{ ...asReady(score,'direct'), sourcesLabel: gc ? 'ESPN direct + scoreboard' : 'ESPN direct' }); continue; }
         }
       }
 
-      const fallbackPurposeMap = { last5:'last 5 games', last10:'last 10 games', last20:'last 20 games', season:'season averages', minutes:'minutes', schedule:'recent schedule nba', homeaway:'home away splits nba' };
+      const fallbackPurposeMap = { last5:'last 5 games', last10:'last 10 games', last20:'last 20 games', season:'season averages', career:'career stats per game', minutes:'minutes', schedule:'recent schedule nba', homeaway:'home away splits nba', injury:'injury status', starters:'starting lineup expected lineup', projection:'projection' };
       if (fallbackPurposeMap[key] && row.entity && !/\s{2,}/.test(row.entity)) {
         const text = await safeSearch(row,key,`${row.propFamily} ${fallbackPurposeMap[key]}`);
         const val = bestSearchValue(text, row, key);
         if (val != null) { setCard(row,key,{ ...asReady((Math.round(val*10)/10).toFixed(1),'search'), sourcesLabel:'backup search • winner: ddg' }); continue; }
       }
-      setCard(row,key, asFailed('No trusted direct source returned usable data.'));
+      setCard(row,key, asFailed('No trusted direct or search source returned usable data.'));
     } catch (err) {
       setCard(row,key,{ status:'failed', statusLabel:'Live probe failed', parsedResult:'Mining failed.', evidence:String(err.message||err) });
     }
