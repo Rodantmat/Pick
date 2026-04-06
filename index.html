@@ -131,7 +131,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.30</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.31</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -177,8 +177,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.30</h1>
-          <p id="analysisVersion">Version: v5.7.30</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.31</h1>
+          <p id="analysisVersion">Version: v5.7.31</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -1522,7 +1522,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.30`,
+    `Version: v5.7.31`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -1821,6 +1821,330 @@ function upsertDiagEntry(cacheEntry, payload) {
 function finishDiag(cacheEntry) {
   const diag = ensureDiagState(cacheEntry);
   diag.endedAt = Date.now();
+}
+
+
+function primaryNbaPropSearchTerm(propFamily='') {
+  const p = cleanSnippet(propFamily);
+  const map = {
+    'Points':'points',
+    'Rebounds':'rebounds',
+    'Assists':'assists',
+    '3PT Made':'three pointers made',
+    '3PTM':'three pointers made',
+    'PRA':'points rebounds assists',
+    'Pts+Rebs':'points rebounds',
+    'PR':'points rebounds',
+    'Pts+Asts':'points assists',
+    'PA':'points assists',
+    'Rebs+Asts':'rebounds assists',
+    'RA':'rebounds assists',
+    'Fantasy Score':'fantasy score',
+    'Blocks':'blocks',
+    'Steals':'steals'
+  };
+  return map[p] || p.toLowerCase() || 'stats';
+}
+
+function validateFactorValue(key, value, row=null) {
+  if (value === null || value === undefined) return false;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return false;
+  const ranges = {
+    last5:[0,100], last10:[0,100], last20:[0,100], season:[0,100], career:[0,100], matchup:[0,100],
+    projection:[0,100], minutes:[0,48], injury:[0,100], starters:[0,100], schedule:[0,5],
+    pace:[0,100], oppdef:[0,100], homeaway:[0,100], coverage:[0,999]
+  };
+  const r = ranges[key];
+  if (!r) return true;
+  return n >= r[0] && n <= r[1];
+}
+
+function parseAmericanOdds(value) {
+  if (value === null || value === undefined) return null;
+  const m = String(value).match(/([+-]\d{3,4})/);
+  if (!m) return null;
+  return parseInt(m[1], 10);
+}
+
+function americanToProb(odds) {
+  const n = Number(odds);
+  if (!Number.isFinite(n) || n === 0) return null;
+  return n < 0 ? Math.abs(n) / (Math.abs(n) + 100) : 100 / (n + 100);
+}
+
+function deriveProjectionFromOdds(line, overOdds, underOdds, propFamily='') {
+  const base = Number(line);
+  if (!Number.isFinite(base)) return null;
+  const over = parseAmericanOdds(overOdds);
+  const under = parseAmericanOdds(underOdds);
+  if (!Number.isFinite(over) || !Number.isFinite(under)) return base;
+  const pOver = americanToProb(over), pUnder = americanToProb(under);
+  if (!Number.isFinite(pOver) || !Number.isFinite(pUnder) || pOver + pUnder <= 0) return base;
+  const fairOver = pOver / (pOver + pUnder);
+  const volMap = { Points:6, Rebounds:3.5, Assists:3, '3PT Made':1.5, '3PTM':1.5, PRA:9, 'Pts+Rebs':7.5, PR:7.5, 'Pts+Asts':7, PA:7, 'Rebs+Asts':5, RA:5, 'Fantasy Score':10 };
+  const vol = volMap[cleanSnippet(propFamily)] || 5;
+  return +(base + ((fairOver - 0.5) * vol)).toFixed(2);
+}
+
+function mmssToDecimal(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'number') return v;
+  const s = String(v).trim();
+  if (/^\d+(?:\.\d+)?$/.test(s)) return Number(s);
+  const m = s.match(/^(\d+):(\d{1,2})$/);
+  if (!m) return null;
+  return +(Number(m[1]) + Number(m[2]) / 60).toFixed(2);
+}
+
+function normalizeNbaPropFamily(prop='') {
+  const p = cleanSnippet(prop);
+  const map = {
+    '3PT Made':'3PTM', 'PRA':'PRA', 'Pts+Rebs':'PR', 'Pts+Asts':'PA', 'Rebs+Asts':'RA'
+  };
+  return map[p] || p;
+}
+
+function eventStatValue(ev, propFamily='') {
+  const p = normalizeNbaPropFamily(propFamily);
+  const pts = Number(ev.points || 0), reb = Number(ev.rebounds || 0), ast = Number(ev.assists || 0), threes = Number(ev.threes_made || 0);
+  if (p === 'Points') return pts;
+  if (p === 'Rebounds') return reb;
+  if (p === 'Assists') return ast;
+  if (p === '3PTM') return threes;
+  if (p === 'PRA') return pts + reb + ast;
+  if (p === 'PR') return pts + reb;
+  if (p === 'PA') return pts + ast;
+  if (p === 'RA') return reb + ast;
+  if (p === 'Fantasy Score') return pts + (reb*1.2) + (ast*1.5) + (Number(ev.steals||0)*3) + (Number(ev.blocks||0)*3) - Number(ev.turnovers||0);
+  return null;
+}
+
+function averageFromEvents(events, propFamily, limit=null) {
+  const rows = (events || []).filter(ev => eventStatValue(ev, propFamily) !== null && Number.isFinite(eventStatValue(ev, propFamily)));
+  const slice = limit ? rows.slice(0, limit) : rows;
+  if (!slice.length) return null;
+  const vals = slice.map(ev => eventStatValue(ev, propFamily));
+  return +(vals.reduce((a,b)=>a+b,0) / vals.length).toFixed(1);
+}
+
+function computeFatigueFromEvents(events) {
+  const rows = (events || []).filter(ev => ev.date).slice(0,5);
+  if (rows.length < 2) return 0;
+  const current = new Date(rows[0].date).getTime();
+  const prev = new Date(rows[1].date).getTime();
+  if (!Number.isFinite(current) || !Number.isFinite(prev)) return 0;
+  const diffHours = Math.abs(current - prev) / 36e5;
+  if (diffHours <= 30) return 2;
+  const games5d = rows.filter(ev => Math.abs(current - new Date(ev.date).getTime()) <= 120*36e5).length;
+  if (games5d >= 3) return 1;
+  return 0;
+}
+
+function computeHomeAwaySplitScoreFromEvents(events, propFamily, currentIsHome=null) {
+  const rows = (events || []).filter(ev => Number.isFinite(eventStatValue(ev, propFamily)));
+  const home = rows.filter(ev => ev.homeAway === 'HOME');
+  const away = rows.filter(ev => ev.homeAway === 'AWAY');
+  if (!home.length || !away.length) return 50;
+  const h = averageFromEvents(home, propFamily, null), a = averageFromEvents(away, propFamily, null);
+  if (!Number.isFinite(h) || !Number.isFinite(a) || h + a === 0) return 50;
+  let score = 50 + ((h - a) / Math.max(1, Math.abs(h)+Math.abs(a))) * 100;
+  if (currentIsHome === false) score = 100 - score;
+  return Math.round(clampNumber(score, 0, 100));
+}
+
+async function fetchEspnPlayerSearch(name) {
+  const url = `https://site.web.api.espn.com/apis/search/v2?query=${encodeURIComponent(name)}&limit=5&type=player`;
+  return await proxiedFetchJson(url);
+}
+
+function matchEspnAthleteId(searchJson, row) {
+  const results = (searchJson && (searchJson.results || searchJson.items || [])) || [];
+  const target = canon(row.entity || '');
+  const tteam = canon(expandNbaTeamAbbr(row.team || ''));
+  let best = null, bestScore = -1;
+  for (const r of results) {
+    const name = r.displayName || r.name || r.title || r.fullName || '';
+    const c = canon(name);
+    let score = 0;
+    if (c === target) score += 100;
+    else if (c.includes(target) || target.includes(c)) score += 60;
+    const team = canon(r.team?.abbreviation || r.team?.displayName || r.team?.shortDisplayName || '');
+    if (tteam && team && (team.includes(canon(row.team||'')) || tteam.includes(team) || team.includes(tteam))) score += 20;
+    if (score > bestScore) { bestScore = score; best = r; }
+  }
+  return best?.id || best?.uid?.match(/(\d+)$/)?.[1] || null;
+}
+
+async function fetchEspnGameLog(row) {
+  const search = await fetchEspnPlayerSearch(row.entity || '');
+  const id = matchEspnAthleteId(search, row);
+  if (!id) throw new Error('ESPN athlete id not found');
+  const url = `https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/${id}/gamelog`;
+  const data = await proxiedFetchJson(url);
+  const events = (((data||{}).seasonTypes||[])[0]?.categories||[])[0]?.events || data?.events || data?.entries || [];
+  const out = [];
+  for (const ev of events) {
+    const stats = ev.stats || ev.statistics || [];
+    const labels = ev.labels || ev.displayNames || [];
+    let map = {};
+    if (Array.isArray(labels) && labels.length === stats.length) labels.forEach((lab,i)=> map[String(lab).toUpperCase()] = stats[i]);
+    const opp = ev.opponent?.displayName || ev.opponent?.shortDisplayName || ev.opponent?.abbreviation || ev.opponent || '';
+    const oppText = ev.gameLocation || ev.opponent?.homeAwaySymbol || ev.opponentText || '';
+    const homeAway = String(oppText).includes('@') || String(ev.gameLocation||'').toUpperCase()==='AWAY' ? 'AWAY' : 'HOME';
+    out.push({
+      date: ev.gameDate || ev.date || ev.gameDateUTC || '',
+      points: Number(map.PTS ?? stats[13] ?? stats[0] ?? 0),
+      rebounds: Number(map.REB ?? stats[10] ?? stats[4] ?? 0),
+      assists: Number(map.AST ?? stats[11] ?? stats[5] ?? 0),
+      threes_made: Number(map['3PM'] ?? map.FG3M ?? stats[6] ?? 0),
+      steals: Number(map.STL ?? stats[8] ?? 0),
+      blocks: Number(map.BLK ?? stats[9] ?? 0),
+      turnovers: Number(map.TO ?? map.TOV ?? stats[12] ?? 0),
+      minutes: mmssToDecimal(map.MIN ?? stats[3] ?? 0),
+      opponent: cleanSnippet(opp),
+      homeAway,
+      result: ev.result || ''
+    });
+  }
+  return out.filter(ev => ev.minutes === null || ev.minutes > 0);
+}
+
+async function fetchDraftKingsProp(row) {
+  const url = 'https://sportsbook-nash.draftkings.com/sites/US-SB/api/v5/eventgroups/88670846/categories/487?format=json';
+  const data = await proxiedFetchJson(url);
+  const cats = data?.eventGroup?.offerCategories || [];
+  const families = {
+    Points:['points'], Rebounds:['rebounds'], Assists:['assists'], '3PTM':['threes','3-pointers','three pointers'], '3PT Made':['threes','3-pointers','three pointers'],
+    PRA:['pts + reb + ast','points + rebounds + assists'], PR:['pts + reb','points + rebounds'], PA:['pts + ast','points + assists'], RA:['reb + ast','rebounds + assists']
+  };
+  const want = families[normalizeNbaPropFamily(row.propFamily)] || [String(row.propFamily||'').toLowerCase()];
+  const playerCanon = canon(row.entity || '');
+  for (const cat of cats) {
+    for (const sub of (cat.offerSubcategoryDescriptors || [])) {
+      const sname = canon(sub.name || sub.offerSubcategory?.name || '');
+      if (!want.some(w => sname.includes(canon(w)))) continue;
+      const offers = sub.offerSubcategory?.offers || sub.offers || [];
+      for (const group of offers) {
+        const markets = Array.isArray(group) ? group : [group];
+        for (const m of markets) {
+          const outcomes = m.outcomes || [];
+          const participant = outcomes[0]?.participant || m.label || '';
+          if (canon(participant) !== playerCanon) continue;
+          const over = outcomes.find(o => canon(o.label||'') === 'over');
+          const under = outcomes.find(o => canon(o.label||'') === 'under');
+          const line = Number(over?.line ?? under?.line ?? outcomes[0]?.line);
+          return { line, american:[over?.oddsAmerican, under?.oddsAmerican].filter(Boolean), outcomes, raw:m };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+async function fetchTeamRankingsTable(kind='pace') {
+  const url = kind === 'pace' ? 'https://www.teamrankings.com/nba/stat/possessions-per-game' : 'https://www.teamrankings.com/nba/stat/opponent-points-per-game';
+  const html = await proxiedFetchText(url);
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const rows = [];
+  doc.querySelectorAll('table tbody tr').forEach(tr => {
+    const tds = [...tr.querySelectorAll('td')].map(td => cleanSnippet(td.textContent));
+    if (tds.length >= 2) rows.push({ team: tds[1] ? tds[1].replace(/^\d+\.\s*/, '') : tds[0].replace(/^\d+\.\s*/, ''), value: Number((tds[2] || tds[1] || '').replace(/[^\d.\-]/g,'')) });
+  });
+  return rows.filter(r => r.team && Number.isFinite(r.value));
+}
+
+function findTeamValue(table, team) {
+  const target = canon(expandNbaTeamAbbr(team || ''));
+  for (const row of (table || [])) {
+    const c = canon(row.team || '');
+    if (c === target || c.includes(target) || target.includes(c)) return row.value;
+  }
+  return null;
+}
+
+async function fetchRotoWireLineupsText() {
+  return await proxiedFetchText('https://www.rotowire.com/basketball/nba-lineups.php');
+}
+async function fetchRotoWireInjuriesText() {
+  return await proxiedFetchText('https://www.rotowire.com/basketball/injuries.php');
+}
+
+function parseRotoWireGameBlock(htmlText='', row) {
+  const txt = cleanSnippet(String(htmlText||'')).replace(/\s+/g,' ');
+  const team = expandNbaTeamAbbr(row.team || '');
+  const opp = expandNbaTeamAbbr(row.opponent || '');
+  const idx = canon(txt).indexOf(canon(team));
+  if (idx >= 0) return txt.slice(Math.max(0, idx-200), idx+1500);
+  const idx2 = canon(txt).indexOf(canon(opp));
+  if (idx2 >= 0) return txt.slice(Math.max(0, idx2-200), idx2+1500);
+  return txt.slice(0,1500);
+}
+
+function parseRotoWireLineupEvidence(block='', row) {
+  const c = canon(block || '');
+  const hasStarter = canon(row.entity || '') && c.includes(canon(row.entity || '')) && (c.includes('expected lineup') || c.includes('confirmed lineups') || c.includes('starting'));
+  return { hasStarter };
+}
+
+function parseRotoWireInjuryEvidence(htmlText='', row) {
+  const txt = cleanSnippet(String(htmlText||''));
+  const c = canon(txt);
+  const target = canon(row.entity || '');
+  const idx = c.indexOf(target);
+  if (idx < 0) return '';
+  return txt.slice(Math.max(0, idx-80), idx+220);
+}
+
+function parseInjuryScore(text='') {
+  const c = canon(text || '');
+  if (!c) return null;
+  if (c.includes('out')) return 0;
+  if (c.includes('doubtful')) return 10;
+  if (c.includes('questionable')) return 50;
+  if (c.includes('probable')) return 90;
+  if (c.includes('available') || c.includes('will play') || c.includes('active')) return 100;
+  return null;
+}
+
+function parseStarterScore(text='') {
+  const c = canon(text || '');
+  if (!c) return null;
+  if (c.includes('confirmed') && c.includes('lineup')) return 100;
+  if (c.includes('expected lineup') || c.includes('will start') || c.includes('starting')) return 100;
+  if (c.includes('bench')) return 20;
+  return null;
+}
+
+async function searchWebOneQuery(query) {
+  const searched = await withTimeout(multiSearch(query), 10000, 'search timeout');
+  const filtered = bestNbaResults(searched.results || [], { entity:'' }, query.includes('odds') ? 'odds' : '');
+  return { provider: searched.provider, results: searched.results || [], blob: cleanSnippet((filtered.length ? filtered : searched.results || []).map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • ')) };
+}
+
+function validateSearchEvidence(blob='', row, key='') {
+  const text = cleanSnippet(blob || '');
+  if (!text) return { usable:false, rawCandidate:false, parsed:null };
+  const c = canon(text);
+  if (c.includes('function settheme') || c.includes('webpack') || c.includes('http error 404') || c.includes('access denied')) return { usable:false, rawCandidate:false, parsed:null };
+  let parsed = null;
+  if (['last5','last10','last20','season','career','matchup'].includes(key)) {
+    const triple = extractStatTripleGeneric(text) || extractPRAFromText(text);
+    const nums = [...text.matchAll(/\d+(?:\.\d+)?/g)].map(m=>parseFloat(m[0]));
+    if (triple) parsed = eventStatValue(triple, row.propFamily || '');
+    else if (nums.length) parsed = nums.find(n => validateFactorValue(key,n,row));
+  } else if (key === 'projection') {
+    const nums = [...text.matchAll(/\d+(?:\.\d+)?/g)].map(m=>parseFloat(m[0]));
+    parsed = nums.find(n => n >= 0 && n <= 100) ?? null;
+  } else if (key === 'minutes') {
+    const nums = [...text.matchAll(/\d+(?:\.\d+)?/g)].map(m=>parseFloat(m[0]));
+    parsed = nums.find(n => n >= 5 && n <= 48) ?? null;
+  } else if (key === 'injury') parsed = parseInjuryScore(text);
+  else if (key === 'starters') parsed = parseStarterScore(text);
+  else if (key === 'schedule') parsed = /back-to-back|back to back/i.test(text) ? 2 : (/rest/i.test(text) ? 0 : null);
+  else if (key === 'homeaway') parsed = /home/i.test(text) || /away/i.test(text) ? 50 : null;
+  const rawCandidate = !parsed && text.length > 20 && !nbaSearchNoise(text);
+  return { usable:Number.isFinite(Number(parsed)), rawCandidate, parsed };
 }
 
 async function mineNbaRow(row, onUpdate) {
