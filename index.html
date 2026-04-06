@@ -136,7 +136,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.27</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v5.7.28</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -182,8 +182,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.27</h1>
-          <p id="analysisVersion">Version: v5.7.27</p>
+          <h1 id="analysisTitle">Run Analysis v5.7.28</h1>
+          <p id="analysisVersion">Version: v5.7.28</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -882,7 +882,7 @@ function looksLikeGarbageSourcePayload(text='') {
   if (c.includes('target url returned error 404')) return true;
   if (c.includes('not found url source')) return true;
   if (c.includes('markdown content: * * * http error 404')) return true;
-  if (c.includes('<script') || c.includes('</script>')) return true;
+  if (c.includes('<script') || c.includes('<\/script>')) return true;
   return false;
 }
 
@@ -1936,7 +1936,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.27`,
+    `Version: v5.7.28`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
