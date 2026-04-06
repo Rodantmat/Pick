@@ -1,6 +1,6 @@
-export const VERSION = 'v5.8.0 Full Fix';
-export const SEARCH_TIMEOUT_MS = 5000;
-export const FETCH_TIMEOUT_MS = 6500;
+export const VERSION = 'v5.8.0 total fix';
+export const SEARCH_TIMEOUT_MS = 7000;
+export const FETCH_TIMEOUT_MS = 7000;
 export const STORAGE_KEY = 'pickcalc-prompt1-v5-7-3';
 
 export const TYPE_META = {
@@ -31,52 +31,40 @@ export const LEAGUES = [
 ];
 
 export const DISPLAY_PROP_ALIASES = {
-  '3PT Made':['3pt made','3ptm','3pm','3pt','3 pt made','3 pointers made','threes made','three pointers made'],
+  '3PT Made':['3pt made','3ptm','3pm','3pt','three pointers made','3 pointers made','threes made'],
   'Pts+Rebs+Asts':['pts+rebs+asts','points rebounds assists'],
   'PRA':['pra'],
-  'Pts+Rebs':['pts+rebs','points+rebounds','points rebounds','pr'],
-  'Pts+Asts':['pts+asts','points+assists','points assists','pa'],
-  'Rebs+Asts':['rebs+asts','rebounds+assists','rebounds assists','ra'],
-  'Blks+Stls':['blks+stls','stocks','blocks+steals'],
-  'Fantasy Score':['fantasy score','fantasy points','fantasy'],
+  'Pts+Rebs':['pts+rebs','points rebounds','pr'],
+  'Pts+Asts':['pts+asts','points assists','pa'],
+  'Rebs+Asts':['rebs+asts','rebounds assists','ra'],
+  'Blks+Stls':['blks+stls','blocks steals','stocks'],
+  'Fantasy Score':['fantasy score','fantasy points'],
   'Shots on Goal':['shots on goal','sog'],
   'Goalie Saves':['goalie saves','saves'],
-  'Passes Attempted':['passes attempted','passes'],
-  'Shots Assisted':['shots assisted'],
-  'Attempted Dribbles':['attempted dribbles'],
-  'Shots On Target':['shots on target'],
-  'Tackles Won':['tackles won','tackles'],
-  'Birdies or Better':['birdies or better','birdies'],
   'Pitcher Strikeouts':['pitcher strikeouts','strikeouts'],
   'Outs Recorded':['outs recorded','pitching outs'],
-  'Total Bases':['total bases','bases'],
-  'Hits Allowed':['hits allowed'],
-  'Fight Time':['fight time'],
-  'Rush Attempts':['rush attempts']
+  'Birdies or Better':['birdies or better','birdies'],
+  'Rush Attempts':['rush attempts','rushing attempts'],
+  'Passes Attempted':['passes attempted','passes'],
+  'Shots On Target':['shots on target'],
+  'Tackles Won':['tackles won','tackles']
 };
 
 export const NBA_FACTORS = [
-  { key:'last5', title:'Last 5 Games', live:true, sources:['ESPN direct','backup search'], note:'Recent 5-game prop average.' },
-  { key:'last10', title:'Last 10 Games', live:true, sources:['ESPN direct','backup search'], note:'Recent 10-game prop average.' },
-  { key:'last20', title:'Last 20 Games', live:true, sources:['ESPN direct','backup search'], note:'Recent 20-game prop average.' },
-  { key:'season', title:'Season History', live:true, sources:['ESPN direct','backup search'], note:'Season prop average.' },
-  { key:'career', title:'Career History', live:true, sources:['ESPN direct','backup search'], note:'Career prop average.' },
-  { key:'matchup', title:'Matchup Context', live:false, sources:['Paused'], note:'Paused.' },
-  { key:'odds', title:'Market Odds', live:false, sources:['Paused'], note:'Paused.' },
-  { key:'projection', title:'Projection Source', live:true, sources:['Internal derived','backup search'], note:'Projection number.' },
-  { key:'minutes', title:'Projected Minutes', live:true, sources:['Internal from ESPN history','backup search'], note:'Projected minutes.' },
-  { key:'injury', title:'Injury Report Score', live:true, sources:['Official injuries','backup search'], note:'Availability score.' },
-  { key:'starters', title:'Starting Lineup Score', live:true, sources:['Official injuries','backup search'], note:'Starter context.' },
-  { key:'schedule', title:'Schedule / Fatigue', live:true, sources:['NBA CDN scoreboard','backup search'], note:'Rest and cadence.' },
-  { key:'pace', title:'Pace Score', live:true, sources:['NBA stats advanced','Basketball-Reference backup'], note:'Tempo score.' },
-  { key:'blowout', title:'Blowout Risk', live:false, sources:['Paused'], note:'Paused.' },
-  { key:'oppdef', title:'Opponent Defense Score', live:true, sources:['NBA stats advanced','Basketball-Reference backup'], note:'Opponent defense score.' },
-  { key:'position', title:'Vs-Position Score', live:false, sources:['Paused'], note:'Paused.' },
-  { key:'teammates', title:'Teammate Impact Score', live:false, sources:['Paused'], note:'Paused.' },
-  { key:'homeaway', title:'Home-Away Split Score', live:true, sources:['ESPN direct','backup search'], note:'Home/road split score.' },
-  { key:'role', title:'Role / Usage Score', live:false, sources:['Paused'], note:'Paused.' },
-  { key:'coverage', title:'Factor Coverage', live:true, sources:['Internal factor map'], note:'Live vs paused.' },
-  { key:'validation', title:'Prop-Source Validation', live:true, sources:['Ingested row'], note:'Parsed row identity and line.' }
+  { key:'last5', title:'Last 5 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 5-game prop average.' },
+  { key:'last10', title:'Last 10 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 10-game prop average.' },
+  { key:'last20', title:'Last 20 games', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 20-game prop average.' },
+  { key:'season', title:'Season history', live:true, sources:['NBA.com search','ESPN search','Basketball-Reference search'], note:'Season prop average.' },
+  { key:'career', title:'Career history', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Career prop average.' },
+  { key:'matchup', title:'Matchup context', live:true, sources:['StatMuse matchup search','news search'], note:'Opponent-specific prop average.' },
+  { key:'odds', title:'Market odds', live:true, sources:['Odds search','sportsbook search','Gemini structured fallback'], note:'Moneyline / game context.' },
+  { key:'projection', title:'Projection source', live:true, sources:['projection search','Gemini structured fallback'], note:'Projection number for the active prop.' },
+  { key:'minutes', title:'Projected minutes', live:true, sources:['minutes search','Gemini structured fallback'], note:'Projected or expected minutes.' },
+  { key:'injury', title:'Injury report score', live:true, sources:['injury report search','Gemini structured fallback'], note:'Availability / usage context score.' },
+  { key:'starters', title:'Starting lineup score', live:true, sources:['starting lineup search','Gemini structured fallback'], note:'Starter / lineup context score.' },
+  { key:'schedule', title:'Schedule / fatigue', live:true, sources:['Game log search','schedule search','Gemini structured fallback'], note:'Rest and prior game cadence.' },
+  { key:'coverage', title:'Factor coverage', live:false, sources:['Internal factor map'], note:'Which NBA factors are wired vs pending.' },
+  { key:'validation', title:'Prop-source validation', live:true, sources:['Ingested row'], note:'Parsed row identity and line are already grounded.' }
 ];
 
 export const TEAM_TRICODES = {

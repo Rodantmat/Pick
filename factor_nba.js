@@ -58,11 +58,11 @@ function parseAverageSentence(text, row){
   const reb = t.match(/(\d+(?:\.\d+)?)\s+rebounds?/i);
   const ast = t.match(/(\d+(?:\.\d+)?)\s+assists?/i);
   const threes = t.match(/(\d+(?:\.\d+)?)\s+(?:3-pointers?|three-pointers?|threes|3ptm|three point field goals made)/i);
-  const vals = { Points: pts && Number(pts[1]), Rebounds: reb && Number(reb[1]), Assists: ast && Number(ast[1]), '3PTM': threes && Number(threes[1]), '3PT Made': threes && Number(threes[1]) };
+  const vals = { Points: pts && Number(pts[1]), Rebounds: reb && Number(reb[1]), Assists: ast && Number(ast[1]), '3PTM': threes && Number(threes[1]) };
   if (p === 'Points') return vals.Points ?? null;
   if (p === 'Rebounds') return vals.Rebounds ?? null;
   if (p === 'Assists') return vals.Assists ?? null;
-  if (p === '3PTM' || p === '3PT Made') return vals['3PTM'] ?? vals['3PT Made'] ?? null;
+  if (p === '3PTM') return vals['3PTM'] ?? null;
   if (p === 'PRA' && vals.Points != null && vals.Rebounds != null && vals.Assists != null) return vals.Points + vals.Rebounds + vals.Assists;
   if (p === 'Pts+Rebs' && vals.Points != null && vals.Rebounds != null) return vals.Points + vals.Rebounds;
   if (p === 'Pts+Asts' && vals.Points != null && vals.Assists != null) return vals.Points + vals.Assists;
@@ -89,7 +89,7 @@ function bestSearchValue(text, row, key){
     if (row.propFamily === 'Rebs+Asts') return reb+ast;
   }
   const avgThrees = cleaned.match(/has averaged\s+(\d+(?:\.\d+)?)\s+(?:3-pointers?|threes|three point field goals made)/i);
-  if (avgThrees && (row.propFamily === '3PTM' || row.propFamily === '3PT Made')) return Number(avgThrees[1]);
+  if (avgThrees && row.propFamily === '3PTM') return Number(avgThrees[1]);
 
   if (key === 'minutes') {
     const m = cleaned.match(/(?:averag(?:e|ed)|minutes? per game).{0,40}?(\d+(?:\.\d+)?)\s+minutes?/i);

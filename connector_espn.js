@@ -71,8 +71,7 @@ export function computePropAverage(events, propFamily, n){
       case 'Points': return ev.points;
       case 'Rebounds': return ev.rebounds;
       case 'Assists': return ev.assists;
-      case '3PTM':
-      case '3PT Made': return ev.threes;
+      case '3PTM': return ev.threes;
       case 'PRA': return (ev.points??0)+(ev.rebounds??0)+(ev.assists??0);
       case 'Pts+Rebs': return (ev.points??0)+(ev.rebounds??0);
       case 'Pts+Asts': return (ev.points??0)+(ev.assists??0);
@@ -143,8 +142,7 @@ export function computePropFromTotals(stats, propFamily){
     case 'Points': return stats.points;
     case 'Rebounds': return stats.rebounds;
     case 'Assists': return stats.assists;
-    case '3PTM':
-    case '3PT Made': return stats.threes;
+    case '3PTM': return stats.threes;
     case 'PRA':
     case 'Pts+Rebs+Asts': return (stats.points??0)+(stats.rebounds??0)+(stats.assists??0);
     case 'Pts+Rebs': return (stats.points??0)+(stats.rebounds??0);
