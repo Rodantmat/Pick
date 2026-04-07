@@ -225,16 +225,21 @@ thead th { background:#121d35; position:sticky; top:0; }
 
 
 .run-overlay {
-  position: fixed; inset: 0; background: rgba(8,16,31,.72); display:flex; align-items:center; justify-content:center;
-  z-index: 9999; backdrop-filter: blur(4px);
+  position: static;
+  inset: auto;
+  background: transparent;
+  display:block;
+  z-index: auto;
+  backdrop-filter: none;
+  margin-top: 14px;
 }
 .run-overlay.hidden { display:none; }
 .run-overlay-card {
-  width:min(92vw,520px); background: rgba(16,24,44,.98); border:1px solid var(--line); border-radius:22px; padding:22px;
-  box-shadow: 0 12px 32px rgba(0,0,0,.34);
+  width:100%; background: rgba(16,24,44,.98); border:1px solid var(--line); border-radius:22px; padding:16px 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.22);
 }
-.overlay-title { font-size:22px; font-weight:800; margin-bottom:8px; }
-.overlay-sub { color:var(--muted); margin-bottom:12px; }
+.overlay-title { font-size:18px; font-weight:800; margin-bottom:6px; }
+.overlay-sub { color:var(--muted); margin-bottom:8px; }
 .analysis-kpis { display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
 .kpi-card { border:1px solid var(--line); background:#0f172a; border-radius:16px; padding:12px; }
 .kpi-card strong { display:block; margin-bottom:6px; color:var(--muted); font-size:12px; text-transform:uppercase; }
@@ -305,6 +310,13 @@ thead th { background:#121d35; position:sticky; top:0; }
         <h2>Run Snapshot</h2>
         <div id="analysisSummary" class="summary-pills"></div>
         <div id="analysisHint" class="message"></div>
+        <div id="runOverlay" class="run-overlay hidden">
+          <div class="run-overlay-card">
+            <div class="overlay-title">Triple-Threat Mining</div>
+            <div id="overlaySub" class="overlay-sub">Initializing…</div>
+            <div id="overlayBody" class="message">Preparing factor cards.</div>
+          </div>
+        </div>
       </section>
 
       <section class="card">
@@ -352,13 +364,6 @@ thead th { background:#121d35; position:sticky; top:0; }
     </section>
   </div>
 
-  <div id="runOverlay" class="run-overlay hidden">
-    <div class="run-overlay-card">
-      <div class="overlay-title">Triple-Threat Mining</div>
-      <div id="overlaySub" class="overlay-sub">Initializing…</div>
-      <div id="overlayBody" class="message">Preparing factor cards.</div>
-    </div>
-  </div>
 
 <script>
 const SYSTEM_VERSION = "8.8 (Reference Lock / Triple-Threat)";
