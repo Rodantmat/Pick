@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PickCalc Prompt 1 Intake</title>
+  <title>PickCalc Prompt 1 Intake v6.1.0</title>
   <style>
 :root {
   color-scheme: dark;
@@ -145,7 +145,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v5.7.3</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v6.1.0</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -191,8 +191,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v5.7.3</h1>
-          <p id="analysisVersion">Version: v5.7.3</p>
+          <h1 id="analysisTitle">Run Analysis v6.1.0</h1>
+          <p id="analysisVersion">Version: v6.1.0</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -212,7 +212,7 @@ thead th { background:#121d35; position:sticky; top:0; }
       </section>
 
       <section class="card">
-        <h2>Tennis Data-Mining Matrix</h2>
+        <h2 id="miningMatrixTitle">Data-Mining Matrix</h2>
         <p class="mini-muted">This screen is the external-data debug scaffold. It shows what the system should mine for one tennis row. Live source wiring can plug into these slots next.</p>
         <div id="miningGrid" class="mining-grid"></div>
       </section>
@@ -1573,6 +1573,12 @@ function renderAnalysis() {
   const rowCard = document.getElementById('analysisRowCard');
   const miningGrid = document.getElementById('miningGrid');
   const analysisBody = document.getElementById('analysisResultsBody');
+  const miningMatrixTitle = document.getElementById('miningMatrixTitle');
+
+  if (miningMatrixTitle) {
+    const leagueLabel = row ? (findLeague(row.leagueId)?.label || row.leagueId || 'Data') : 'Data';
+    miningMatrixTitle.textContent = `${leagueLabel} Data-Mining Matrix`;
+  }
 
   summary.innerHTML = `
     <div class="pill">Day: ${escapeHtml(state.dayScope)}</div>
@@ -1618,7 +1624,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v5.7.3`,
+    `Version: v6.1.0`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -2018,12 +2024,48 @@ async function runSearchFactor(row, key, query, parseFn, fallback=null) {
   }
 }
 
+function extractAveragingPattern(text='') {
+  const src = String(text || '');
+  const patterns = [
+    /\baveraging\s+(-?\d+(?:\.\d+)?)\s+[a-z]+\s+over\s+(?:his|her|their)\s+last\s+\d+\b/i,
+    /\baveraging\s+(-?\d+(?:\.\d+)?)\s+[a-z]+(?:\s+per game)?\b/i,
+    /\bover\s+(?:his|her|their)\s+last\s+\d+[^0-9]{0,24}(-?\d+(?:\.\d+)?)\b/i,
+    /\blast\s+\d+[^0-9]{0,24}averag(?:e|ing)[^0-9]{0,24}(-?\d+(?:\.\d+)?)\b/i
+  ];
+  for (const rx of patterns) {
+    const m = src.match(rx);
+    if (m) {
+      const n = Number(m[1]);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return null;
+}
+
+function extractRankPattern(text='') {
+  const src = String(text || '');
+  const patterns = [
+    /\brank(?:ed)?[^0-9]{0,16}(\d{1,2})(?:st|nd|rd|th)?\b/i,
+    /\b(\d{1,2})(?:st|nd|rd|th)\b[^.\n]{0,24}\brank\b/i,
+    /\bdefensive rating[^0-9]{0,24}rank[^0-9]{0,12}(\d{1,2})\b/i
+  ];
+  for (const rx of patterns) {
+    const m = src.match(rx);
+    if (m) {
+      const n = Number(m[1]);
+      if (Number.isFinite(n) && n >= 1 && n <= 30) return n;
+    }
+  }
+  return null;
+}
+
 function bestSearchValue(blob='') {
-  const nums = [...String(blob || '').matchAll(/-?\d+(?:\.\d+)?/g)].map(m => Number(m[0])).filter(Number.isFinite);
-  return nums.find(n => Math.abs(n) < 500) ?? null;
+  return extractNumber(blob);
 }
 
 function extractNumber(text='') {
+  const direct = extractAveragingPattern(text);
+  if (Number.isFinite(direct)) return direct;
   const vals = [...String(text || '').matchAll(/-?\d+(?:\.\d+)?/g)].map(m => Number(m[0])).filter(Number.isFinite);
   return vals.find(n => Math.abs(n) < 500) ?? null;
 }
@@ -2119,10 +2161,21 @@ async function mineNbaRow(row) {
   if (pace.ok) setCard('teamPace', 'ready', pace.parsed, pace.blob.slice(0, 260), 68, { projectionValue: Number(pace.parsed), sourcesLabel: `${result.teamPace.sourcesLabel} • winner: ${pace.provider}` });
   else setCard('teamPace', 'warning', 'Unknown', 'Pace source unavailable.', 20);
 
-  const opp = await runSearchFactor(row, 'oppDefense', playerQueries.oppDefense, (blob) => {
+  let opp = await runSearchFactor(row, 'oppDefense', playerQueries.oppDefense, (blob) => {
+    const rank = extractRankPattern(blob);
+    if (Number.isFinite(rank)) return rank;
     const n = extractNumber(blob);
     return Number.isFinite(n) && n >= 1 && n <= 30 ? n : null;
   });
+  if (!opp.ok) {
+    opp = await runSearchFactor(row, 'oppDefense', `${oppFull} defensive rating rank nba`, (blob) => {
+      const rank = extractRankPattern(blob);
+      if (Number.isFinite(rank)) return rank;
+      const n = extractNumber(blob);
+      return Number.isFinite(n) && n >= 1 && n <= 30 ? n : null;
+    });
+    if (opp.ok) logEvent('Defensive Archetype proxy applied via overall defensive rating rank.', 'SUCCESS', row.rowId, 'oppDefense');
+  }
   if (opp.ok) setCard('oppDefense', 'ready', opp.parsed, opp.blob.slice(0, 260), 63, { projectionValue: Number(opp.parsed), sourcesLabel: `${result.oppDefense.sourcesLabel} • winner: ${opp.provider}` });
   else setCard('oppDefense', 'warning', 'Unknown', 'Opponent rank unavailable.', 20);
 
@@ -2188,8 +2241,10 @@ async function mineNbaRow(row) {
   const pureProb = standaloneProbability(row, Object.values(result));
   const minorDrag = ['refs','injury'].reduce((sum, key) => sum + Number(result[key]?.delta || 0), 0);
   let finalScore = survivabilityScore(row, Object.values(result));
+  let survivabilityDelta = Math.max(-4, Math.min(4, (finalScore - pureProb*100) / 8));
   if (baseEdge > 0.035 && minorDrag < 0) {
     finalScore = Math.max(finalScore, pureProb * 100);
+    survivabilityDelta = Math.max(0, survivabilityDelta);
     logEvent('Alpha Shield prevented minor-only quality cut.', 'SUCCESS', row.rowId, 'survivability');
   }
 
@@ -2200,7 +2255,7 @@ async function mineNbaRow(row) {
     parsedResult:`Standalone ${Math.round(pureProb*1000)/10}% • Survivability ${Math.round(finalScore*10)/10}`,
     evidence:`baseline_edge ${baseEdge.toFixed(4)} • Relational_Drag ${minorDrag.toFixed(2)} • FINAL_HIT_PROBABILITY kept separate`,
     confidence:88,
-    delta: Math.max(-4, Math.min(4, (finalScore - pureProb*100) / 8)),
+    delta: survivabilityDelta,
     sourcesLabel: result.survivability.sourcesLabel,
     projectionValue: finalScore
   };
@@ -2341,11 +2396,13 @@ function parsePhoneTennisBlock(block, selectedIds) {
 
 
 function detectType(text) {
-  const t = canon(text);
+  const raw = String(text || '');
+  const t = canon(raw);
   if (/free[ _]?pick/.test(t)) return 'FREE_PICK';
   if (t.includes('taco')) return 'TACO';
   if (t.includes('demon')) return 'DEMON';
   if (t.includes('goblin')) return 'GOBLIN';
+  if (raw.includes('⚪')) return 'REGULAR';
   return 'REGULAR';
 }
 
