@@ -93,7 +93,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   border:1px solid var(--line); background:#0f172a; border-radius:16px; padding:12px;
 }
 .row-card .cell strong { display:block; margin-bottom:6px; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
-.mining-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+.matrix-grid, .mining-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px; }
 .mining-card {
   border:1px solid var(--line); background:#0f172a; border-radius:18px; padding:14px; min-height:168px;
 }
@@ -155,14 +155,28 @@ thead th { background:#121d35; position:sticky; top:0; }
 
 .derived-badge,.mined-badge,.parsed-badge,.shield-badge{
   display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--line);
-  font-size:11px;font-weight:700;margin-left:8px;
+  font-size:11px;font-weight:700;margin-left:8px;white-space:nowrap;word-wrap:break-word;
 }
-.derived-badge{background:rgba(255,211,110,.12);color:#ffd36e}
+.derived-badge{background:rgba(56,189,248,.14);color:#38bdf8}
 .mined-badge{background:rgba(36,87,59,.22);color:#baf2cb}
 .parsed-badge{background:rgba(110,168,254,.14);color:#8cc3ff}
-.shield-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
-.shield-cell{border:1px solid var(--line);background:#0f172a;border-radius:16px;padding:12px}
+.shield-grid{display:flex;flex-direction:column;align-items:center;gap:10px}
+.shield-cell{border:1px solid var(--line);background:#0f172a;border-radius:16px;padding:12px;width:min(100%,680px);text-align:center;word-wrap:break-word}
 .shield-cell strong{display:block;margin-bottom:6px;color:var(--muted);font-size:12px;text-transform:uppercase}
+
+
+.penalty-banner{
+  display:block;
+  width:min(100%,680px);
+  padding:10px 14px;
+  border-radius:14px;
+  border:1px solid rgba(185,74,90,.48);
+  background:rgba(185,74,90,.16);
+  color:#ffd3d9;
+  font-weight:700;
+  text-align:center;
+}
+.mining-card,.shield-cell,.cell,.status-panel,.prop-chip,.pill,.message,.mining-meta{word-wrap:break-word}
 
 </style>
 </head>
@@ -3022,8 +3036,11 @@ bindActions();
     const row = activeRow();
     const cards = buildMiningStatus(row);
     const surv = cards.find(c => c.key === 'survivability') || {};
+    const refCard = cards.find(c => c.key === 'refs') || {};
+    const penaltyApplied = Number(surv.warningCount || 0) > 0 || String(refCard.status || '') === 'warning' || !String(refCard.parsedResult || '').trim();
     wrap.innerHTML = `
-      <div class="shield-cell"><strong>Run Analysis</strong>v7.0 • Rows in pool: ${escapeHtml(String(state.cleanedRows.length))}</div>
+      <div class="shield-cell"><strong>Run Analysis</strong>v7.0 • Pool Status: ${escapeHtml(String(state.cleanedRows.length))}</div>
+      ${penaltyApplied ? '<div class="penalty-banner">PENALTY APPLIED</div>' : ''}
       <div class="shield-cell"><strong>Data Integrity Penalty</strong>${escapeHtml(String((surv.warningCount || 0) * 10))}%</div>
       <div class="shield-cell"><strong>Confidence Cap Applied</strong>${surv.capApplied ? 'YES' : 'NO'}</div>
       <div class="shield-cell"><strong>Final Hit Probability</strong>${Number.isFinite(surv.finalProbability) ? (surv.finalProbability*100).toFixed(1) + '%' : '—'}</div>
@@ -3043,7 +3060,7 @@ bindActions();
     const summary = document.getElementById('analysisSummary');
     if (summary) {
       const current = summary.innerHTML;
-      summary.innerHTML = `<div class="pill">RUN ANALYSIS v7.0</div><div class="pill">POOL STATUS: ${state.cleanedRows.length} ROW${state.cleanedRows.length===1?'':'S'} - FLUSH SUCCESSFUL</div>` + current;
+      summary.innerHTML = `<div class="pill">RUN ANALYSIS v7.0</div><div class="pill">POOL STATUS: ${state.cleanedRows.length}</div><div class="pill">FLUSH SUCCESSFUL</div>` + current;
     }
     renderShieldPanelV7();
   };
