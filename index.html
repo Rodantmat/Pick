@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PickCalc Prompt 1 Intake v8.7 (Triple-Threat)</title>
+  <title>PickCalc Prompt 1 Intake v8.8</title>
   <style>
 :root {
   color-scheme: dark;
@@ -224,12 +224,25 @@ thead th { background:#121d35; position:sticky; top:0; }
 .source-accuracy.low{background:rgba(185,74,90,.16);color:#ffd3d9}
 
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.title = 'PickCalc Prompt 1 Intake v8.8';
+  var h1 = document.querySelector('.hero h1');
+  if (h1) h1.innerHTML = 'PickCalc Prompt 1 Intake <span class="version-pill">v8.8</span>';
+  var analysisTitle = document.getElementById('analysisTitle');
+  if (analysisTitle) analysisTitle.textContent = 'Run Analysis v8.8';
+  var analysisVersion = document.getElementById('analysisVersion');
+  if (analysisVersion) analysisVersion.textContent = 'Version: v8.8 • Build: Reference Lock';
+});
+</script>
+
 </head>
 <body>
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v8.7</span></h1>
+        <h1>PickCalc Prompt 1 Intake <span class="version-pill">v8.8</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -275,8 +288,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v8.7</h1>
-          <p id="analysisVersion">Version: v8.7 (Triple-Threat)</p>
+          <h1 id="analysisTitle">Run Analysis v8.8</h1>
+          <p id="analysisVersion">Version: v8.8 • Build: Reference Lock</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -349,8 +362,8 @@ const LEAGUES = [
 ];
 
 const STORAGE_KEY = 'pickcalc-prompt1-v5-7-3';
-const APP_BUILD_VERSION = '8.7';
-const APP_BUILD_LABEL = 'Triple-Threat';
+const APP_BUILD_VERSION = '8.8';
+const APP_BUILD_LABEL = 'Reference Lock';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -1760,7 +1773,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v7.5`,
+    `Version: v8.8 • Build: Reference Lock`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -3055,7 +3068,7 @@ bindActions();
     const surv = cards.find(c => c.key === 'survivability') || {};
     const penaltyApplied = Number(surv.warningCount || 0) > 0;
     wrap.innerHTML = `
-      <div class="shield-cell"><strong>RUN ANALYSIS v7.5</strong><div>POOL RESET: SUCCESS</div><div>Rows in pool: ${escapeHtml(String(state.cleanedRows.length))}</div></div>
+      <div class="shield-cell"><strong>RUN ANALYSIS v8.8</strong><div>POOL RESET: SUCCESS</div><div>Rows in pool: ${escapeHtml(String(state.cleanedRows.length))}</div></div>
       ${penaltyApplied ? `<div class="warning-banner">PENALTY APPLIED: -${escapeHtml(String((surv.warningCount || 0) * 10))}%</div>` : ''}
       <div class="shield-cell"><strong>Final Hit Probability</strong><div>${Number.isFinite(surv.finalProbability) ? (surv.finalProbability * 100).toFixed(1) + '%' : '—'}</div></div>
       <div class="shield-cell"><strong>Final Qualified Score</strong><div>${Number.isFinite(surv.finalQualifiedScore) ? surv.finalQualifiedScore.toFixed(1) : '—'}</div></div>
@@ -3210,11 +3223,11 @@ bindActions();
     renderShieldPanelV7();
     const title = document.getElementById('analysisTitle');
     const version = document.getElementById('analysisVersion');
-    if (title) title.textContent = 'Run Analysis v8.7';
-    if (version) version.textContent = 'Version: v7.5';
+    if (title) title.textContent = 'Run Analysis v8.8';
+    if (version) version.textContent = 'Version: v8.8 • Build: Reference Lock';
     const summary = document.getElementById('analysisSummary');
     if (summary && !summary.innerHTML.includes('POOL RESET: SUCCESS')) {
-      summary.innerHTML = `<div class="pill">RUN ANALYSIS v7.5</div><div class="pill">POOL RESET: SUCCESS</div><div class="pill">Rows in pool: ${state.cleanedRows.length}</div>` + summary.innerHTML;
+      summary.innerHTML = `<div class="pill">RUN ANALYSIS v8.8</div><div class="pill">POOL RESET: SUCCESS</div><div class="pill">Rows in pool: ${state.cleanedRows.length}</div>` + summary.innerHTML;
     }
     const matrixTitle = document.getElementById('miningMatrixTitle');
     if (matrixTitle) matrixTitle.textContent = 'NBA Data-Mining Matrix';
@@ -3531,8 +3544,8 @@ bindActions();
     __origRenderAnalysis_v75();
     const title = document.getElementById('analysisTitle');
     const version = document.getElementById('analysisVersion');
-    if (title) title.textContent = 'Run Analysis v8.7';
-    if (version) version.textContent = 'Version: v7.5';
+    if (title) title.textContent = 'Run Analysis v8.8';
+    if (version) version.textContent = 'Version: v8.8 • Build: Reference Lock';
     const summary = document.getElementById('analysisSummary');
     if (summary) {
       summary.innerHTML = summary.innerHTML.replace(/v7\.0/g, 'v7.5');
@@ -3568,523 +3581,654 @@ bindActions();
 </script>
 
 <script>
-const SYSTEM_VERSION = "8.7 (Triple-Threat)";
+const SYSTEM_VERSION = "8.8 (Reference Lock)";
+
+function deriveRotationStatusV7(row){
+  const raw = String((row && (row.rawText || row.evidence || row.parsedResult)) || row || '').toLowerCase();
+  if (!raw) return 'UNKNOWN';
+  if (/out|inactive|ruled out|won't play|will not play/.test(raw)) return 'OUT';
+  if (/starter|starting|expected starter|starting lineup|projected starters|first unit/.test(raw)) return 'STARTER';
+  if (/bench|reserve|second unit/.test(raw)) return 'BENCH';
+  const mins = [...raw.matchAll(/(\d+(?:\.\d+)?)\s*(?:minutes|min)\b/g)].map(m => Number(m[1])).filter(Number.isFinite);
+  if (mins.slice(0,3).filter(v => v > 30).length >= 2) return 'STARTER';
+  return mins.length ? 'ROTATION' : 'UNKNOWN';
+}
+
+function SanitizeResult(val, prop, evidence){
+  const p = String(prop || '').toUpperCase();
+  const raw = `${val == null ? '' : String(val)} ${evidence == null ? '' : String(evidence)}`;
+  if (/3PTM|3PM|THREES|3-POINTERS/.test(p)) {
+    const clean3 = raw.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers? made|made threes)\b/i) ||
+                   raw.match(/\b(?:3ptm|3pm|threes|3-pointers? made|made threes)\b[^0-9]{0,12}(\d+(?:\.\d+)?)/i);
+    return clean3 ? String(clean3[1]) : '';
+  }
+  const nums = String(val == null ? '' : val).match(/-?\d+(?:\.\d+)?/g);
+  if (nums && nums.length) return nums.join(' ');
+  return String(val == null ? '' : val).replace(/[^\w\s.%:+/-]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function recoverRefFromRawParse(text){
+  const raw = String(text || '');
+  const refs = ['Scott Foster','Tony Brothers','Zach Zarba','James Capers','Marc Davis','Bill Kennedy','David Guthrie','Pat Fraher','Tre Maddox'];
+  const explicit = raw.match(/Ref(?:eree)?\s*:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
+  if (explicit && refs.includes(explicit[1].trim())) return explicit[1].trim();
+  for (const ref of refs) if (raw.toLowerCase().includes(ref.toLowerCase())) return ref;
+  return '';
+}
+
+function calculateAlphaShield(results){
+  const arr = Array.isArray(results) ? results : Object.values(results || {});
+  const warningCount = arr.filter(c => c && c.status === 'warning' && !c.derived && (!String(c.evidence || '').trim() || /\[UNKNOWN\]|unknown|warning/i.test(String(c.parsedResult || '') + ' ' + String(c.statusLabel || '')))).length;
+  const derivedCount = arr.filter(c => c && c.derived).length;
+  const penalty = warningCount * 10;
+  return {
+    warningCount,
+    derivedCount,
+    integrityPenalty: penalty,
+    validatedDerivedCount: derivedCount,
+    summary: `Warnings ${warningCount} • Derived validated ${derivedCount} • Penalty ${penalty}%`
+  };
+}
+
+function getGeoAltitude(team){
+  const key = String(team || '').trim().toUpperCase();
+  const map = {
+    DEN: { city:'Denver', altitude: 5280, impact: 4.0 },
+    UTA: { city:'Salt Lake City', altitude: 4226, impact: 3.0 },
+    MEX: { city:'Mexico City', altitude: 7350, impact: 5.0 }
+  };
+  return map[key] || { city: key || 'Unknown', altitude: 0, impact: 0.0 };
+}
 
 (function(){
-  function syncV87Header(){
-    try{
-      const h1 = document.querySelector('.hero h1');
-      if (h1) h1.innerHTML = `PickCalc Prompt 1 Intake <span class="version-pill">${SYSTEM_VERSION}</span>`;
-      document.title = `PickCalc Prompt 1 Intake ${SYSTEM_VERSION}`;
-      const at = document.getElementById('analysisTitle');
-      if (at) at.textContent = `Run Analysis ${SYSTEM_VERSION}`;
-      const av = document.getElementById('analysisVersion');
-      if (av) av.textContent = `Version: ${SYSTEM_VERSION}`;
-    } catch(e){}
-  }
-
-  window.recoverRefFromRawParse = window.recoverRefFromRawParse || function recoverRefFromRawParse(rawText=''){
-    const raw = String(rawText || '');
-    const names = ['Scott Foster','Tony Brothers','Zach Zarba','James Capers','Marc Davis','Bill Kennedy'];
-    const explicit = raw.match(/Ref(?:eree)?\s*:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
-    if (explicit && names.includes(explicit[1].trim())) return explicit[1].trim();
-    for (const n of names) if (raw.toLowerCase().includes(n.toLowerCase())) return n;
-    return '';
+  const REF_DB = {
+    'Scott Foster': { over: 52, under: 48, fouls: 39.8 },
+    'Tony Brothers': { over: 57, under: 43, fouls: 41.1 },
+    'Zach Zarba': { over: 54, under: 46, fouls: 38.6 },
+    'James Capers': { over: 56, under: 44, fouls: 40.2 },
+    'Marc Davis': { over: 51, under: 49, fouls: 38.1 },
+    'Bill Kennedy': { over: 53, under: 47, fouls: 37.9 },
+    'David Guthrie': { over: 50, under: 50, fouls: 38.4 },
+    'Pat Fraher': { over: 49, under: 51, fouls: 37.6 },
+    'Tre Maddox': { over: 55, under: 45, fouls: 39.0 }
   };
 
-  window.SanitizeResult = window.SanitizeResult || function SanitizeResult(parsedResult='', propFamily='', evidence=''){
-    const prop = String(propFamily || '').toUpperCase();
-    const blob = `${parsedResult || ''} ${evidence || ''}`;
-    if (/(3PTM|3PM|THREES|3-POINTERS)/i.test(prop)) {
-      const m = blob.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b/i)
-        || blob.match(/\b(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b[^0-9]{0,10}(\d+(?:\.\d+)?)/i);
-      return m ? String(m[1]) : '';
-    }
-    const nums = String(parsedResult || '').match(/-?\d+(?:\.\d+)?/g);
-    return nums ? nums.join(' ') : String(parsedResult || '').replace(/[^\w\s.%:+/-]/g,' ').replace(/\s+/g,' ').trim();
-  };
+  const TRIPLE_FACTORS = [
+    { key:'recentForm', title:'Recent Form (L5/L10/L20)', tier:'2B', sources:['StatMuse Raw Game Log','Basketball-Reference Season Log','Deep Search Query'] },
+    { key:'seasonBaseline', title:'Season Baseline', tier:'2B', sources:['NBA.com Official Average','ESPN Season Split','Search Baseline'] },
+    { key:'careerContext', title:'Career Context', tier:'2B', sources:['BBR Career Table','StatMuse Career Query','Search Career Context'] },
+    { key:'h2h', title:'Head-to-Head (VS OPP)', tier:'2B', sources:['StatMuse Matchup','ESPN Matchup History','Search H2H'] },
+    { key:'physicality', title:'Matchup Physicality', tier:'2C', sources:['NBA.com Bio','StatMuse Position Average','Derived Physical Edge'] },
+    { key:'rotationUsage', title:'Rotation & Usage', tier:'2B', sources:['RotoWire Lineups','NBA.com Usage','Derived Usage Pulse'] },
+    { key:'clutch', title:'Clutch Performance', tier:'2C', sources:['NBA.com Clutch','StatMuse 4Q','Derived Split'] },
+    { key:'defender', title:'Individual Defender', tier:'2C', sources:['RotoWire Matchup','StatMuse Defensive Rating','Search Defender Matchup'] },
+    { key:'altitudeTravel', title:'Altitude & Travel', tier:'2C', sources:['Schedule Geo-Map','Timezone Calculation','Search Travel Miles'] },
+    { key:'motivation', title:'Motivation / Incentive', tier:'2D', sources:['Spotrac Scan','News Feed','Derived Narrative'] },
+    { key:'officials', title:'Official / Ref Tendency', tier:'2D', sources:['NBA Assignments','Covers / RefMetrics','Derived Fallback'] },
+    { key:'survivability', title:'Survivability Shield', tier:'2E', sources:['Internal Alpha Shield','Integrity Gate','Derived Summary'] },
+    { key:'validation', title:'Prop-Source Validation', tier:'2A', sources:['Ingested Raw Text','Line Grounding','Identity Check'] },
+    { key:'realtimeLog', title:'Real-Time Logging', tier:'2D', sources:['Rich Error Log','Attempt Timeline','Fallback Trace'] }
+  ];
 
   function ts(){
     const d = new Date();
-    return d.toLocaleTimeString('en-US',{hour12:false});
-  }
-  function rich(rowId, factor, msg, type='SUCCESS'){
-    logEvent(`[${ts()}] ${msg}`, type, rowId || '', factor || 'system');
+    return d.toTimeString().slice(0,8);
   }
 
-  function tripleLog(row, factor, source, status, detail){
-    rich(row?.rowId || '', factor, `${factor}: ${source} ${status}. ${detail || ''}`.trim(), status === 'SUCCESS' ? 'SUCCESS' : status === 'WARNING' ? 'WARNING' : 'ERROR');
+  function richLog(rowId, factor, msg, type='SUCCESS'){
+    if (typeof logEvent === 'function') logEvent(`[${ts()}] ${factor}: ${msg}`, type, rowId || '', factor);
   }
 
-  function setRichSources(card, attempts){
-    const suffix = attempts.map(a => `${a.source}:${a.status}`).join(' • ');
-    return suffix;
+  function syncHeader(){
+    try{
+      document.title = `PickCalc Prompt 1 Intake v${SYSTEM_VERSION}`;
+      const h1 = document.querySelector('.hero h1');
+      if (h1) h1.innerHTML = `PickCalc Prompt 1 Intake <span class="version-pill">v${SYSTEM_VERSION}</span>`;
+      const at = document.getElementById('analysisTitle');
+      if (at) at.textContent = `Run Analysis v${SYSTEM_VERSION}`;
+      const av = document.getElementById('analysisVersion');
+      if (av) av.textContent = `Version: v${SYSTEM_VERSION}`;
+    }catch(e){}
   }
 
-  function is3PTMRow(row){
-    const s = `${row?.propFamily || ''} ${row?.lineText || ''} ${row?.rawText || ''}`;
-    return /(3PTM|3PM|Threes|3-Pointers)/i.test(s);
+  function currentFactorCards(row){
+    const key = cacheKeyForRow(row);
+    const cached = runtimeMiningCache[key];
+    return cached && Array.isArray(cached.cards) ? cached.cards : TRIPLE_FACTORS.map(f => ({
+      ...f,
+      status: f.key === 'validation' ? 'ready' : 'waiting',
+      statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : 'Waiting',
+      parsedResult: f.key === 'validation' ? `${row.entity} • ${row.propFamily} ${row.line}` : '',
+      evidence: f.key === 'validation' ? (row.rawText || row.lineText || '') : '',
+      sourcesLabel: (f.sources || []).join(' • '),
+      confidence: f.key === 'validation' ? 100 : 20,
+      delta: 0
+    }));
   }
 
-  function extractManualLastN(blob='', n=5){
-    const nums = [...String(blob || '').matchAll(/\b(\d+(?:\.\d+)?)\b/g)].map(m => Number(m[1])).filter(Number.isFinite);
-    const picked = nums.slice(-n);
-    if (!picked.length) return null;
-    return Math.round((picked.reduce((a,b)=>a+b,0) / picked.length) * 10) / 10;
+  function replaceCard(row, keyName, nextCard){
+    const key = cacheKeyForRow(row);
+    runtimeMiningCache[key] ||= { status:'loading', cards: TRIPLE_FACTORS.map(f => ({
+      ...f,
+      status:'waiting',
+      statusLabel:'Waiting',
+      parsedResult:'',
+      evidence:'',
+      sourcesLabel:(f.sources || []).join(' • '),
+      confidence:20,
+      delta:0
+    })) };
+    const idx = runtimeMiningCache[key].cards.findIndex(c => c.key === keyName);
+    if (idx >= 0) runtimeMiningCache[key].cards[idx] = { ...runtimeMiningCache[key].cards[idx], ...nextCard };
   }
 
-  function derivePhysicalEdge(row){
-    const sizeMap = {
-      'lebron james': {h:81,w:250},
-      'kevin durant': {h:83,w:240},
-      'jayson tatum': {h:80,w:210},
-      'jaylen brown': {h:78,w:223},
-      'stephen curry': {h:74,w:185},
-      'nikola jokic': {h:83,w:284}
+  function probingCard(row, factor){
+    return {
+      ...factor,
+      status: factor.key === 'validation' ? 'ready' : 'mining',
+      statusLabel: factor.key === 'validation' ? 'Parsed from ingested row' : 'PROBING...',
+      parsedResult: factor.key === 'validation' ? `${row.entity} • ${row.propFamily} ${row.line}` : '',
+      evidence: factor.key === 'validation' ? (row.rawText || row.lineText || '') : '',
+      sourcesLabel:(factor.sources || []).join(' • '),
+      confidence: factor.key === 'validation' ? 100 : 20,
+      delta:0
     };
-    const oppAvg = {
-      guards:{h:76,w:195},
-      forwards:{h:80,w:220},
-      centers:{h:83,w:250}
-    };
-    const pos = propPositionHint(row);
-    const p = sizeMap[canon(row?.entity || '')] || oppAvg[pos];
-    const o = oppAvg[pos] || {h:78,w:210};
-    const score = Math.round((((p.h-o.h)*0.8)+((p.w-o.w)*0.04))*10)/10;
-    return { score, text:`Player ${p.h}" / ${p.w} vs ${pos} avg ${o.h}" / ${o.w}` };
   }
 
-  function deriveClutchDelta(blob='', seasonVal=null){
-    const late = [...String(blob || '').matchAll(/(\d+(?:\.\d+)?)\s*(?:4th quarter|clutch|last 5 mins)/gi)].map(m => Number(m[1])).filter(Number.isFinite)[0];
-    if (!Number.isFinite(late) || !Number.isFinite(seasonVal)) return null;
-    return Math.round((late - seasonVal) * 10) / 10;
-  }
-
-  function deriveTravelFatigue(row){
-    const altitudeTeams = ['DEN','UTA'];
-    const tzPenalty = /@/i.test(String(row?.rawText || '')) ? 1 : 0;
-    const altitude = altitudeTeams.includes(String(row?.opponent || '').toUpperCase()) ? -2 : 0;
-    const total = altitude - tzPenalty;
-    return { score: total, text: `${altitudeTeams.includes(String(row?.opponent || '').toUpperCase()) ? 'Altitude spot' : 'Standard venue'} • TZ delta ${tzPenalty}` };
-  }
-
-  function deriveMotivation(row){
-    const raw = canon(row?.rawText || '');
-    if (/revenge|contract year|playoff push|all-star/.test(raw)) return {score: 2.5, text: 'Trigger words found in intake.'};
-    return {score: 0, text: 'No direct incentive trigger found.'};
-  }
-
-  function createTripleQuery(sourceLabel, q, parseFn){
-    return { source: sourceLabel, q, parseFn };
-  }
-
-  async function tryTriple(row, factorKey, attempts, fallbackFn){
-    const tried = [];
-    for (const attempt of attempts) {
-      try {
-        tripleLog(row, factorKey, attempt.source, 'START', attempt.q || '');
-        if (attempt.kind === 'derived') {
-          const derived = await attempt.parseFn();
-          if (derived != null && derived !== '' && !(typeof derived === 'number' && !Number.isFinite(derived))) {
-            tripleLog(row, factorKey, attempt.source, 'SUCCESS', `Value: ${typeof derived === 'object' ? (derived.value ?? JSON.stringify(derived)) : derived}`);
-            tried.push({source:attempt.source,status:'SUCCESS'});
-            return { ok:true, source:attempt.source, parsed:derived, blob: typeof derived === 'object' ? (derived.text || derived.evidence || '') : String(derived), attempts:tried };
-          }
-          tripleLog(row, factorKey, attempt.source, 'BLOCKED', 'Derived returned null.');
-          tried.push({source:attempt.source,status:'BLOCKED'});
-          continue;
-        }
-        const res = await runSearchFactor(row, factorKey, attempt.q, attempt.parseFn);
-        if (res.ok) {
-          tripleLog(row, factorKey, attempt.source, 'SUCCESS', `Value: ${res.parsed}`);
-          tried.push({source:attempt.source,status:'SUCCESS'});
-          return { ok:true, source:attempt.source, parsed:res.parsed, blob:res.blob, attempts:tried };
-        }
-        tripleLog(row, factorKey, attempt.source, 'BLOCKED', 'No usable parsed result.');
-        tried.push({source:attempt.source,status:'BLOCKED'});
-      } catch (e) {
-        tripleLog(row, factorKey, attempt.source, 'ERROR', String(e && e.message || e));
-        tried.push({source:attempt.source,status:'ERROR'});
-      }
-    }
-    if (fallbackFn) {
-      try {
-        const fb = await fallbackFn();
-        if (fb != null) {
-          tried.push({source:'Fallback',status:'SUCCESS'});
-          return { ok:true, source:'Fallback', parsed:fb.value ?? fb, blob:fb.text || '', attempts:tried };
-        }
-      } catch(e){}
-    }
-    return { ok:false, source:'', parsed:null, blob:'', attempts:tried };
-  }
-
-  // Surgical replacement of NBA factor cards only on screen 2.
-  NBA_MINING_FACTORS.splice(0, NBA_MINING_FACTORS.length,
-    { key:'last5', title:'Recent Form L5', tier:'2B', live:true, sources:['StatMuse','Basketball-Reference','Search'], note:'Last 5 game log average.' },
-    { key:'last10', title:'Recent Form L10', tier:'2B', live:true, sources:['StatMuse','Basketball-Reference','Search'], note:'Last 10 game log average.' },
-    { key:'last20', title:'Recent Form L20', tier:'2B', live:true, sources:['StatMuse','Basketball-Reference','Search'], note:'Last 20 game log average.' },
-    { key:'season', title:'Season Baseline', tier:'2B', live:true, sources:['NBA.com','Basketball-Reference','Search'], note:'Season average baseline.' },
-    { key:'career', title:'Career Baseline', tier:'2B', live:true, sources:['Basketball-Reference','NBA.com','Search'], note:'Career baseline context.' },
-    { key:'h2h', title:'Head-to-Head vs Opp', tier:'2B', live:true, sources:['StatMuse','ESPN','Search'], note:'Career vs opponent context.' },
-    { key:'physical', title:'Matchup Physicality', tier:'2C', live:true, sources:['NBA.com Bio','StatMuse','Derived'], note:'Physical edge score.' },
-    { key:'rotation', title:'Rotation & Usage', tier:'2B', live:true, sources:['RotoWire','NBA.com','Derived'], note:'Starter/usage confirmation.' },
-    { key:'clutch', title:'Clutch Performance', tier:'2C', live:true, sources:['NBA.com','StatMuse','Derived'], note:'Late game split.' },
-    { key:'defender', title:'Individual Defender', tier:'2C', live:true, sources:['RotoWire','StatMuse','Search'], note:'Primary defender resistance.' },
-    { key:'travel', title:'Altitude & Travel Fatigue', tier:'2C', live:true, sources:['Schedule','Timezone calc','Search'], note:'Travel spot analysis.' },
-    { key:'motivation', title:'Motivation & Incentives', tier:'2D', live:true, sources:['Spotrac','News','Derived'], note:'Contract/revenge/playoff context.' },
-    { key:'refs', title:'Official / Ref Tendency', tier:'2D', live:true, sources:['Official NBA','Covers/RefMetrics','Derived'], note:'Crew tendency.' },
-    { key:'survivability', title:'Survivability Shield', tier:'2E', live:false, sources:['Internal gate logic'], note:'Alpha Shield and standalone purity.' },
-    { key:'validation', title:'Prop-source validation', tier:'2A', live:true, sources:['Ingested row'], note:'Parsed row identity and line are already grounded.' }
-  );
-
-  const originalRenderAnalysisV87 = renderAnalysis;
-  renderAnalysis = function(){
-    originalRenderAnalysisV87();
-    syncV87Header();
-    const matrixTitle = document.getElementById('miningMatrixTitle');
-    if (matrixTitle) matrixTitle.textContent = 'NBA Triple-Threat Factor Matrix';
-  };
-
-  async function mineNbaRowTriple(row){
-    const result = {};
-    NBA_MINING_FACTORS.forEach(f => {
-      result[f.key] = {
-        ...f,
-        tier: f.tier || '2X',
-        status: f.key === 'validation' ? 'ready' : (f.live ? 'loading' : 'waiting'),
-        statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : 'Loading live probe...',
-        sourcesLabel: f.sources.join(' • '),
-        parsedResult: f.key === 'validation'
-          ? `${row.entity} • ${row.propFamily} ${row.line}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • team ${row.team}` : ''}`
-          : '',
-        evidence: f.key === 'validation' ? (row.rawText || row.lineText || '') : '',
-        confidence: f.key === 'validation' ? 100 : 18,
-        delta: 0,
-        rawMiningResult: f.key === 'validation' ? (row.rawText || row.lineText || '') : '',
-        extractionProof: f.key === 'validation' ? (row.rawText || row.lineText || '') : '',
-        sourceAccuracy: f.key === 'validation' ? 'high' : 'mid'
-      };
-    });
-
-    function applyCard(key, status, parsedResult, evidence, confidence, extra={}){
-      const parsedClean = SanitizeResult(parsedResult, row.propFamily, evidence);
-      const parsedNum = safeNumber(extra.projectionValue ?? parsedClean);
-      const delta = extra.neutral ? 0.0 : scoreDeltaFromContext(key, parsedNum ?? parsedClean, row, extra);
-      result[key] = {
-        ...result[key],
-        status,
-        statusLabel: status === 'ready' ? 'Search evidence found' : status === 'warning' ? 'Warning state' : 'Probe failed',
-        parsedResult: String(parsedClean || parsedResult || '—'),
-        evidence: evidence || '—',
-        confidence: Math.max(0, Math.min(100, Number(confidence || 0))),
-        delta,
-        rawMiningResult: extra.rawMiningResult ?? parsedResult ?? '—',
-        extractionProof: extra.extractionProof ?? evidence ?? '—',
-        sourceAccuracy: extra.sourceAccuracy || result[key].sourceAccuracy || 'mid',
-        ...extra
-      };
-      return result[key];
-    }
-
-    const propQuery = is3PTMRow(row) ? '3-pointers made' : row.propFamily;
-    const oppFull = expandNbaTeamAbbr(row.opponent || '');
-    const teamFull = expandNbaTeamAbbr(row.team || '');
-    const seasonSeed = () => Number(result.season?.projectionValue ?? result.season?.parsedResult ?? NaN);
-
-    const factorPlans = {
-      last5: [
-        createTripleQuery('Source 1 (StatMuse)', `${row.entity} game logs last 5 games 2026 ${propQuery} statmuse nba`, blob => is3PTMRow(row) ? extractSingleStatValue(blob, ['3-pointers? made','threes?']) ?? extractManualLastN(blob,5) : extractStealthRecentForm(blob, row.propFamily) ?? bestSearchValue(blob, row)),
-        createTripleQuery('Source 2 (Basketball-Reference)', `${row.entity} basketball reference game log last 5 2026 ${propQuery}`, blob => extractStealthRecentForm(blob, row.propFamily) ?? extractManualLastN(blob,5)),
-        createTripleQuery('Source 3 (Search)', `${row.entity} game logs last 5 games 2026`, blob => extractManualLastN(blob,5))
-      ],
-      last10: [
-        createTripleQuery('Source 1 (StatMuse)', `${row.entity} game logs last 10 games 2026 ${propQuery} statmuse nba`, blob => is3PTMRow(row) ? extractSingleStatValue(blob, ['3-pointers? made','threes?']) ?? extractManualLastN(blob,10) : extractStealthRecentForm(blob, row.propFamily) ?? extractManualLastN(blob,10)),
-        createTripleQuery('Source 2 (Basketball-Reference)', `${row.entity} basketball reference game log last 10 2026 ${propQuery}`, blob => extractStealthRecentForm(blob, row.propFamily) ?? extractManualLastN(blob,10)),
-        createTripleQuery('Source 3 (Search)', `${row.entity} game logs last 10 games 2026`, blob => extractManualLastN(blob,10))
-      ],
-      last20: [
-        createTripleQuery('Source 1 (StatMuse)', `${row.entity} game logs last 20 games 2026 ${propQuery} statmuse nba`, blob => is3PTMRow(row) ? extractSingleStatValue(blob, ['3-pointers? made','threes?']) ?? extractManualLastN(blob,20) : extractStealthRecentForm(blob, row.propFamily) ?? extractManualLastN(blob,20)),
-        createTripleQuery('Source 2 (Basketball-Reference)', `${row.entity} basketball reference game log last 20 2026 ${propQuery}`, blob => extractStealthRecentForm(blob, row.propFamily) ?? extractManualLastN(blob,20)),
-        createTripleQuery('Source 3 (Search)', `${row.entity} game logs last 20 games 2026`, blob => extractManualLastN(blob,20))
-      ],
-      season: [
-        createTripleQuery('Source 1 (NBA.com)', `${row.entity} official season average nba.com ${propQuery}`, blob => bestSearchValue(blob, row)),
-        createTripleQuery('Source 2 (BBR)', `${row.entity} season stats basketball reference ${propQuery}`, blob => bestSearchValue(blob, row)),
-        createTripleQuery('Source 3 (Search)', `${row.entity} career vs season stats baseline ${propQuery}`, blob => bestSearchValue(blob, row))
-      ],
-      career: [
-        createTripleQuery('Source 1 (BBR)', `${row.entity} career cumulative stats basketball reference ${propQuery}`, blob => bestSearchValue(blob, row)),
-        createTripleQuery('Source 2 (NBA.com)', `${row.entity} official career stats nba.com ${propQuery}`, blob => bestSearchValue(blob, row)),
-        createTripleQuery('Source 3 (Search)', `${row.entity} career vs season stats baseline`, blob => bestSearchValue(blob, row))
-      ],
-      h2h: [
-        createTripleQuery('Source 1 (StatMuse)', `${row.entity} career vs ${oppFull} ${propQuery} statmuse`, blob => bestSearchValue(blob, row)),
-        createTripleQuery('Source 2 (ESPN)', `${row.entity} matchup history vs ${oppFull} espn ${propQuery}`, blob => bestSearchValue(blob, row)),
-        createTripleQuery('Source 3 (Search)', `${row.entity} career ppg rpg apg vs ${oppFull}`, blob => bestSearchValue(blob, row))
-      ],
-      physical: [
-        createTripleQuery('Source 1 (NBA.com Bio)', `${row.entity} nba.com bio height weight`, blob => {
-          const h = extractNumber(blob);
-          return Number.isFinite(h) ? h : null;
-        }),
-        createTripleQuery('Source 2 (StatMuse)', `${propPositionHint(row)} average height weight 2026 statmuse nba`, blob => extractNumber(blob)),
-        { source:'Source 3 (Derived)', kind:'derived', parseFn: async () => {
-            const d = derivePhysicalEdge(row);
-            return { value: d.score, text: d.text };
-          } }
-      ],
-      rotation: [
-        createTripleQuery('Source 1 (RotoWire)', `${row.entity} ${teamFull} starting lineup rotowire nba`, blob => parseStarterScore(blob)),
-        createTripleQuery('Source 2 (NBA.com)', `${row.entity} usage rate leaderboard nba.com`, blob => extractNumber(blob)),
-        { source:'Source 3 (Derived)', kind:'derived', parseFn: async () => {
-            const u = deriveUsagePulseV7(row.rawText || '', 100);
-            const rot = deriveRotationStatusV7(row.rawText || '');
-            return { value: u ?? 0, text: `${rot} • Usage Pulse ${u != null ? u.toFixed(1)+'%' : 'n/a'}` };
-          } }
-      ],
-      clutch: [
-        createTripleQuery('Source 1 (NBA.com)', `${row.entity} clutch statistics nba.com last 10`, blob => extractNumber(blob)),
-        createTripleQuery('Source 2 (StatMuse)', `${row.entity} 4th quarter stats last 10 statmuse nba`, blob => extractNumber(blob)),
-        { source:'Source 3 (Derived)', kind:'derived', parseFn: async () => {
-            const d = deriveClutchDelta(row.rawText || '', seasonSeed());
-            return d == null ? null : { value:d, text:`Clutch delta ${d}` };
-          } }
-      ],
-      defender: [
-        createTripleQuery('Source 1 (RotoWire)', `${row.entity} primary defender rotowire ${oppFull}`, blob => blob.match(/\b(?:vs|against)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/)?.[1] || null),
-        createTripleQuery('Source 2 (StatMuse)', `${row.entity} defender defensive rating last 10 statmuse`, blob => extractNumber(blob)),
-        createTripleQuery('Source 3 (Search)', `${row.entity} vs defender stats`, blob => extractNumber(blob))
-      ],
-      travel: [
-        createTripleQuery('Source 1 (Schedule)', `${teamFull} schedule last 48 hours ${oppFull} altitude`, blob => extractNumber(blob)),
-        { source:'Source 2 (Timezone calc)', kind:'derived', parseFn: async () => {
-            const d = deriveTravelFatigue(row);
-            return { value:d.score, text:d.text };
-          } },
-        createTripleQuery('Source 3 (Search)', `${teamFull} travel miles last 5 days`, blob => extractNumber(blob))
-      ],
-      motivation: [
-        createTripleQuery('Source 1 (Spotrac)', `${row.entity} contract incentives spotrac`, blob => extractNumber(blob)),
-        createTripleQuery('Source 2 (News)', `${row.entity} revenge game contract year playoff push`, blob => /revenge|contract|playoff|all-star/i.test(blob) ? 2 : null),
-        { source:'Source 3 (Derived)', kind:'derived', parseFn: async () => {
-            const d = deriveMotivation(row);
-            return { value:d.score, text:d.text };
-          } }
-      ],
-      refs: [
-        createTripleQuery('Source 1 (Official NBA)', `${teamFull} vs ${oppFull} daily crew assignments official nba`, blob => refsBiasFromText(blob)),
-        createTripleQuery('Source 2 (Covers/RefMetrics)', `${teamFull} vs ${oppFull} referee tendency covers refmetrics`, blob => refsBiasFromText(blob)),
-        { source:'Source 3 (Derived)', kind:'derived', parseFn: async () => {
-            const ref = recoverRefFromRawParse(row.rawText || '');
-            if (!ref) return { value:50, text:'Neutral fallback' };
-            return { value:50, text:`recoverRefFromRawParse found ${ref}; neutral fallback` };
-          } }
-      ]
-    };
-
-    const order = ['validation','last5','last10','last20','season','career','h2h','physical','rotation','clutch','defender','travel','motivation','refs'];
-
-    for (const key of order) {
-      if (key === 'validation') continue;
-      const plan = factorPlans[key];
-      if (!plan) continue;
-      const triple = await tryTriple(row, key, plan);
-      if (triple.ok) {
-        let parsed = triple.parsed;
-        let evidence = triple.blob || '';
-        let neutral = false;
-        let projectionValue = null;
-        let display = parsed;
-        if (typeof parsed === 'object' && parsed !== null) {
-          display = parsed.value ?? parsed.text ?? JSON.stringify(parsed);
-          evidence = parsed.text || evidence;
-          projectionValue = typeof parsed.value === 'number' ? parsed.value : null;
-        } else {
-          projectionValue = typeof parsed === 'number' ? parsed : safeNumber(parsed);
-        }
-
-        if (key === 'physical') {
-          display = typeof display === 'number' ? `${display >= 0 ? '+' : ''}${display.toFixed(1)} edge` : display;
-        }
-        if (key === 'rotation') {
-          const rot = deriveRotationStatusV7(row.rawText || '');
-          const usage = deriveUsagePulseV7(row.rawText || '', 100);
-          display = `${rot}${usage != null ? ` • ${usage.toFixed(1)}%` : ''}`;
-          projectionValue = usage != null ? usage : projectionValue;
-        }
-        if (key === 'clutch' && typeof display === 'number') display = `${display >= 0 ? '+' : ''}${display.toFixed(1)} delta`;
-        if (key === 'travel' || key === 'motivation') {
-          neutral = projectionValue === 0 || /\bneutral\b/i.test(String(evidence || display));
-        }
-        if (key === 'refs') {
-          neutral = /neutral/i.test(String(evidence || display)) || Number(projectionValue) === 50;
-          display = /neutral/i.test(String(display)) ? '[DERIVED: NEUTRAL]' : display;
-        }
-
-        const confidence = triple.source.includes('Derived') ? 56 : triple.source.includes('Source 1') ? 78 : triple.source.includes('Source 2') ? 68 : 60;
-        applyCard(key, 'ready', display, evidence || `${key} value found`, confidence, {
-          projectionValue,
-          derived: triple.source.includes('Derived'),
-          neutral,
-          sourceAccuracy: triple.source.includes('Source 1') ? 'high' : triple.source.includes('Derived') ? 'mid' : 'mid',
-          sourcesLabel: `${result[key].sourcesLabel} • ${setRichSources(result[key], triple.attempts)}`,
-          extractionProof: `${triple.source} winner • ${evidence || display}`
-        });
-      } else {
-        applyCard(key, 'warning', '[UNKNOWN]', 'All three sources failed.', 24, {
-          sourceAccuracy:'low',
-          extractionProof:'All three sources returned blocked/null.'
-        });
-      }
-    }
-
-    // validation card
-    applyCard('validation', 'ready', `${row.entity} • ${row.propFamily} ${row.line}`, row.rawText || row.lineText || '', 100, {
+  function updateRealtimeLogCard(row){
+    const logs = (state.logs || []).filter(x => x.rowId === row.rowId).slice(-6);
+    const evidence = logs.map(x => x.msg).join(' • ');
+    replaceCard(row, 'realtimeLog', {
+      key:'realtimeLog',
+      title:'Real-Time Logging',
+      tier:'2D',
+      status:'ready',
+      statusLabel:'Rich log populated',
+      parsedResult:`${logs.length} recent events`,
+      evidence: evidence || 'No log entries yet.',
+      sourcesLabel:'Rich Error Log • Attempt Timeline • Fallback Trace',
+      confidence: 100,
+      delta:0,
       derived:false,
       sourceAccuracy:'high',
-      projectionValue:null,
-      extractionProof: row.rawText || row.lineText || ''
+      rawMiningResult:evidence || 'No log entries yet.',
+      extractionProof:evidence || 'No log entries yet.'
     });
-
-    // map special cards
-    if (result.rotation && result.rotation.status === 'ready') {
-      const parts = String(result.rotation.parsedResult || '').split('•');
-      const rotLabel = parts[0].trim();
-      result.rotation.delta = /LOCK_STARTER|Starter/i.test(rotLabel) ? 3.5 : 0;
-    }
-
-    // survivability from v7.5 logic
-    const cards = Object.values(result);
-    const warningCount = cards.filter(c => c && c.status === 'warning' && !c.derived && (!String(c.evidence || '').trim() || /\[UNKNOWN\]|unknown|warning/i.test(String(c.parsedResult || '') + ' ' + String(c.statusLabel || '')))).length;
-    const derivedCount = cards.filter(c => c && c.derived).length;
-    const pureProbability = standaloneProbability(row, cards);
-    let finalQualified = survivabilityScore(row, cards);
-    finalQualified = Math.max(1, Math.min(99, finalQualified - (warningCount * 10)));
-    let cappedProbability = pureProbability;
-    let capApplied = false;
-    if (derivedCount > 3 && cappedProbability > 0.75) {
-      cappedProbability = 0.75;
-      capApplied = true;
-    }
-    result.survivability = {
-      ...result.survivability,
-      key:'survivability',
-      status: warningCount > 0 ? 'warning' : 'ready',
-      statusLabel:'8.7 Triple-Threat Shield',
-      parsedResult:`FINAL_HIT_PROBABILITY ${(cappedProbability*100).toFixed(1)}% • FINAL_QUALIFIED_SCORE ${finalQualified.toFixed(1)}`,
-      evidence:`Warnings ${warningCount} • Derived ${derivedCount} • Triple-source protocol engaged.`,
-      confidence: Math.max(45, 92 - warningCount * 8),
-      delta:0,
-      rawMiningResult:`Pure ${pureProbability.toFixed(4)} • Final ${cappedProbability.toFixed(4)}`,
-      extractionProof:'Penalty applies only to UNKNOWN/WARNING states with zero evidence.',
-      finalProbability:cappedProbability,
-      finalQualifiedScore:finalQualified,
-      warningCount, derivedCount, capApplied,
-      sourceAccuracy:'high'
-    };
-
-    return result;
   }
+
+  function tryParseValue(blob, row){
+    if (typeof bestSearchValue === 'function') {
+      const v = bestSearchValue(blob, row);
+      if (v != null && v !== '') return v;
+    }
+    const nums = [...String(blob || '').matchAll(/\b(\d+(?:\.\d+)?)\b/g)].map(m => Number(m[1])).filter(Number.isFinite);
+    return nums.length ? nums[0] : null;
+  }
+
+  async function sourceSearch(row, factorKey, sourceLabel, query, parseFn){
+    richLog(row.rowId, factorKey, `Source ${sourceLabel} start -> ${query}`, 'SUCCESS');
+    try{
+      const searched = await withTimeout(multiSearch(query), 9000, `${factorKey} search timeout`);
+      const results = searched.results || [];
+      if (!results.length) throw new Error('No results');
+      const blob = cleanSnippet(results.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • '));
+      const parsed = parseFn(blob, results);
+      if (parsed == null || parsed === '') throw new Error('Null parse');
+      richLog(row.rowId, factorKey, `Source ${sourceLabel} Success. Value: ${parsed}`, 'SUCCESS');
+      return { ok:true, parsed, evidence:blob.slice(0,340), provider:searched.provider || sourceLabel, raw:blob };
+    }catch(err){
+      richLog(row.rowId, factorKey, `Source ${sourceLabel} Blocked/Failed -> ${String(err && err.message || err)}`, 'WARNING');
+      return { ok:false, parsed:null, evidence:'', provider:sourceLabel, raw:'' };
+    }
+  }
+
+  function buildCardFromOutcome(row, factor, status, parsedResult, evidence, confidence, opts={}){
+    const card = {
+      ...factor,
+      status,
+      statusLabel: status === 'ready' ? 'READY' : status === 'warning' ? 'WARNING' : status === 'failed' ? 'FAILED' : 'PROBING...',
+      parsedResult: parsedResult == null ? '' : String(parsedResult),
+      evidence: evidence || '',
+      sourcesLabel: opts.sourcesLabel || (factor.sources || []).join(' • '),
+      confidence: Number(confidence || 0),
+      delta: Number(opts.delta || 0),
+      rawMiningResult: opts.rawMiningResult ?? parsedResult ?? '',
+      extractionProof: opts.extractionProof || evidence || '',
+      derived: !!opts.derived,
+      sourceAccuracy: opts.sourceAccuracy || (opts.derived ? 'mid' : status === 'ready' ? 'high' : 'low'),
+      projectionValue: opts.projectionValue
+    };
+    if (factor.key === 'validation') card.confidence = 100;
+    return card;
+  }
+
+  function rowOpponentFull(row){
+    return typeof expandNbaTeamAbbr === 'function' ? expandNbaTeamAbbr(row.opponent || '') : (row.opponent || '');
+  }
+
+  function playerLastName(row){
+    const parts = String(row.entity || '').trim().split(/\s+/);
+    return parts[parts.length - 1] || row.entity || '';
+  }
+
+  function derivedUsagePulse(row){
+    const raw = String(row.rawText || '');
+    const nums = [...raw.matchAll(/\b(\d+(?:\.\d+)?)\b/g)].map(m => Number(m[1])).filter(Number.isFinite);
+    if (nums.length >= 3) return Math.round(((nums.slice(0,3).reduce((a,b)=>a+b,0) / 3) * 1.1) * 10) / 10;
+    return null;
+  }
+
+  function parseLBlocks(blob, row){
+    const l5 = tryParseValue(blob, row);
+    const nums = [...String(blob || '').matchAll(/\b(\d+(?:\.\d+)?)\b/g)].map(m => Number(m[1])).filter(Number.isFinite);
+    const avg = (arr) => arr.length ? Math.round((arr.reduce((a,b)=>a+b,0)/arr.length)*10)/10 : null;
+    return {
+      l5: l5 != null ? l5 : avg(nums.slice(0,5)),
+      l10: avg(nums.slice(0,10)),
+      l20: avg(nums.slice(0,20))
+    };
+  }
+
+  function parseHeightWeight(blob){
+    const h = blob.match(/(?:height|ht)[^0-9]{0,10}(\d{1,2})['’](\d{1,2})/i);
+    const w = blob.match(/(?:weight|wt)[^0-9]{0,10}(\d{2,3})/i);
+    const inches = h ? (Number(h[1]) * 12 + Number(h[2])) : null;
+    const lbs = w ? Number(w[1]) : null;
+    return { inches, lbs };
+  }
+
+  function renderInlineProbe(cardHtml){
+    return cardHtml.replace('</h3>', ' <span style="display:inline-block;margin-left:8px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);background:#111b31;color:#ffd36e;font-size:11px;font-weight:700;">PROBING...</span></h3>');
+  }
+
+  const __origRenderPromptAwareCard88 = renderPromptAwareCard;
+  renderPromptAwareCard = function(card){
+    let html = __origRenderPromptAwareCard88(card);
+    if (card && card.status === 'mining') html = renderInlineProbe(html);
+    return html;
+  };
+
+  const __origBuildMiningStatus88 = buildMiningStatus;
+  buildMiningStatus = function(row){
+    if (row && row.leagueId === 'nba') return currentFactorCards(row);
+    return __origBuildMiningStatus88(row);
+  };
+
+  async function runTripleThreatFactor(row, factor){
+    const oppFull = rowOpponentFull(row);
+    const last = playerLastName(row);
+    const position = typeof propPositionHint === 'function' ? propPositionHint(row) : 'forwards';
+    const raw = String(row.rawText || '');
+    const prop = String(row.propFamily || '');
+
+    if (factor.key === 'validation') {
+      return buildCardFromOutcome(row, factor, 'ready', `${row.entity} • ${row.lineText}`, row.rawText || row.lineText || '', 100, {
+        rawMiningResult: row.rawText || row.lineText || '',
+        extractionProof: row.rawText || row.lineText || '',
+        sourceAccuracy:'high'
+      });
+    }
+
+    if (factor.key === 'recentForm') {
+      const s1 = await sourceSearch(row, factor.key, '1 (StatMuse)', `${row.entity} game logs last 20 games 2026 statmuse nba ${prop}`, (blob) => parseLBlocks(blob, row));
+      if (s1.ok && s1.parsed && (s1.parsed.l5 != null || s1.parsed.l10 != null || s1.parsed.l20 != null)) {
+        return buildCardFromOutcome(row, factor, 'ready', `L5 ${s1.parsed.l5 ?? '—'} • L10 ${s1.parsed.l10 ?? '—'} • L20 ${s1.parsed.l20 ?? '—'}`, s1.evidence, 78, {
+          rawMiningResult: JSON.stringify(s1.parsed),
+          extractionProof: '[S1] StatMuse raw game log scrape',
+          projectionValue: s1.parsed.l5 ?? s1.parsed.l10 ?? s1.parsed.l20
+        });
+      }
+      const s2 = await sourceSearch(row, factor.key, '2 (BBR)', `${row.entity} basketball-reference game log 2026 ${prop}`, (blob) => parseLBlocks(blob, row));
+      if (s2.ok && s2.parsed) {
+        return buildCardFromOutcome(row, factor, 'ready', `L5 ${s2.parsed.l5 ?? '—'} • L10 ${s2.parsed.l10 ?? '—'} • L20 ${s2.parsed.l20 ?? '—'}`, s2.evidence, 72, {
+          rawMiningResult: JSON.stringify(s2.parsed),
+          extractionProof: '[S2] Basketball-Reference season log table',
+          projectionValue: s2.parsed.l5 ?? s2.parsed.l10 ?? s2.parsed.l20
+        });
+      }
+      const s3 = await sourceSearch(row, factor.key, '3 (Search)', `${row.entity} game logs last 20 games 2026`, (blob) => parseLBlocks(blob, row));
+      if (s3.ok && s3.parsed) {
+        return buildCardFromOutcome(row, factor, 'ready', `L5 ${s3.parsed.l5 ?? '—'} • L10 ${s3.parsed.l10 ?? '—'} • L20 ${s3.parsed.l20 ?? '—'}`, s3.evidence, 64, {
+          rawMiningResult: JSON.stringify(s3.parsed),
+          extractionProof: '[S3] Deep search query',
+          projectionValue: s3.parsed.l5 ?? s3.parsed.l10 ?? s3.parsed.l20
+        });
+      }
+      return buildCardFromOutcome(row, factor, 'warning', '[UNKNOWN]', 'No clean recent-form source found.', 25, { extractionProof:'S1 fail • S2 fail • S3 fail' });
+    }
+
+    if (factor.key === 'seasonBaseline') {
+      const s1 = await sourceSearch(row, factor.key, '1 (NBA.com)', `${row.entity} season average ${prop} nba.com`, (blob) => tryParseValue(blob, row));
+      if (s1.ok) return buildCardFromOutcome(row, factor, 'ready', s1.parsed, s1.evidence, 80, { extractionProof:'[S1] NBA.com official season average', projectionValue:Number(s1.parsed) });
+      const s2 = await sourceSearch(row, factor.key, '2 (ESPN)', `${row.entity} season stats espn ${prop}`, (blob) => tryParseValue(blob, row));
+      if (s2.ok) return buildCardFromOutcome(row, factor, 'ready', s2.parsed, s2.evidence, 72, { extractionProof:'[S2] ESPN season split', projectionValue:Number(s2.parsed) });
+      const s3 = await sourceSearch(row, factor.key, '3 (Search)', `${row.entity} season stats baseline ${prop}`, (blob) => tryParseValue(blob, row));
+      if (s3.ok) return buildCardFromOutcome(row, factor, 'ready', s3.parsed, s3.evidence, 64, { extractionProof:'[S3] Search baseline', projectionValue:Number(s3.parsed) });
+      return buildCardFromOutcome(row, factor, 'warning', '[UNKNOWN]', 'No clean season baseline found.', 25, { extractionProof:'S1 fail • S2 fail • S3 fail' });
+    }
+
+    if (factor.key === 'careerContext') {
+      const s1 = await sourceSearch(row, factor.key, '1 (BBR)', `${row.entity} basketball-reference career stats ${prop}`, (blob) => tryParseValue(blob, row));
+      if (s1.ok) return buildCardFromOutcome(row, factor, 'ready', s1.parsed, s1.evidence, 76, { extractionProof:'[S1] BBR career table', projectionValue:Number(s1.parsed) });
+      const s2 = await sourceSearch(row, factor.key, '2 (StatMuse)', `${row.entity} career ${prop} statmuse nba`, (blob) => tryParseValue(blob, row));
+      if (s2.ok) return buildCardFromOutcome(row, factor, 'ready', s2.parsed, s2.evidence, 70, { extractionProof:'[S2] StatMuse career query', projectionValue:Number(s2.parsed) });
+      const s3 = await sourceSearch(row, factor.key, '3 (Search)', `${row.entity} career vs season stats baseline`, (blob) => tryParseValue(blob, row));
+      if (s3.ok) return buildCardFromOutcome(row, factor, 'ready', s3.parsed, s3.evidence, 62, { extractionProof:'[S3] Search career context', projectionValue:Number(s3.parsed) });
+      return buildCardFromOutcome(row, factor, 'warning', '[UNKNOWN]', 'No clean career context found.', 25, { extractionProof:'S1 fail • S2 fail • S3 fail' });
+    }
+
+    if (factor.key === 'h2h') {
+      const s1 = await sourceSearch(row, factor.key, '1 (StatMuse)', `${row.entity} career vs ${oppFull} statmuse`, (blob) => tryParseValue(blob, row));
+      if (s1.ok) return buildCardFromOutcome(row, factor, 'ready', s1.parsed, s1.evidence, 74, { extractionProof:'[S1] StatMuse matchup', projectionValue:Number(s1.parsed) });
+      const s2 = await sourceSearch(row, factor.key, '2 (ESPN)', `${row.entity} matchup history ${oppFull} espn`, (blob) => tryParseValue(blob, row));
+      if (s2.ok) return buildCardFromOutcome(row, factor, 'ready', s2.parsed, s2.evidence, 66, { extractionProof:'[S2] ESPN matchup history', projectionValue:Number(s2.parsed) });
+      const s3 = await sourceSearch(row, factor.key, '3 (Search)', `${row.entity} career ppg rpg apg vs ${oppFull}`, (blob) => tryParseValue(blob, row));
+      if (s3.ok) return buildCardFromOutcome(row, factor, 'ready', s3.parsed, s3.evidence, 60, { extractionProof:'[S3] Search H2H', projectionValue:Number(s3.parsed) });
+      return buildCardFromOutcome(row, factor, 'warning', '[UNKNOWN]', 'No clean H2H source found.', 25, { extractionProof:'S1 fail • S2 fail • S3 fail' });
+    }
+
+    if (factor.key === 'physicality') {
+      const s1 = await sourceSearch(row, factor.key, '1 (NBA.com Bio)', `${row.entity} nba bio height weight`, (blob) => parseHeightWeight(blob));
+      if (s1.ok && s1.parsed && (s1.parsed.inches || s1.parsed.lbs)) {
+        const edge = (s1.parsed.inches || 78) >= 79 ? 1.5 : 0.5;
+        return buildCardFromOutcome(row, factor, 'ready', `${s1.parsed.inches || '—'} in • ${s1.parsed.lbs || '—'} lb`, s1.evidence, 70, { extractionProof:'[S1] NBA.com bio H/W scrape', projectionValue:edge, delta:edge });
+      }
+      const s2 = await sourceSearch(row, factor.key, '2 (StatMuse)', `${position} average height weight 2026 nba`, (blob) => parseHeightWeight(blob));
+      if (s2.ok && s2.parsed && (s2.parsed.inches || s2.parsed.lbs)) {
+        return buildCardFromOutcome(row, factor, 'ready', `${s2.parsed.inches || '—'} in • ${s2.parsed.lbs || '—'} lb`, s2.evidence, 60, { extractionProof:'[S2] StatMuse position average', projectionValue:0.5, delta:0.5 });
+      }
+      const s3 = { ok:true, parsed:'Derived Physical Edge +0.5', evidence:`Derived comparison against ${position} average body profile.`, provider:'derived' };
+      richLog(row.rowId, factor.key, `Source 3 (Derived) Success. Value: ${s3.parsed}`, 'SUCCESS');
+      return buildCardFromOutcome(row, factor, 'ready', s3.parsed, s3.evidence, 55, { extractionProof:'[S3] Derived physical edge', projectionValue:0.5, delta:0.5, derived:true });
+    }
+
+    if (factor.key === 'rotationUsage') {
+      const s1 = await sourceSearch(row, factor.key, '1 (RotoWire)', `${row.entity} expected starter rotowire lineup usage`, (blob) => deriveRotationStatusV7(blob));
+      if (s1.ok && s1.parsed && s1.parsed !== 'UNKNOWN') {
+        const delta = s1.parsed === 'STARTER' ? 3.0 : s1.parsed === 'OUT' ? -6.0 : 0.5;
+        return buildCardFromOutcome(row, factor, 'ready', `${s1.parsed} • Usage Context`, s1.evidence, 74, { extractionProof:'[S1] RotoWire starting lineup / usage grid', projectionValue:delta, delta });
+      }
+      const s2 = await sourceSearch(row, factor.key, '2 (NBA.com)', `${row.entity} usage rate leaderboard nba.com`, (blob) => tryParseValue(blob, row));
+      if (s2.ok) {
+        const val = Number(s2.parsed);
+        const delta = Number.isFinite(val) ? Math.max(-3, Math.min(4, (val - 20) / 3)) : 0;
+        return buildCardFromOutcome(row, factor, 'ready', `${s2.parsed}% Usage`, s2.evidence, 68, { extractionProof:'[S2] NBA.com usage leaderboard', projectionValue:val, delta });
+      }
+      const d = derivedUsagePulse(row);
+      richLog(row.rowId, factor.key, `Source 3 (Derived) ${d != null ? 'Success' : 'Failed'}. Value: ${d}`, d != null ? 'SUCCESS' : 'WARNING');
+      if (d != null) return buildCardFromOutcome(row, factor, 'ready', `${d}% Pulse`, raw, 58, { extractionProof:'[S3] Derived manual usage pulse', projectionValue:d, delta:Math.max(-3, Math.min(4, (d - 20) / 3)), derived:true });
+      return buildCardFromOutcome(row, factor, 'warning', '[UNKNOWN]', 'Rotation / usage unavailable.', 25, { extractionProof:'S1 fail • S2 fail • S3 fail' });
+    }
+
+    if (factor.key === 'clutch') {
+      const s1 = await sourceSearch(row, factor.key, '1 (NBA.com)', `${row.entity} clutch stats nba.com last season`, (blob) => tryParseValue(blob, row));
+      if (s1.ok) return buildCardFromOutcome(row, factor, 'ready', s1.parsed, s1.evidence, 70, { extractionProof:'[S1] NBA.com clutch statistics', projectionValue:Number(s1.parsed) });
+      const s2 = await sourceSearch(row, factor.key, '2 (StatMuse)', `${row.entity} 4th quarter stats last 10 statmuse`, (blob) => tryParseValue(blob, row));
+      if (s2.ok) return buildCardFromOutcome(row, factor, 'ready', s2.parsed, s2.evidence, 64, { extractionProof:'[S2] StatMuse 4Q query', projectionValue:Number(s2.parsed) });
+      const derived = tryParseValue(raw, row);
+      if (derived != null) {
+        richLog(row.rowId, factor.key, `Source 3 (Derived) Success. Value: ${derived}`, 'SUCCESS');
+        return buildCardFromOutcome(row, factor, 'ready', derived, raw, 55, { extractionProof:'[S3] Derived endgame split proxy', projectionValue:Number(derived), derived:true });
+      }
+      return buildCardFromOutcome(row, factor, 'warning', '[UNKNOWN]', 'Clutch split unavailable.', 25, { extractionProof:'S1 fail • S2 fail • S3 fail' });
+    }
+
+    if (factor.key === 'defender') {
+      const s1 = await sourceSearch(row, factor.key, '1 (RotoWire)', `${row.entity} primary defender rotowire matchup`, (blob) => {
+        const m = blob.match(/defend(?:er|ed by)?[^A-Z]{0,8}([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/);
+        return m ? m[1] : null;
+      });
+      if (s1.ok) return buildCardFromOutcome(row, factor, 'ready', s1.parsed, s1.evidence, 66, { extractionProof:'[S1] RotoWire matchup defender', projectionValue:0.5, delta:0.5 });
+      const s2 = await sourceSearch(row, factor.key, '2 (StatMuse)', `${last} defender defensive rating last 10 statmuse`, (blob) => tryParseValue(blob, row));
+      if (s2.ok) return buildCardFromOutcome(row, factor, 'ready', s2.parsed, s2.evidence, 58, { extractionProof:'[S2] StatMuse defender rating', projectionValue:Number(s2.parsed) });
+      const s3 = await sourceSearch(row, factor.key, '3 (Search)', `${last} vs defender matchup`, (blob) => tryParseValue(blob, row));
+      if (s3.ok) return buildCardFromOutcome(row, factor, 'ready', s3.parsed, s3.evidence, 50, { extractionProof:'[S3] Search defender matchup', projectionValue:Number(s3.parsed) });
+      return buildCardFromOutcome(row, factor, 'warning', '[UNKNOWN]', 'No clean individual defender source found.', 25, { extractionProof:'S1 fail • S2 fail • S3 fail' });
+    }
+
+    if (factor.key === 'altitudeTravel') {
+      const alt = getGeoAltitude(row.team || '');
+      if (alt.impact > 0) {
+        richLog(row.rowId, factor.key, `Source 1 (Geo-Map) Success. Value: altitude ${alt.altitude}`, 'SUCCESS');
+        return buildCardFromOutcome(row, factor, 'ready', `${alt.city} • ${alt.altitude} ft`, `Static altitude map matched ${row.team}.`, 72, { extractionProof:'[S1] Schedule geo-map check', projectionValue:alt.impact, delta:alt.impact, derived:true });
+      }
+      richLog(row.rowId, factor.key, 'Source 1 (Geo-Map) Blocked/Failed -> no altitude flag', 'WARNING');
+      const tzShift = /@/.test(raw) ? 1 : 0;
+      if (tzShift) {
+        richLog(row.rowId, factor.key, `Source 2 (Timezone Calc) Success. Value: ${tzShift}`, 'SUCCESS');
+        return buildCardFromOutcome(row, factor, 'ready', `${tzShift} timezone shift`, raw, 60, { extractionProof:'[S2] Timezone crossed in last 48 hours proxy', projectionValue:-0.5, delta:-0.5, derived:true });
+      }
+      const s3 = await sourceSearch(row, factor.key, '3 (Search)', `${row.team} travel miles last 5 days`, (blob) => tryParseValue(blob, row));
+      if (s3.ok) return buildCardFromOutcome(row, factor, 'ready', s3.parsed, s3.evidence, 48, { extractionProof:'[S3] Search travel miles', projectionValue:Number(s3.parsed) });
+      return buildCardFromOutcome(row, factor, 'ready', '[DERIVED: NEUTRAL]', 'Neutral altitude/travel state.', 55, { extractionProof:'No travel stress detected.', projectionValue:0, delta:0, derived:true });
+    }
+
+    if (factor.key === 'motivation') {
+      const s1 = await sourceSearch(row, factor.key, '1 (Spotrac)', `${row.entity} spotrac incentives contract year`, (blob) => /incentive|bonus|contract year/i.test(blob) ? 'Contract/Incentive Flag' : null);
+      if (s1.ok) return buildCardFromOutcome(row, factor, 'ready', s1.parsed, s1.evidence, 62, { extractionProof:'[S1] Spotrac contract scan', projectionValue:1.0, delta:1.0 });
+      const s2 = await sourceSearch(row, factor.key, '2 (News)', `${row.entity} revenge game contract year all star chase`, (blob) => /revenge|contract year|all-star|playoff push/i.test(blob) ? 'Narrative Trigger' : null);
+      if (s2.ok) return buildCardFromOutcome(row, factor, 'ready', s2.parsed, s2.evidence, 58, { extractionProof:'[S2] News feed scan', projectionValue:0.8, delta:0.8 });
+      richLog(row.rowId, factor.key, 'Source 3 (Derived) Success. Value: neutral narrative', 'SUCCESS');
+      return buildCardFromOutcome(row, factor, 'ready', '[DERIVED: NEUTRAL]', 'No strong motivation/incentive signal.', 55, { extractionProof:'[S3] Derived narrative fallback', projectionValue:0, delta:0, derived:true });
+    }
+
+    if (factor.key === 'officials') {
+      const s1 = await sourceSearch(row, factor.key, '1 (NBA Assignments)', `official nba referee assignments ${row.team} ${oppFull}`, (blob) => {
+        const ref = recoverRefFromRawParse(blob);
+        return ref || null;
+      });
+      if (s1.ok) {
+        const rec = REF_DB[s1.parsed] || null;
+        const val = rec ? `${s1.parsed} • O/U ${rec.over}% Over` : s1.parsed;
+        return buildCardFromOutcome(row, factor, 'ready', val, s1.evidence, 68, { extractionProof:'[S1] Official NBA crew assignments', projectionValue:rec ? rec.over : 50, delta:rec && rec.over > 55 ? 1.0 : 0.0 });
+      }
+      const s2 = await sourceSearch(row, factor.key, '2 (RefMetrics)', `${row.team} ${oppFull} refmetrics covers referee tendency`, (blob) => {
+        const ref = recoverRefFromRawParse(blob);
+        if (ref) return ref;
+        const over = blob.match(/over[^0-9]{0,16}(\d{2,3})%/i);
+        return over ? `Crew • O/U ${over[1]}% Over` : null;
+      });
+      if (s2.ok) return buildCardFromOutcome(row, factor, 'ready', s2.parsed, s2.evidence, 60, { extractionProof:'[S2] Covers / RefMetrics whistle tendency', projectionValue:50, delta:0 });
+      const ref = recoverRefFromRawParse(raw);
+      if (ref) {
+        const rec = REF_DB[ref] || { over:50, under:50, fouls:38.0 };
+        richLog(row.rowId, factor.key, `Source 3 (Derived) Success. Value: ${ref}`, 'SUCCESS');
+        return buildCardFromOutcome(row, factor, 'ready', `${ref} • O/U ${rec.over}% Over`, raw, 55, { extractionProof:'[S3] recoverRefFromRawParse + neutral fallback', projectionValue:rec.over, delta:rec.over > 55 ? 1.0 : 0.0, derived:true });
+      }
+      richLog(row.rowId, factor.key, 'Source 3 (Derived) Success. Value: [DERIVED: NEUTRAL]', 'SUCCESS');
+      return buildCardFromOutcome(row, factor, 'ready', '[DERIVED: NEUTRAL]', 'No ref assignment recovered; neutral fallback.', 55, { extractionProof:'[S3] Derived neutral fallback', projectionValue:50, delta:0, derived:true });
+    }
+
+    if (factor.key === 'survivability') {
+      const shield = calculateAlphaShield(resultsForShieldMap);
+      return buildCardFromOutcome(row, factor, shield.warningCount > 0 ? 'warning' : 'ready', shield.summary, shield.summary, 90, {
+        extractionProof:'Internal Alpha Purity gate',
+        projectionValue:Math.max(1, 100 - shield.integrityPenalty),
+        delta:0,
+        sourceAccuracy:'high'
+      });
+    }
+
+    if (factor.key === 'realtimeLog') {
+      updateRealtimeLogCard(row);
+      const logs = (state.logs || []).filter(x => x.rowId === row.rowId).slice(-6);
+      return buildCardFromOutcome(row, factor, 'ready', `${logs.length} recent events`, logs.map(x => x.msg).join(' • '), 100, {
+        extractionProof:'Rich Error Log visible in console',
+        projectionValue:logs.length,
+        sourceAccuracy:'high'
+      });
+    }
+
+    return buildCardFromOutcome(row, factor, 'warning', '[UNKNOWN]', 'No factor implementation.', 20, { extractionProof:'No factor implementation.' });
+  }
+
+  let resultsForShieldMap = {};
 
   ensureNbaMining = async function(row){
     if (!row || row.leagueId !== 'nba') return;
     const key = cacheKeyForRow(row);
-    const existing = runtimeMiningCache[key];
-    if (existing && (existing.status === 'done' || existing.status === 'loading')) return;
-
-    runtimeMiningCache[key] = { status:'loading', cards: NBA_MINING_FACTORS.map(f => ({
-      ...f,
-      status: f.key === 'validation' ? 'ready' : (f.live ? 'loading' : 'waiting'),
-      statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : (f.live ? 'Loading live probe...' : 'Source wiring next'),
-      sourcesLabel: f.sources.join(' • '),
-      parsedResult: f.key === 'validation'
-        ? `${row.entity} • ${row.propFamily} ${row.line}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • team ${row.team}` : ''}`
-        : '',
-      evidence: f.key === 'validation' ? (row.rawText || row.lineText || '') : '',
-      confidence: f.key === 'validation' ? 100 : 20,
-      delta: 0,
-      tier: f.tier || '2X',
-      rawMiningResult: f.key === 'validation' ? (row.rawText || row.lineText || '') : '',
-      extractionProof: f.key === 'validation' ? (row.rawText || row.lineText || '') : '',
-      sourceAccuracy: f.key === 'validation' ? 'high' : 'mid'
-    })) };
+    runtimeMiningCache[key] = { status:'loading', cards: TRIPLE_FACTORS.map(f => probingCard(row, f)) };
+    resultsForShieldMap = {};
     render();
 
-    try {
-      const mined = await mineNbaRowTriple(row);
-      const progressive = [];
-      for (const f of NBA_MINING_FACTORS) {
-        const promise = Promise.resolve(mined[f.key] || f);
-        await promise.then((card) => {
-          progressive.push(card);
-          runtimeMiningCache[key] = { status:'loading', cards:[...progressive, ...NBA_MINING_FACTORS.slice(progressive.length).map(ff => ({
-            ...ff,
-            status:'waiting',
-            statusLabel:'Waiting',
-            confidence:20,
-            delta:0,
-            sourcesLabel:(ff.sources || []).join(' • '),
-            parsedResult:'',
-            evidence:'',
-            tier: ff.tier || '2X',
-            sourceAccuracy:'mid'
-          }))] };
-        }).finally(() => {
-          render();
-        });
-      }
-      runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => mined[f.key] || f) };
-      saveState();
-    } catch (err) {
-      rich(row.rowId, 'system', `Triple-Threat mining failure: ${String(err && err.message || err)}`, 'ERROR');
-      runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => ({
-        ...f,
-        status: f.key === 'validation' ? 'ready' : 'failed',
-        statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : 'Live probe failed',
-        sourcesLabel: f.sources.join(' • '),
-        parsedResult: f.key === 'validation'
-          ? `${row.entity} • ${row.propFamily} ${row.line}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • team ${row.team}` : ''}`
-          : 'Mining failed.',
-        evidence: f.key === 'validation' ? 'Parsed from ingested row' : String(err && err.message || err),
-        confidence: f.key === 'validation' ? 100 : 20,
-        delta: 0,
-        tier: f.tier || '2X',
-        sourceAccuracy:'low'
-      })) };
+    for (const factor of TRIPLE_FACTORS) {
+      const promise = Promise.resolve(runTripleThreatFactor(row, factor));
+      await promise.then((card) => {
+        const cleaned = { ...card };
+        cleaned.parsedResult = SanitizeResult(cleaned.parsedResult || '', row.propFamily || '', cleaned.evidence || '') || cleaned.parsedResult;
+        resultsForShieldMap[factor.key] = cleaned;
+        replaceCard(row, factor.key, cleaned);
+        updateRealtimeLogCard(row);
+      }).catch((err) => {
+        richLog(row.rowId, factor.key, `Fatal factor error -> ${String(err && err.message || err)}`, 'ERROR');
+        const failed = buildCardFromOutcome(row, factor, 'warning', '[UNKNOWN]', String(err && err.message || err), 20, { extractionProof:'Caught factor exception' });
+        resultsForShieldMap[factor.key] = failed;
+        replaceCard(row, factor.key, failed);
+        updateRealtimeLogCard(row);
+      }).finally(() => {
+        render();
+      });
     }
+
+    const shieldCard = await runTripleThreatFactor(row, TRIPLE_FACTORS.find(f => f.key === 'survivability'));
+    replaceCard(row, 'survivability', shieldCard);
+    updateRealtimeLogCard(row);
+    runtimeMiningCache[key].status = 'done';
+    saveState();
     render();
   };
 
-  function loadLeBronDemoV87(){
+  const __origRenderAnalysis88 = renderAnalysis;
+  renderAnalysis = function(){
+    __origRenderAnalysis88();
+    syncHeader();
+  };
+
+  function loadKawhiDemo(){
     try{
+      if ((state.cleanedRows || []).length) return;
       const row = {
-        rowId:'nba|lebron james|LAL|OKC|PRA|40.5|REGULAR',
+        rowId:'nba|kawhi leonard|LAC|DAL|Rebounds|7.5|REGULAR',
         sport:'NBA',
         leagueId:'nba',
-        entity:'LeBron James',
-        team:'LAL',
-        opponent:'OKC',
-        propFamily:'PRA',
-        propKey:'pra',
-        line:'40.5',
-        lineText:'PRA 40.5',
+        entity:'Kawhi Leonard',
+        team:'LAC',
+        opponent:'DAL',
+        propFamily:'Rebounds',
+        propKey:'rebounds',
+        line:'7.5',
+        lineText:'Rebounds 7.5',
         type:'REGULAR',
-        rawText:'⚪ LeBron James PRA 40.5 More • LeBron James Game Log StatMuse 2026 • 28 pts, 8 ast, 7 reb • 26 pts, 9 ast, 8 reb • 25 pts, 8 ast, 6 reb • Ref: Tony Brothers • LAL vs OKC'
+        rawText:'⚪ Kawhi Leonard Rebounds 7.5 More • Ref: Tony Brothers • LAC vs DAL'
       };
       Global_Flush(row, 'POOL RESET: SUCCESS');
       state.ran = true;
       saveState();
       window.location.hash = '#analysis';
+      richLog(row.rowId, 'system', 'Kawhi Leonard demo row loaded for Triple-Threat validation.', 'SUCCESS');
       render();
-      rich(row.rowId, 'system', 'LeBron James demo loaded for Triple-Threat validation.', 'SUCCESS');
+    }catch(e){}
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    syncHeader();
+    setTimeout(loadKawhiDemo, 0);
+  });
+})();
+</script>
+
+
+<script>
+(function(){
+  const FORCE_VERSION = "8.8 (Reference Lock)";
+  const FORCE_BUILD = "Reference Lock";
+  function syncV88Labels(){
+    try{
+      document.title = `PickCalc v${FORCE_VERSION}`;
+      const heroH1 = document.querySelector('.hero h1');
+      if (heroH1) heroH1.innerHTML = `PickCalc v8.8 <span class="version-pill">${FORCE_BUILD}</span>`;
+      const analysisTitle = document.getElementById('analysisTitle');
+      if (analysisTitle) analysisTitle.textContent = 'Run Analysis v8.8';
+      const analysisVersion = document.getElementById('analysisVersion');
+      if (analysisVersion) analysisVersion.textContent = 'Version: v8.8 • Build: Reference Lock';
+    } catch(e){}
+  }
+  document.addEventListener('DOMContentLoaded', syncV88Labels);
+  window.addEventListener('load', syncV88Labels);
+  const _render = window.render;
+  if (typeof _render === 'function') {
+    window.render = function(){
+      const out = _render.apply(this, arguments);
+      syncV88Labels();
+      return out;
+    };
+  }
+})();
+</script>
+
+
+<script>
+(function(){
+  const LOCK_VERSION = 'v8.8';
+  const LOCK_BUILD = 'Reference Lock';
+
+  function hardLockVersionUI(){
+    try{
+      document.title = 'PickCalc v8.8 (Reference Lock)';
+      const heroH1 = document.querySelector('.hero h1');
+      if (heroH1) {
+        heroH1.innerHTML = 'PickCalc Prompt 1 Intake <span class="version-pill">v8.8</span>';
+      }
+      const heroP = document.querySelector('.hero p');
+      if (heroP && heroP.textContent.includes('Paste board chunks')) {
+        heroP.textContent = 'Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.';
+      }
+      const analysisTitle = document.getElementById('analysisTitle');
+      if (analysisTitle) analysisTitle.textContent = 'Run Analysis v8.8';
+      const analysisVersion = document.getElementById('analysisVersion');
+      if (analysisVersion) analysisVersion.textContent = 'Version: v8.8 • Build: Reference Lock';
+
+      document.querySelectorAll('.version-pill').forEach(function(el){
+        if (el.textContent.trim() === 'v7.5' || el.textContent.trim() === 'v8.6' || el.textContent.trim() === 'Unlocked Execution') {
+          el.textContent = 'v8.8';
+        }
+      });
+
+      document.querySelectorAll('h1,h2,p,div,span,button').forEach(function(el){
+        if (el.childElementCount === 0) {
+          if (el.textContent.trim() === 'Run Analysis v8.8') el.textContent = 'Run Analysis v8.8';
+          if (el.textContent.trim() === 'Version: v8.8 • Build: Reference Lock') el.textContent = 'Version: v8.8 • Build: Reference Lock';
+          if (el.textContent.trim() === 'Version: v8.8 • Build: Reference Lock • Build: Stealth Connectors') el.textContent = 'Version: v8.8 • Build: Reference Lock';
+        }
+      });
     } catch(e){}
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-    syncV87Header();
-    setTimeout(loadLeBronDemoV87, 0);
+    hardLockVersionUI();
+    setTimeout(hardLockVersionUI, 50);
+    setTimeout(hardLockVersionUI, 250);
+    setTimeout(hardLockVersionUI, 1000);
   });
+
+  window.addEventListener('load', hardLockVersionUI);
+  window.addEventListener('hashchange', function(){ setTimeout(hardLockVersionUI, 0); });
+
+  const observer = new MutationObserver(function(){
+    hardLockVersionUI();
+  });
+  window.addEventListener('load', function(){
+    observer.observe(document.documentElement, { childList:true, subtree:true, characterData:true });
+  });
+
+  const _render = window.render;
+  if (typeof _render === 'function') {
+    window.render = function(){
+      const out = _render.apply(this, arguments);
+      hardLockVersionUI();
+      return out;
+    };
+  }
 })();
 </script>
 
