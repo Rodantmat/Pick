@@ -93,7 +93,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   border:1px solid var(--line); background:#0f172a; border-radius:16px; padding:12px;
 }
 .row-card .cell strong { display:block; margin-bottom:6px; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
-.matrix-grid, .mining-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px; }
+.matrix-grid, .mining-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; width: 100%; }
 .mining-card {
   border:1px solid var(--line); background:#0f172a; border-radius:18px; padding:14px; min-height:168px;
 }
@@ -157,7 +157,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--line);
   font-size:11px;font-weight:700;margin-left:8px;white-space:nowrap;word-wrap:break-word;
 }
-.derived-badge{background:rgba(56,189,248,.14);color:#38bdf8}
+.derived-badge{background:rgba(56,189,248,.14);color:#38bdf8;border-color:#38bdf8}
 .mined-badge{background:rgba(36,87,59,.22);color:#baf2cb}
 .parsed-badge{background:rgba(110,168,254,.14);color:#8cc3ff}
 .shield-grid{display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -177,6 +177,19 @@ thead th { background:#121d35; position:sticky; top:0; }
   text-align:center;
 }
 .mining-card,.shield-cell,.cell,.status-panel,.prop-chip,.pill,.message,.mining-meta{word-wrap:break-word}
+
+
+.analysis-detail,.mining-meta,.shield-cell,.mining-card,.row-card .cell,.status-panel,.prop-chip,.pill,.message{min-width:0}
+.evidence-ellipsis{display:block;max-width:100%;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+.mining-card{overflow:hidden}
+.mining-card.derived-card{border:1px solid #38bdf8; box-shadow: inset 0 0 0 1px rgba(56,189,248,.18);}
+.shield-grid{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:12px;width:100%}
+.shield-cell{display:flex;flex-direction:column;align-items:center;justify-content:center}
+@media (max-width: 600px) {
+  .matrix-grid, .mining-grid { grid-template-columns: 1fr !important; width: 100%; }
+  .row-card, .hero-inline, .btn-row, .status-panel-head, .shield-grid { flex-direction: column !important; }
+  .app-shell, .card, .mining-card, .shield-cell, .row-card .cell { width: 100% !important; max-width: 100% !important; }
+}
 
 </style>
 </head>
@@ -3013,9 +3026,15 @@ bindActions();
 
   const __origRenderPromptAwareCard = renderPromptAwareCard;
   renderPromptAwareCard = function(card){
-    const html = __origRenderPromptAwareCard(card);
+    let html = __origRenderPromptAwareCard(card);
     const badge = card.derived ? '<span class="derived-badge">[DERIVED]</span>' : (card.parsedSource === 'raw' ? '<span class="parsed-badge">[PARSED]</span>' : '<span class="mined-badge">[MINED]</span>');
-    return html.replace('</h3>', ` ${badge}</h3>`);
+    html = html.replace('<div class="mining-card">', `<div class="mining-card ${card.derived ? 'derived-card' : ''}">`);
+    html = html.replace('</h3>', ` ${badge}</h3>`);
+    html = html.replace(/<div class="analysis-detail-body">([\s\S]*?)<\/div>\s*<\/details>/, function(m, inner){
+      const patched = inner.replace(/<div><strong>EXTRACTION PROOF:<\/strong>\s*([^<]*)<\/div>/, '<div><strong>EXTRACTION PROOF:</strong> <span class="evidence-ellipsis" title="$1">$1</span></div>');
+      return `<div class="analysis-detail-body">${patched}</div></details>`;
+    });
+    return html;
   };
 
   function ensureShieldPanel(){
@@ -3039,8 +3058,8 @@ bindActions();
     const refCard = cards.find(c => c.key === 'refs') || {};
     const penaltyApplied = Number(surv.warningCount || 0) > 0 || String(refCard.status || '') === 'warning' || !String(refCard.parsedResult || '').trim();
     wrap.innerHTML = `
-      <div class="shield-cell"><strong>Run Analysis</strong>v7.0 • Pool Status: ${escapeHtml(String(state.cleanedRows.length))}</div>
-      ${penaltyApplied ? '<div class="penalty-banner">PENALTY APPLIED</div>' : ''}
+      <div class="shield-cell"><strong>Run Analysis</strong>v7.0 • Pool Status: ${escapeHtml(String(state.cleanedRows.length))} PLAYER</div>
+      ${penaltyApplied ? '<div class="penalty-banner">PENALTY APPLIED: -10%</div>' : ''}
       <div class="shield-cell"><strong>Data Integrity Penalty</strong>${escapeHtml(String((surv.warningCount || 0) * 10))}%</div>
       <div class="shield-cell"><strong>Confidence Cap Applied</strong>${surv.capApplied ? 'YES' : 'NO'}</div>
       <div class="shield-cell"><strong>Final Hit Probability</strong>${Number.isFinite(surv.finalProbability) ? (surv.finalProbability*100).toFixed(1) + '%' : '—'}</div>
@@ -3060,7 +3079,7 @@ bindActions();
     const summary = document.getElementById('analysisSummary');
     if (summary) {
       const current = summary.innerHTML;
-      summary.innerHTML = `<div class="pill">RUN ANALYSIS v7.0</div><div class="pill">POOL STATUS: ${state.cleanedRows.length}</div><div class="pill">FLUSH SUCCESSFUL</div>` + current;
+      summary.innerHTML = `<div class="pill">RUN ANALYSIS v7.0</div><div class="pill">POOL STATUS: ${state.cleanedRows.length} PLAYER</div><div class="pill">POOL RESET: SUCCESS</div>` + current;
     }
     renderShieldPanelV7();
   };
@@ -3085,7 +3104,7 @@ bindActions();
           delta: scoreDeltaFromContext('usage3', derivedUsage, row, {}),
           projectionValue: derivedUsage,
           rawMiningResult: derivedUsage,
-          extractionProof: 'Usage ≈ 100 * ((FGA + 0.44 * FTA + TOV) * (Team_MP / 5)) / (MP * Team_Possessions)',
+          extractionProof: `Usage ≈ 100 * ((FGA + 0.44 * FTA + TOV) * (Team_MP / 5)) / (MP * Team_Possessions) = ${derivedUsage.toFixed(1)}%`,
           derived:true
         };
         logEvent(`SUCCESS: Usage Pulse [DERIVED] ${derivedUsage.toFixed(1)}%`, 'SUCCESS', row.rowId, 'usage3');
