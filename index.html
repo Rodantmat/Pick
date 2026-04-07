@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PickCalc v8.6 (Unlocked Execution)</title>
+  <title>PickCalc Prompt 1 Intake v8.7 (Triple-Threat)</title>
   <style>
 :root {
   color-scheme: dark;
@@ -223,33 +223,13 @@ thead th { background:#121d35; position:sticky; top:0; }
 .source-accuracy.mid{background:rgba(255,211,110,.12);color:#ffd36e}
 .source-accuracy.low{background:rgba(185,74,90,.16);color:#ffd3d9}
 
-
-.processing-overlay{display:none !important}
-.probing-label{
-  display:inline-block;
-  margin-left:8px;
-  padding:3px 8px;
-  border-radius:999px;
-  border:1px solid var(--line);
-  background:#111b31;
-  color:#ffd36e;
-  font-size:11px;
-  font-weight:700;
-  animation: probingPulse 1.2s ease-in-out infinite;
-}
-@keyframes probingPulse {
-  0% { opacity:.55; transform:scale(1); }
-  50% { opacity:1; transform:scale(1.03); }
-  100% { opacity:.55; transform:scale(1); }
-}
-
 </style>
 </head>
 <body>
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>PickCalc v8.6 <span class="version-pill">Unlocked Execution</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v8.7</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -295,8 +275,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v8.6</h1>
-          <p id="analysisVersion">Version: v8.6 • Build: Unlocked Execution</p>
+          <h1 id="analysisTitle">Run Analysis v8.7</h1>
+          <p id="analysisVersion">Version: v8.7 (Triple-Threat)</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -369,8 +349,8 @@ const LEAGUES = [
 ];
 
 const STORAGE_KEY = 'pickcalc-prompt1-v5-7-3';
-const APP_BUILD_VERSION = '8.6';
-const APP_BUILD_LABEL = 'Unlocked Execution';
+const APP_BUILD_VERSION = '8.7';
+const APP_BUILD_LABEL = 'Triple-Threat';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -3230,7 +3210,7 @@ bindActions();
     renderShieldPanelV7();
     const title = document.getElementById('analysisTitle');
     const version = document.getElementById('analysisVersion');
-    if (title) title.textContent = 'Run Analysis v7.5';
+    if (title) title.textContent = 'Run Analysis v8.7';
     if (version) version.textContent = 'Version: v7.5';
     const summary = document.getElementById('analysisSummary');
     if (summary && !summary.innerHTML.includes('POOL RESET: SUCCESS')) {
@@ -3551,7 +3531,7 @@ bindActions();
     __origRenderAnalysis_v75();
     const title = document.getElementById('analysisTitle');
     const version = document.getElementById('analysisVersion');
-    if (title) title.textContent = 'Run Analysis v7.5';
+    if (title) title.textContent = 'Run Analysis v8.7';
     if (version) version.textContent = 'Version: v7.5';
     const summary = document.getElementById('analysisSummary');
     if (summary) {
@@ -3588,23 +3568,22 @@ bindActions();
 </script>
 
 <script>
-const SYSTEM_VERSION = "8.6";
-const BUILD_NAME = "Unlocked Execution";
+const SYSTEM_VERSION = "8.7 (Triple-Threat)";
 
 (function(){
-  function syncV86Header(){
+  function syncV87Header(){
     try{
-      document.title = `PickCalc v${SYSTEM_VERSION} (${BUILD_NAME})`;
       const h1 = document.querySelector('.hero h1');
-      if (h1) h1.innerHTML = `PickCalc v${SYSTEM_VERSION} <span class="version-pill">${BUILD_NAME}</span>`;
-      const t = document.getElementById('analysisTitle');
-      if (t) t.textContent = `Run Analysis v${SYSTEM_VERSION}`;
-      const v = document.getElementById('analysisVersion');
-      if (v) v.textContent = `Version: v${SYSTEM_VERSION} • Build: ${BUILD_NAME}`;
-    } catch(e) {}
+      if (h1) h1.innerHTML = `PickCalc Prompt 1 Intake <span class="version-pill">${SYSTEM_VERSION}</span>`;
+      document.title = `PickCalc Prompt 1 Intake ${SYSTEM_VERSION}`;
+      const at = document.getElementById('analysisTitle');
+      if (at) at.textContent = `Run Analysis ${SYSTEM_VERSION}`;
+      const av = document.getElementById('analysisVersion');
+      if (av) av.textContent = `Version: ${SYSTEM_VERSION}`;
+    } catch(e){}
   }
 
-  window.recoverRefFromRawParse = function recoverRefFromRawParse(rawText=''){
+  window.recoverRefFromRawParse = window.recoverRefFromRawParse || function recoverRefFromRawParse(rawText=''){
     const raw = String(rawText || '');
     const names = ['Scott Foster','Tony Brothers','Zach Zarba','James Capers','Marc Davis','Bill Kennedy'];
     const explicit = raw.match(/Ref(?:eree)?\s*:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
@@ -3613,592 +3592,498 @@ const BUILD_NAME = "Unlocked Execution";
     return '';
   };
 
-  window.SanitizeResult = function SanitizeResult(parsedResult='', propFamily='', evidence=''){
+  window.SanitizeResult = window.SanitizeResult || function SanitizeResult(parsedResult='', propFamily='', evidence=''){
     const prop = String(propFamily || '').toUpperCase();
     const blob = `${parsedResult || ''} ${evidence || ''}`;
-    if (prop === '3PTM' || /(3PTM|3PM|THREES|3-POINTERS)/i.test(prop)) {
-      const m = blob.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b/i) ||
-                blob.match(/\b(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b[^0-9]{0,10}(\d+(?:\.\d+)?)/i);
+    if (/(3PTM|3PM|THREES|3-POINTERS)/i.test(prop)) {
+      const m = blob.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b/i)
+        || blob.match(/\b(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b[^0-9]{0,10}(\d+(?:\.\d+)?)/i);
       return m ? String(m[1]) : '';
     }
     const nums = String(parsedResult || '').match(/-?\d+(?:\.\d+)?/g);
     return nums ? nums.join(' ') : String(parsedResult || '').replace(/[^\w\s.%:+/-]/g,' ').replace(/\s+/g,' ').trim();
   };
 
+  function ts(){
+    const d = new Date();
+    return d.toLocaleTimeString('en-US',{hour12:false});
+  }
+  function rich(rowId, factor, msg, type='SUCCESS'){
+    logEvent(`[${ts()}] ${msg}`, type, rowId || '', factor || 'system');
+  }
+
+  function tripleLog(row, factor, source, status, detail){
+    rich(row?.rowId || '', factor, `${factor}: ${source} ${status}. ${detail || ''}`.trim(), status === 'SUCCESS' ? 'SUCCESS' : status === 'WARNING' ? 'WARNING' : 'ERROR');
+  }
+
+  function setRichSources(card, attempts){
+    const suffix = attempts.map(a => `${a.source}:${a.status}`).join(' • ');
+    return suffix;
+  }
+
   function is3PTMRow(row){
     const s = `${row?.propFamily || ''} ${row?.lineText || ''} ${row?.rawText || ''}`;
     return /(3PTM|3PM|Threes|3-Pointers)/i.test(s);
   }
 
-  const oldParseBlock = parseBlock;
-  parseBlock = function(block, selectedIds){
-    const row = oldParseBlock(block, selectedIds);
-    if (!row) return row;
-    const raw = String(block || '');
-    const m = raw.match(/(3PTM|3PM|Threes|3-Pointers)\s*(\d+(?:\.\d+)?)/i);
-    if (m) {
-      row.propFamily = '3PTM';
-      row.propKey = '3ptm';
-      row.line = m[2];
-      row.lineText = `3PTM ${m[2]}`;
-      row.rowId = `${row.leagueId}|${canon(row.entity)}|${canon(row.team)}|3ptm|${row.line}|${row.type}`;
-    }
-    return row;
-  };
+  function extractManualLastN(blob='', n=5){
+    const nums = [...String(blob || '').matchAll(/\b(\d+(?:\.\d+)?)\b/g)].map(m => Number(m[1])).filter(Number.isFinite);
+    const picked = nums.slice(-n);
+    if (!picked.length) return null;
+    return Math.round((picked.reduce((a,b)=>a+b,0) / picked.length) * 10) / 10;
+  }
 
-  const oldParseDesktopLine = parseDesktopLine;
-  parseDesktopLine = function(line, selectedIds){
-    const row = oldParseDesktopLine(line, selectedIds);
-    if (!row) return row;
-    const raw = String(line || '');
-    const m = raw.match(/(3PTM|3PM|Threes|3-Pointers)\s*(\d+(?:\.\d+)?)/i);
-    if (m) {
-      row.propFamily = '3PTM';
-      row.propKey = '3ptm';
-      row.line = m[2];
-      row.lineText = `3PTM ${m[2]}`;
-      row.rowId = `${row.leagueId}|${canon(row.entity)}|${canon(row.team)}|3ptm|${row.line}|${row.type}`;
-    }
-    return row;
-  };
+  function derivePhysicalEdge(row){
+    const sizeMap = {
+      'lebron james': {h:81,w:250},
+      'kevin durant': {h:83,w:240},
+      'jayson tatum': {h:80,w:210},
+      'jaylen brown': {h:78,w:223},
+      'stephen curry': {h:74,w:185},
+      'nikola jokic': {h:83,w:284}
+    };
+    const oppAvg = {
+      guards:{h:76,w:195},
+      forwards:{h:80,w:220},
+      centers:{h:83,w:250}
+    };
+    const pos = propPositionHint(row);
+    const p = sizeMap[canon(row?.entity || '')] || oppAvg[pos];
+    const o = oppAvg[pos] || {h:78,w:210};
+    const score = Math.round((((p.h-o.h)*0.8)+((p.w-o.w)*0.04))*10)/10;
+    return { score, text:`Player ${p.h}" / ${p.w} vs ${pos} avg ${o.h}" / ${o.w}` };
+  }
 
-  const oldRenderPromptAwareCard = renderPromptAwareCard;
-  renderPromptAwareCard = function(card){
-    let html = oldRenderPromptAwareCard(card);
-    if (card && card.status === 'mining') {
-      html = html.replace('</h3>', ' <span class="probing-label">PROBING...</span></h3>');
-      html = html.replace(/(✅|⚠️|❌|🟡)\s[^<]*/, '🟡 PROBING...');
-    }
-    return html;
-  };
+  function deriveClutchDelta(blob='', seasonVal=null){
+    const late = [...String(blob || '').matchAll(/(\d+(?:\.\d+)?)\s*(?:4th quarter|clutch|last 5 mins)/gi)].map(m => Number(m[1])).filter(Number.isFinite)[0];
+    if (!Number.isFinite(late) || !Number.isFinite(seasonVal)) return null;
+    return Math.round((late - seasonVal) * 10) / 10;
+  }
 
-  const oldBuildMiningStatus = buildMiningStatus;
-  buildMiningStatus = function(row){
-    const cards = oldBuildMiningStatus(row);
-    return (cards || []).map(c => {
-      if (c && (c.status === 'loading' || c.status === 'waiting')) {
-        return { ...c, status:'mining', statusLabel:'PROBING...' };
+  function deriveTravelFatigue(row){
+    const altitudeTeams = ['DEN','UTA'];
+    const tzPenalty = /@/i.test(String(row?.rawText || '')) ? 1 : 0;
+    const altitude = altitudeTeams.includes(String(row?.opponent || '').toUpperCase()) ? -2 : 0;
+    const total = altitude - tzPenalty;
+    return { score: total, text: `${altitudeTeams.includes(String(row?.opponent || '').toUpperCase()) ? 'Altitude spot' : 'Standard venue'} • TZ delta ${tzPenalty}` };
+  }
+
+  function deriveMotivation(row){
+    const raw = canon(row?.rawText || '');
+    if (/revenge|contract year|playoff push|all-star/.test(raw)) return {score: 2.5, text: 'Trigger words found in intake.'};
+    return {score: 0, text: 'No direct incentive trigger found.'};
+  }
+
+  function createTripleQuery(sourceLabel, q, parseFn){
+    return { source: sourceLabel, q, parseFn };
+  }
+
+  async function tryTriple(row, factorKey, attempts, fallbackFn){
+    const tried = [];
+    for (const attempt of attempts) {
+      try {
+        tripleLog(row, factorKey, attempt.source, 'START', attempt.q || '');
+        if (attempt.kind === 'derived') {
+          const derived = await attempt.parseFn();
+          if (derived != null && derived !== '' && !(typeof derived === 'number' && !Number.isFinite(derived))) {
+            tripleLog(row, factorKey, attempt.source, 'SUCCESS', `Value: ${typeof derived === 'object' ? (derived.value ?? JSON.stringify(derived)) : derived}`);
+            tried.push({source:attempt.source,status:'SUCCESS'});
+            return { ok:true, source:attempt.source, parsed:derived, blob: typeof derived === 'object' ? (derived.text || derived.evidence || '') : String(derived), attempts:tried };
+          }
+          tripleLog(row, factorKey, attempt.source, 'BLOCKED', 'Derived returned null.');
+          tried.push({source:attempt.source,status:'BLOCKED'});
+          continue;
+        }
+        const res = await runSearchFactor(row, factorKey, attempt.q, attempt.parseFn);
+        if (res.ok) {
+          tripleLog(row, factorKey, attempt.source, 'SUCCESS', `Value: ${res.parsed}`);
+          tried.push({source:attempt.source,status:'SUCCESS'});
+          return { ok:true, source:attempt.source, parsed:res.parsed, blob:res.blob, attempts:tried };
+        }
+        tripleLog(row, factorKey, attempt.source, 'BLOCKED', 'No usable parsed result.');
+        tried.push({source:attempt.source,status:'BLOCKED'});
+      } catch (e) {
+        tripleLog(row, factorKey, attempt.source, 'ERROR', String(e && e.message || e));
+        tried.push({source:attempt.source,status:'ERROR'});
       }
-      return c;
-    });
+    }
+    if (fallbackFn) {
+      try {
+        const fb = await fallbackFn();
+        if (fb != null) {
+          tried.push({source:'Fallback',status:'SUCCESS'});
+          return { ok:true, source:'Fallback', parsed:fb.value ?? fb, blob:fb.text || '', attempts:tried };
+        }
+      } catch(e){}
+    }
+    return { ok:false, source:'', parsed:null, blob:'', attempts:tried };
+  }
+
+  // Surgical replacement of NBA factor cards only on screen 2.
+  NBA_MINING_FACTORS.splice(0, NBA_MINING_FACTORS.length,
+    { key:'last5', title:'Recent Form L5', tier:'2B', live:true, sources:['StatMuse','Basketball-Reference','Search'], note:'Last 5 game log average.' },
+    { key:'last10', title:'Recent Form L10', tier:'2B', live:true, sources:['StatMuse','Basketball-Reference','Search'], note:'Last 10 game log average.' },
+    { key:'last20', title:'Recent Form L20', tier:'2B', live:true, sources:['StatMuse','Basketball-Reference','Search'], note:'Last 20 game log average.' },
+    { key:'season', title:'Season Baseline', tier:'2B', live:true, sources:['NBA.com','Basketball-Reference','Search'], note:'Season average baseline.' },
+    { key:'career', title:'Career Baseline', tier:'2B', live:true, sources:['Basketball-Reference','NBA.com','Search'], note:'Career baseline context.' },
+    { key:'h2h', title:'Head-to-Head vs Opp', tier:'2B', live:true, sources:['StatMuse','ESPN','Search'], note:'Career vs opponent context.' },
+    { key:'physical', title:'Matchup Physicality', tier:'2C', live:true, sources:['NBA.com Bio','StatMuse','Derived'], note:'Physical edge score.' },
+    { key:'rotation', title:'Rotation & Usage', tier:'2B', live:true, sources:['RotoWire','NBA.com','Derived'], note:'Starter/usage confirmation.' },
+    { key:'clutch', title:'Clutch Performance', tier:'2C', live:true, sources:['NBA.com','StatMuse','Derived'], note:'Late game split.' },
+    { key:'defender', title:'Individual Defender', tier:'2C', live:true, sources:['RotoWire','StatMuse','Search'], note:'Primary defender resistance.' },
+    { key:'travel', title:'Altitude & Travel Fatigue', tier:'2C', live:true, sources:['Schedule','Timezone calc','Search'], note:'Travel spot analysis.' },
+    { key:'motivation', title:'Motivation & Incentives', tier:'2D', live:true, sources:['Spotrac','News','Derived'], note:'Contract/revenge/playoff context.' },
+    { key:'refs', title:'Official / Ref Tendency', tier:'2D', live:true, sources:['Official NBA','Covers/RefMetrics','Derived'], note:'Crew tendency.' },
+    { key:'survivability', title:'Survivability Shield', tier:'2E', live:false, sources:['Internal gate logic'], note:'Alpha Shield and standalone purity.' },
+    { key:'validation', title:'Prop-source validation', tier:'2A', live:true, sources:['Ingested row'], note:'Parsed row identity and line are already grounded.' }
+  );
+
+  const originalRenderAnalysisV87 = renderAnalysis;
+  renderAnalysis = function(){
+    originalRenderAnalysisV87();
+    syncV87Header();
+    const matrixTitle = document.getElementById('miningMatrixTitle');
+    if (matrixTitle) matrixTitle.textContent = 'NBA Triple-Threat Factor Matrix';
   };
 
-  function cardTemplate(f, row){
-    return {
+  async function mineNbaRowTriple(row){
+    const result = {};
+    NBA_MINING_FACTORS.forEach(f => {
+      result[f.key] = {
+        ...f,
+        tier: f.tier || '2X',
+        status: f.key === 'validation' ? 'ready' : (f.live ? 'loading' : 'waiting'),
+        statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : 'Loading live probe...',
+        sourcesLabel: f.sources.join(' • '),
+        parsedResult: f.key === 'validation'
+          ? `${row.entity} • ${row.propFamily} ${row.line}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • team ${row.team}` : ''}`
+          : '',
+        evidence: f.key === 'validation' ? (row.rawText || row.lineText || '') : '',
+        confidence: f.key === 'validation' ? 100 : 18,
+        delta: 0,
+        rawMiningResult: f.key === 'validation' ? (row.rawText || row.lineText || '') : '',
+        extractionProof: f.key === 'validation' ? (row.rawText || row.lineText || '') : '',
+        sourceAccuracy: f.key === 'validation' ? 'high' : 'mid'
+      };
+    });
+
+    function applyCard(key, status, parsedResult, evidence, confidence, extra={}){
+      const parsedClean = SanitizeResult(parsedResult, row.propFamily, evidence);
+      const parsedNum = safeNumber(extra.projectionValue ?? parsedClean);
+      const delta = extra.neutral ? 0.0 : scoreDeltaFromContext(key, parsedNum ?? parsedClean, row, extra);
+      result[key] = {
+        ...result[key],
+        status,
+        statusLabel: status === 'ready' ? 'Search evidence found' : status === 'warning' ? 'Warning state' : 'Probe failed',
+        parsedResult: String(parsedClean || parsedResult || '—'),
+        evidence: evidence || '—',
+        confidence: Math.max(0, Math.min(100, Number(confidence || 0))),
+        delta,
+        rawMiningResult: extra.rawMiningResult ?? parsedResult ?? '—',
+        extractionProof: extra.extractionProof ?? evidence ?? '—',
+        sourceAccuracy: extra.sourceAccuracy || result[key].sourceAccuracy || 'mid',
+        ...extra
+      };
+      return result[key];
+    }
+
+    const propQuery = is3PTMRow(row) ? '3-pointers made' : row.propFamily;
+    const oppFull = expandNbaTeamAbbr(row.opponent || '');
+    const teamFull = expandNbaTeamAbbr(row.team || '');
+    const seasonSeed = () => Number(result.season?.projectionValue ?? result.season?.parsedResult ?? NaN);
+
+    const factorPlans = {
+      last5: [
+        createTripleQuery('Source 1 (StatMuse)', `${row.entity} game logs last 5 games 2026 ${propQuery} statmuse nba`, blob => is3PTMRow(row) ? extractSingleStatValue(blob, ['3-pointers? made','threes?']) ?? extractManualLastN(blob,5) : extractStealthRecentForm(blob, row.propFamily) ?? bestSearchValue(blob, row)),
+        createTripleQuery('Source 2 (Basketball-Reference)', `${row.entity} basketball reference game log last 5 2026 ${propQuery}`, blob => extractStealthRecentForm(blob, row.propFamily) ?? extractManualLastN(blob,5)),
+        createTripleQuery('Source 3 (Search)', `${row.entity} game logs last 5 games 2026`, blob => extractManualLastN(blob,5))
+      ],
+      last10: [
+        createTripleQuery('Source 1 (StatMuse)', `${row.entity} game logs last 10 games 2026 ${propQuery} statmuse nba`, blob => is3PTMRow(row) ? extractSingleStatValue(blob, ['3-pointers? made','threes?']) ?? extractManualLastN(blob,10) : extractStealthRecentForm(blob, row.propFamily) ?? extractManualLastN(blob,10)),
+        createTripleQuery('Source 2 (Basketball-Reference)', `${row.entity} basketball reference game log last 10 2026 ${propQuery}`, blob => extractStealthRecentForm(blob, row.propFamily) ?? extractManualLastN(blob,10)),
+        createTripleQuery('Source 3 (Search)', `${row.entity} game logs last 10 games 2026`, blob => extractManualLastN(blob,10))
+      ],
+      last20: [
+        createTripleQuery('Source 1 (StatMuse)', `${row.entity} game logs last 20 games 2026 ${propQuery} statmuse nba`, blob => is3PTMRow(row) ? extractSingleStatValue(blob, ['3-pointers? made','threes?']) ?? extractManualLastN(blob,20) : extractStealthRecentForm(blob, row.propFamily) ?? extractManualLastN(blob,20)),
+        createTripleQuery('Source 2 (Basketball-Reference)', `${row.entity} basketball reference game log last 20 2026 ${propQuery}`, blob => extractStealthRecentForm(blob, row.propFamily) ?? extractManualLastN(blob,20)),
+        createTripleQuery('Source 3 (Search)', `${row.entity} game logs last 20 games 2026`, blob => extractManualLastN(blob,20))
+      ],
+      season: [
+        createTripleQuery('Source 1 (NBA.com)', `${row.entity} official season average nba.com ${propQuery}`, blob => bestSearchValue(blob, row)),
+        createTripleQuery('Source 2 (BBR)', `${row.entity} season stats basketball reference ${propQuery}`, blob => bestSearchValue(blob, row)),
+        createTripleQuery('Source 3 (Search)', `${row.entity} career vs season stats baseline ${propQuery}`, blob => bestSearchValue(blob, row))
+      ],
+      career: [
+        createTripleQuery('Source 1 (BBR)', `${row.entity} career cumulative stats basketball reference ${propQuery}`, blob => bestSearchValue(blob, row)),
+        createTripleQuery('Source 2 (NBA.com)', `${row.entity} official career stats nba.com ${propQuery}`, blob => bestSearchValue(blob, row)),
+        createTripleQuery('Source 3 (Search)', `${row.entity} career vs season stats baseline`, blob => bestSearchValue(blob, row))
+      ],
+      h2h: [
+        createTripleQuery('Source 1 (StatMuse)', `${row.entity} career vs ${oppFull} ${propQuery} statmuse`, blob => bestSearchValue(blob, row)),
+        createTripleQuery('Source 2 (ESPN)', `${row.entity} matchup history vs ${oppFull} espn ${propQuery}`, blob => bestSearchValue(blob, row)),
+        createTripleQuery('Source 3 (Search)', `${row.entity} career ppg rpg apg vs ${oppFull}`, blob => bestSearchValue(blob, row))
+      ],
+      physical: [
+        createTripleQuery('Source 1 (NBA.com Bio)', `${row.entity} nba.com bio height weight`, blob => {
+          const h = extractNumber(blob);
+          return Number.isFinite(h) ? h : null;
+        }),
+        createTripleQuery('Source 2 (StatMuse)', `${propPositionHint(row)} average height weight 2026 statmuse nba`, blob => extractNumber(blob)),
+        { source:'Source 3 (Derived)', kind:'derived', parseFn: async () => {
+            const d = derivePhysicalEdge(row);
+            return { value: d.score, text: d.text };
+          } }
+      ],
+      rotation: [
+        createTripleQuery('Source 1 (RotoWire)', `${row.entity} ${teamFull} starting lineup rotowire nba`, blob => parseStarterScore(blob)),
+        createTripleQuery('Source 2 (NBA.com)', `${row.entity} usage rate leaderboard nba.com`, blob => extractNumber(blob)),
+        { source:'Source 3 (Derived)', kind:'derived', parseFn: async () => {
+            const u = deriveUsagePulseV7(row.rawText || '', 100);
+            const rot = deriveRotationStatusV7(row.rawText || '');
+            return { value: u ?? 0, text: `${rot} • Usage Pulse ${u != null ? u.toFixed(1)+'%' : 'n/a'}` };
+          } }
+      ],
+      clutch: [
+        createTripleQuery('Source 1 (NBA.com)', `${row.entity} clutch statistics nba.com last 10`, blob => extractNumber(blob)),
+        createTripleQuery('Source 2 (StatMuse)', `${row.entity} 4th quarter stats last 10 statmuse nba`, blob => extractNumber(blob)),
+        { source:'Source 3 (Derived)', kind:'derived', parseFn: async () => {
+            const d = deriveClutchDelta(row.rawText || '', seasonSeed());
+            return d == null ? null : { value:d, text:`Clutch delta ${d}` };
+          } }
+      ],
+      defender: [
+        createTripleQuery('Source 1 (RotoWire)', `${row.entity} primary defender rotowire ${oppFull}`, blob => blob.match(/\b(?:vs|against)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/)?.[1] || null),
+        createTripleQuery('Source 2 (StatMuse)', `${row.entity} defender defensive rating last 10 statmuse`, blob => extractNumber(blob)),
+        createTripleQuery('Source 3 (Search)', `${row.entity} vs defender stats`, blob => extractNumber(blob))
+      ],
+      travel: [
+        createTripleQuery('Source 1 (Schedule)', `${teamFull} schedule last 48 hours ${oppFull} altitude`, blob => extractNumber(blob)),
+        { source:'Source 2 (Timezone calc)', kind:'derived', parseFn: async () => {
+            const d = deriveTravelFatigue(row);
+            return { value:d.score, text:d.text };
+          } },
+        createTripleQuery('Source 3 (Search)', `${teamFull} travel miles last 5 days`, blob => extractNumber(blob))
+      ],
+      motivation: [
+        createTripleQuery('Source 1 (Spotrac)', `${row.entity} contract incentives spotrac`, blob => extractNumber(blob)),
+        createTripleQuery('Source 2 (News)', `${row.entity} revenge game contract year playoff push`, blob => /revenge|contract|playoff|all-star/i.test(blob) ? 2 : null),
+        { source:'Source 3 (Derived)', kind:'derived', parseFn: async () => {
+            const d = deriveMotivation(row);
+            return { value:d.score, text:d.text };
+          } }
+      ],
+      refs: [
+        createTripleQuery('Source 1 (Official NBA)', `${teamFull} vs ${oppFull} daily crew assignments official nba`, blob => refsBiasFromText(blob)),
+        createTripleQuery('Source 2 (Covers/RefMetrics)', `${teamFull} vs ${oppFull} referee tendency covers refmetrics`, blob => refsBiasFromText(blob)),
+        { source:'Source 3 (Derived)', kind:'derived', parseFn: async () => {
+            const ref = recoverRefFromRawParse(row.rawText || '');
+            if (!ref) return { value:50, text:'Neutral fallback' };
+            return { value:50, text:`recoverRefFromRawParse found ${ref}; neutral fallback` };
+          } }
+      ]
+    };
+
+    const order = ['validation','last5','last10','last20','season','career','h2h','physical','rotation','clutch','defender','travel','motivation','refs'];
+
+    for (const key of order) {
+      if (key === 'validation') continue;
+      const plan = factorPlans[key];
+      if (!plan) continue;
+      const triple = await tryTriple(row, key, plan);
+      if (triple.ok) {
+        let parsed = triple.parsed;
+        let evidence = triple.blob || '';
+        let neutral = false;
+        let projectionValue = null;
+        let display = parsed;
+        if (typeof parsed === 'object' && parsed !== null) {
+          display = parsed.value ?? parsed.text ?? JSON.stringify(parsed);
+          evidence = parsed.text || evidence;
+          projectionValue = typeof parsed.value === 'number' ? parsed.value : null;
+        } else {
+          projectionValue = typeof parsed === 'number' ? parsed : safeNumber(parsed);
+        }
+
+        if (key === 'physical') {
+          display = typeof display === 'number' ? `${display >= 0 ? '+' : ''}${display.toFixed(1)} edge` : display;
+        }
+        if (key === 'rotation') {
+          const rot = deriveRotationStatusV7(row.rawText || '');
+          const usage = deriveUsagePulseV7(row.rawText || '', 100);
+          display = `${rot}${usage != null ? ` • ${usage.toFixed(1)}%` : ''}`;
+          projectionValue = usage != null ? usage : projectionValue;
+        }
+        if (key === 'clutch' && typeof display === 'number') display = `${display >= 0 ? '+' : ''}${display.toFixed(1)} delta`;
+        if (key === 'travel' || key === 'motivation') {
+          neutral = projectionValue === 0 || /\bneutral\b/i.test(String(evidence || display));
+        }
+        if (key === 'refs') {
+          neutral = /neutral/i.test(String(evidence || display)) || Number(projectionValue) === 50;
+          display = /neutral/i.test(String(display)) ? '[DERIVED: NEUTRAL]' : display;
+        }
+
+        const confidence = triple.source.includes('Derived') ? 56 : triple.source.includes('Source 1') ? 78 : triple.source.includes('Source 2') ? 68 : 60;
+        applyCard(key, 'ready', display, evidence || `${key} value found`, confidence, {
+          projectionValue,
+          derived: triple.source.includes('Derived'),
+          neutral,
+          sourceAccuracy: triple.source.includes('Source 1') ? 'high' : triple.source.includes('Derived') ? 'mid' : 'mid',
+          sourcesLabel: `${result[key].sourcesLabel} • ${setRichSources(result[key], triple.attempts)}`,
+          extractionProof: `${triple.source} winner • ${evidence || display}`
+        });
+      } else {
+        applyCard(key, 'warning', '[UNKNOWN]', 'All three sources failed.', 24, {
+          sourceAccuracy:'low',
+          extractionProof:'All three sources returned blocked/null.'
+        });
+      }
+    }
+
+    // validation card
+    applyCard('validation', 'ready', `${row.entity} • ${row.propFamily} ${row.line}`, row.rawText || row.lineText || '', 100, {
+      derived:false,
+      sourceAccuracy:'high',
+      projectionValue:null,
+      extractionProof: row.rawText || row.lineText || ''
+    });
+
+    // map special cards
+    if (result.rotation && result.rotation.status === 'ready') {
+      const parts = String(result.rotation.parsedResult || '').split('•');
+      const rotLabel = parts[0].trim();
+      result.rotation.delta = /LOCK_STARTER|Starter/i.test(rotLabel) ? 3.5 : 0;
+    }
+
+    // survivability from v7.5 logic
+    const cards = Object.values(result);
+    const warningCount = cards.filter(c => c && c.status === 'warning' && !c.derived && (!String(c.evidence || '').trim() || /\[UNKNOWN\]|unknown|warning/i.test(String(c.parsedResult || '') + ' ' + String(c.statusLabel || '')))).length;
+    const derivedCount = cards.filter(c => c && c.derived).length;
+    const pureProbability = standaloneProbability(row, cards);
+    let finalQualified = survivabilityScore(row, cards);
+    finalQualified = Math.max(1, Math.min(99, finalQualified - (warningCount * 10)));
+    let cappedProbability = pureProbability;
+    let capApplied = false;
+    if (derivedCount > 3 && cappedProbability > 0.75) {
+      cappedProbability = 0.75;
+      capApplied = true;
+    }
+    result.survivability = {
+      ...result.survivability,
+      key:'survivability',
+      status: warningCount > 0 ? 'warning' : 'ready',
+      statusLabel:'8.7 Triple-Threat Shield',
+      parsedResult:`FINAL_HIT_PROBABILITY ${(cappedProbability*100).toFixed(1)}% • FINAL_QUALIFIED_SCORE ${finalQualified.toFixed(1)}`,
+      evidence:`Warnings ${warningCount} • Derived ${derivedCount} • Triple-source protocol engaged.`,
+      confidence: Math.max(45, 92 - warningCount * 8),
+      delta:0,
+      rawMiningResult:`Pure ${pureProbability.toFixed(4)} • Final ${cappedProbability.toFixed(4)}`,
+      extractionProof:'Penalty applies only to UNKNOWN/WARNING states with zero evidence.',
+      finalProbability:cappedProbability,
+      finalQualifiedScore:finalQualified,
+      warningCount, derivedCount, capApplied,
+      sourceAccuracy:'high'
+    };
+
+    return result;
+  }
+
+  ensureNbaMining = async function(row){
+    if (!row || row.leagueId !== 'nba') return;
+    const key = cacheKeyForRow(row);
+    const existing = runtimeMiningCache[key];
+    if (existing && (existing.status === 'done' || existing.status === 'loading')) return;
+
+    runtimeMiningCache[key] = { status:'loading', cards: NBA_MINING_FACTORS.map(f => ({
       ...f,
-      tier: f.tier || '2X',
-      status: f.key === 'validation' ? 'ready' : 'mining',
-      statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : 'PROBING...',
-      sourcesLabel: (f.sources || []).join(' • '),
+      status: f.key === 'validation' ? 'ready' : (f.live ? 'loading' : 'waiting'),
+      statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : (f.live ? 'Loading live probe...' : 'Source wiring next'),
+      sourcesLabel: f.sources.join(' • '),
       parsedResult: f.key === 'validation'
         ? `${row.entity} • ${row.propFamily} ${row.line}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • team ${row.team}` : ''}`
         : '',
       evidence: f.key === 'validation' ? (row.rawText || row.lineText || '') : '',
-      confidence: f.key === 'validation' ? 100 : 25,
-      delta: 0
-    };
-  }
+      confidence: f.key === 'validation' ? 100 : 20,
+      delta: 0,
+      tier: f.tier || '2X',
+      rawMiningResult: f.key === 'validation' ? (row.rawText || row.lineText || '') : '',
+      extractionProof: f.key === 'validation' ? (row.rawText || row.lineText || '') : '',
+      sourceAccuracy: f.key === 'validation' ? 'high' : 'mid'
+    })) };
+    render();
 
-  function updateCacheCard(key, factorKey, card){
-    const bucket = runtimeMiningCache[key];
-    if (!bucket || !Array.isArray(bucket.cards)) return;
-    const idx = bucket.cards.findIndex(c => c.key === factorKey);
-    if (idx >= 0) bucket.cards[idx] = { ...bucket.cards[idx], ...card };
-  }
-
-  const REF_DB = {
-    'Scott Foster': { over: 52, under: 48, fouls: 39.8 },
-    'Tony Brothers': { over: 57, under: 43, fouls: 41.1 },
-    'Zach Zarba': { over: 54, under: 46, fouls: 38.6 },
-    'James Capers': { over: 56, under: 44, fouls: 40.2 },
-    'Marc Davis': { over: 51, under: 49, fouls: 38.1 },
-    'Bill Kennedy': { over: 53, under: 47, fouls: 37.9 }
+    try {
+      const mined = await mineNbaRowTriple(row);
+      const progressive = [];
+      for (const f of NBA_MINING_FACTORS) {
+        const promise = Promise.resolve(mined[f.key] || f);
+        await promise.then((card) => {
+          progressive.push(card);
+          runtimeMiningCache[key] = { status:'loading', cards:[...progressive, ...NBA_MINING_FACTORS.slice(progressive.length).map(ff => ({
+            ...ff,
+            status:'waiting',
+            statusLabel:'Waiting',
+            confidence:20,
+            delta:0,
+            sourcesLabel:(ff.sources || []).join(' • '),
+            parsedResult:'',
+            evidence:'',
+            tier: ff.tier || '2X',
+            sourceAccuracy:'mid'
+          }))] };
+        }).finally(() => {
+          render();
+        });
+      }
+      runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => mined[f.key] || f) };
+      saveState();
+    } catch (err) {
+      rich(row.rowId, 'system', `Triple-Threat mining failure: ${String(err && err.message || err)}`, 'ERROR');
+      runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => ({
+        ...f,
+        status: f.key === 'validation' ? 'ready' : 'failed',
+        statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : 'Live probe failed',
+        sourcesLabel: f.sources.join(' • '),
+        parsedResult: f.key === 'validation'
+          ? `${row.entity} • ${row.propFamily} ${row.line}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • team ${row.team}` : ''}`
+          : 'Mining failed.',
+        evidence: f.key === 'validation' ? 'Parsed from ingested row' : String(err && err.message || err),
+        confidence: f.key === 'validation' ? 100 : 20,
+        delta: 0,
+        tier: f.tier || '2X',
+        sourceAccuracy:'low'
+      })) };
+    }
+    render();
   };
 
-  function lookupRef(name=''){ return REF_DB[String(name || '').trim()] || null; }
-
-  async function probeFactorV86(row, f, resultMap){
-    const propIs3 = is3PTMRow(row);
-
-    if (f.key === 'validation') {
-      return {
-        ...resultMap[f.key],
-        status:'ready',
-        statusLabel:'Parsed from ingested row',
-        confidence:100,
-        parsedResult:`${row.entity} • ${row.propFamily} ${row.line}`,
-        evidence: row.rawText || row.lineText || '',
-        rawMiningResult: row.rawText || row.lineText || '',
-        extractionProof: row.rawText || row.lineText || '',
-        derived:false,
-        sourceAccuracy:'high'
+  function loadLeBronDemoV87(){
+    try{
+      const row = {
+        rowId:'nba|lebron james|LAL|OKC|PRA|40.5|REGULAR',
+        sport:'NBA',
+        leagueId:'nba',
+        entity:'LeBron James',
+        team:'LAL',
+        opponent:'OKC',
+        propFamily:'PRA',
+        propKey:'pra',
+        line:'40.5',
+        lineText:'PRA 40.5',
+        type:'REGULAR',
+        rawText:'⚪ LeBron James PRA 40.5 More • LeBron James Game Log StatMuse 2026 • 28 pts, 8 ast, 7 reb • 26 pts, 9 ast, 8 reb • 25 pts, 8 ast, 6 reb • Ref: Tony Brothers • LAL vs OKC'
       };
-    }
-
-    if (f.key === 'last5') {
-      const q = propIs3
-        ? `${row.entity} 3-pointers made last 10 games StatMuse`
-        : `${row.entity} Last 10 Game Logs StatMuse 2026 ${row.propFamily} NBA`;
-      const res = await runSearchFactor(row, 'last5', q, (blob) => {
-        if (propIs3) {
-          const m = blob.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b/i) ||
-                    blob.match(/\b(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b[^0-9]{0,10}(\d+(?:\.\d+)?)/i);
-          if (m) return Number(m[1]);
-        }
-        return extractStealthRecentForm(blob, row.propFamily) ?? bestSearchValue(blob, row);
-      });
-      if (res.ok) {
-        const val = Number(res.parsed);
-        return {
-          ...resultMap[f.key],
-          status:'ready',
-          statusLabel:'Stealth game log parse',
-          confidence:72,
-          delta: scoreDeltaFromContext('last5', val, row, {}),
-          parsedResult:String(res.parsed),
-          evidence: res.blob.slice(0,260),
-          rawMiningResult:String(res.parsed),
-          extractionProof: propIs3 ? 'Query: [Player] 3-pointers made last 10 games StatMuse. 3PTM isolated from Points.' : 'Query: [Player] Last 10 Game Logs StatMuse 2026.',
-          sourcesLabel:`${(f.sources || []).join(' • ')} • winner: ${res.provider || 'search'}`,
-          projectionValue: val,
-          derived:false,
-          sourceAccuracy:'high'
-        };
-      }
-      const fallback = deriveFromRawParseV75(row);
-      return {
-        ...resultMap[f.key],
-        status: fallback != null ? 'ready' : 'warning',
-        statusLabel: fallback != null ? 'Derived from raw parse' : 'No clean source',
-        confidence: fallback != null ? 58 : 25,
-        delta: scoreDeltaFromContext('last5', Number(fallback || 0), row, {}),
-        parsedResult: fallback != null ? String(fallback) : '[UNKNOWN]',
-        evidence: row.rawText || '',
-        rawMiningResult: fallback != null ? String(fallback) : '[UNKNOWN]',
-        extractionProof: fallback != null ? 'Fallback derivation from intake text.' : 'No evidence returned.',
-        projectionValue: fallback != null ? Number(fallback) : null,
-        derived: fallback != null,
-        sourceAccuracy: fallback != null ? 'mid' : 'low'
-      };
-    }
-
-    if (f.key === 'last10') {
-      const q = propIs3
-        ? `${row.entity} 3-pointers made last 10 games StatMuse`
-        : `${row.entity} Last 10 Game Logs StatMuse 2026 ${row.propFamily} NBA`;
-      const res = await runSearchFactor(row, 'last10', q, (blob) => {
-        if (propIs3) {
-          const m = blob.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b/i) ||
-                    blob.match(/\b(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b[^0-9]{0,10}(\d+(?:\.\d+)?)/i);
-          if (m) return Number(m[1]);
-        }
-        return extractStealthRecentForm(blob, row.propFamily) ?? bestSearchValue(blob, row);
-      });
-      if (res.ok) {
-        return {
-          ...resultMap[f.key],
-          status:'ready',
-          statusLabel:'Stealth game log parse',
-          confidence:68,
-          delta: scoreDeltaFromContext('last10', Number(res.parsed), row, {}),
-          parsedResult:String(res.parsed),
-          evidence: res.blob.slice(0,260),
-          rawMiningResult:String(res.parsed),
-          extractionProof:'Stealth last-10 recovery from game log query.',
-          sourcesLabel:`${(f.sources || []).join(' • ')} • winner: ${res.provider || 'search'}`,
-          projectionValue:Number(res.parsed),
-          derived:false,
-          sourceAccuracy:'high'
-        };
-      }
-      return {
-        ...resultMap[f.key],
-        status:'warning',
-        statusLabel:'No clean source',
-        confidence:25,
-        delta:0,
-        parsedResult:'[UNKNOWN]',
-        evidence:'',
-        rawMiningResult:'[UNKNOWN]',
-        extractionProof:'No evidence returned.',
-        derived:false,
-        sourceAccuracy:'low'
-      };
-    }
-
-    if (f.key === 'season') {
-      const q = `${row.entity} season ${propIs3 ? '3-pointers made' : row.propFamily} StatMuse NBA`;
-      const res = await runSearchFactor(row, 'season', q, (blob) => {
-        if (propIs3) {
-          const m = blob.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b/i) ||
-                    blob.match(/\b(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b[^0-9]{0,10}(\d+(?:\.\d+)?)/i);
-          if (m) return Number(m[1]);
-        }
-        return extractStealthRecentForm(blob, row.propFamily) ?? bestSearchValue(blob, row);
-      });
-      if (res.ok) {
-        return {
-          ...resultMap[f.key],
-          status:'ready',
-          statusLabel:'Season baseline recovered',
-          confidence:74,
-          delta:0,
-          parsedResult:String(res.parsed),
-          evidence: res.blob.slice(0,260),
-          rawMiningResult:String(res.parsed),
-          extractionProof:'Stealth season baseline recovery.',
-          sourcesLabel:`${(f.sources || []).join(' • ')} • winner: ${res.provider || 'search'}`,
-          projectionValue:Number(res.parsed),
-          derived:false,
-          sourceAccuracy:'high'
-        };
-      }
-      const fallback = deriveFromRawParseV75(row);
-      return {
-        ...resultMap[f.key],
-        status: fallback != null ? 'ready' : 'warning',
-        statusLabel: fallback != null ? 'Derived baseline fallback' : 'No clean source',
-        confidence: fallback != null ? 55 : 25,
-        delta:0,
-        parsedResult: fallback != null ? String(fallback) : '[UNKNOWN]',
-        evidence: row.rawText || '',
-        rawMiningResult: fallback != null ? String(fallback) : '[UNKNOWN]',
-        extractionProof: fallback != null ? 'Derived baseline fallback.' : 'No evidence returned.',
-        projectionValue: fallback != null ? Number(fallback) : null,
-        derived: fallback != null,
-        sourceAccuracy: fallback != null ? 'mid' : 'low'
-      };
-    }
-
-    if (f.key === 'rotation') {
-      const rot = deriveRotationStatusV7(row.rawText || '');
-      return {
-        ...resultMap[f.key],
-        status: rot === 'UNKNOWN' ? 'warning' : 'ready',
-        statusLabel: rot === 'UNKNOWN' ? 'No clean source' : 'Derived from last 3 minutes',
-        confidence: rot === 'UNKNOWN' ? 30 : 56,
-        delta: scoreDeltaFromContext('rotation', rot === 'LOCK_STARTER' ? 'Starter' : 'Bench', row, {}),
-        parsedResult: rot,
-        evidence: row.rawText || '',
-        rawMiningResult: rot,
-        extractionProof:'If MP > 30 in 2 of last 3 games => LOCK_STARTER.',
-        projectionValue: rot === 'LOCK_STARTER' ? 1 : 0,
-        derived:true,
-        sourceAccuracy:'mid'
-      };
-    }
-
-    if (f.key === 'usage3') {
-      const usage = deriveUsagePulseV7(row.rawText || '', 100);
-      return {
-        ...resultMap[f.key],
-        status: usage != null ? 'ready' : 'warning',
-        statusLabel: usage != null ? 'Derived from last 3 box scores' : 'No clean source',
-        confidence: usage != null ? 58 : 25,
-        delta: scoreDeltaFromContext('usage3', Number(usage || 0), row, {}),
-        parsedResult: usage != null ? `${usage.toFixed(1)}%` : '[UNKNOWN]',
-        evidence: row.rawText || '',
-        rawMiningResult: usage != null ? `${usage.toFixed(1)}%` : '[UNKNOWN]',
-        extractionProof: usage != null ? `Usage ≈ 100 * ((FGA + 0.44 * FTA + TOV) * (Team_MP / 5)) / (MP * Team_Possessions) = ${usage.toFixed(1)}%` : 'No evidence returned.',
-        projectionValue: usage != null ? Number(usage) : null,
-        derived: usage != null,
-        sourceAccuracy: usage != null ? 'mid' : 'low'
-      };
-    }
-
-    if (f.key === 'teammateImpact') {
-      return {
-        ...resultMap[f.key],
-        status:'ready',
-        statusLabel:'Derived neutral fallback',
-        confidence:55,
-        delta:0.0,
-        parsedResult:'[DERIVED: NEUTRAL]',
-        evidence:'No validated teammate-out structural shift found.',
-        rawMiningResult:'[DERIVED: NEUTRAL]',
-        extractionProof:'Derived/neutral states carry 0.0 impact.',
-        projectionValue:0,
-        derived:true,
-        sourceAccuracy:'mid'
-      };
-    }
-
-    if (f.key === 'teamPace') {
-      const pace = paceFallbackForTeam(row.team || '');
-      return {
-        ...resultMap[f.key],
-        status:'ready',
-        statusLabel:'Standard pace fallback',
-        confidence:58,
-        delta:0.0,
-        parsedResult:String(pace.toFixed(1)),
-        evidence:`Fallback pace for ${row.team || 'team'} = ${pace.toFixed(1)}`,
-        rawMiningResult:String(pace.toFixed(1)),
-        extractionProof:'Derived/neutral states carry 0.0 impact.',
-        projectionValue: pace,
-        derived:true,
-        sourceAccuracy:'mid'
-      };
-    }
-
-    if (f.key === 'oppDefense') {
-      const def = deriveDefensiveArchetypeFromDRTG(row.opponent || '');
-      return {
-        ...resultMap[f.key],
-        status:'ready',
-        statusLabel:'DRTG permissiveness fallback',
-        confidence:57,
-        delta:0.0,
-        parsedResult:`${def.label} • DRTG ${def.drtg}`,
-        evidence:`Opponent ${row.opponent || ''} DRTG ${def.drtg}`,
-        rawMiningResult:`DRTG ${def.drtg}`,
-        extractionProof:'Derived/neutral states carry 0.0 impact.',
-        projectionValue:def.drtg,
-        derived:true,
-        sourceAccuracy:'mid'
-      };
-    }
-
-    if (f.key === 'schedule') {
-      return {
-        ...resultMap[f.key],
-        status:'ready',
-        statusLabel:'Neutral rest fallback',
-        confidence:55,
-        delta:0.0,
-        parsedResult:'60',
-        evidence:'Neutral schedule fallback.',
-        rawMiningResult:'60',
-        extractionProof:'Derived/neutral states carry 0.0 impact.',
-        projectionValue:60,
-        derived:true,
-        sourceAccuracy:'mid'
-      };
-    }
-
-    if (f.key === 'projection') {
-      const projection = calculateInternalProjection(row, resultMap);
-      return {
-        ...resultMap[f.key],
-        status: projection != null ? 'ready' : 'warning',
-        statusLabel: projection != null ? 'Internal weighted engine' : 'No clean source',
-        confidence: projection != null ? 64 : 25,
-        delta: scoreDeltaFromContext('projection', Number(projection || 0), row, {}),
-        parsedResult: projection != null ? String(projection) : '[UNKNOWN]',
-        evidence: projection != null ? 'Calculated Edge via weighted engine.' : '',
-        rawMiningResult: projection != null ? String(projection) : '[UNKNOWN]',
-        extractionProof: projection != null ? 'Weighted average engine.' : 'No evidence returned.',
-        projectionValue: projection != null ? Number(projection) : null,
-        derived: projection != null,
-        sourceAccuracy: projection != null ? 'mid' : 'low'
-      };
-    }
-
-    if (f.key === 'odds') {
-      const oddsInfo = parseMarketOddsFromRaw(row.rawText || row.lineText || '');
-      return {
-        ...resultMap[f.key],
-        status:'ready',
-        statusLabel:'Parsed from raw intake text',
-        confidence:64,
-        delta: oddsInfo.sharpMoneyDrag < 0 ? -1.5 : 0,
-        parsedResult: oddsInfo.parsedText,
-        evidence: row.rawText || row.lineText || '',
-        rawMiningResult: oddsInfo.parsedText,
-        extractionProof:'Raw odds parser scanned Less/More and -1XX/+1XX text.',
-        projectionValue: oddsInfo.sharpMoneyDrag,
-        parsedSource:'raw',
-        derived:false,
-        sourceAccuracy:'mid'
-      };
-    }
-
-    if (f.key === 'refs') {
-      const refName = recoverRefFromRawParse(row.rawText || '');
-      const refDb = lookupRef(refName);
-      if (refDb) {
-        return {
-          ...resultMap[f.key],
-          status:'ready',
-          statusLabel:'Recovered from raw parse',
-          confidence:63,
-          delta: refDb.over > 55 ? 1.0 : 0.0,
-          parsedResult:`${refName} • O/U ${refDb.over}% Over`,
-          evidence:`Ref: ${refName} • 2025-26 O/U ${refDb.over}% Over • Fouls ${refDb.fouls}`,
-          rawMiningResult:`${refName} ${refDb.over}%`,
-          extractionProof:'Crew Chief recovered from raw parse and linked to internal ref DB.',
-          projectionValue: refDb.over,
-          derived:true,
-          sourceAccuracy:'mid'
-        };
-      }
-      return {
-        ...resultMap[f.key],
-        status:'ready',
-        statusLabel:'Derived neutral fallback',
-        confidence:55,
-        delta:0.0,
-        parsedResult:'[DERIVED: NEUTRAL]',
-        evidence:'No crew found in intake.',
-        rawMiningResult:'[DERIVED: NEUTRAL]',
-        extractionProof:'Derived/neutral states carry 0.0 impact.',
-        projectionValue:0,
-        derived:true,
-        sourceAccuracy:'mid'
-      };
-    }
-
-    if (f.key === 'injury') {
-      const q = `${row.entity} NBA injury status`;
-      const res = await runSearchFactor(row, 'injury', q, (blob) => parseInjuryScore(blob));
-      if (res.ok) {
-        return {
-          ...resultMap[f.key],
-          status:'ready',
-          statusLabel:'Search evidence found',
-          confidence:72,
-          delta: scoreDeltaFromContext('injury', Number(res.parsed), row, {}),
-          parsedResult:String(res.parsed),
-          evidence: res.blob.slice(0,260),
-          rawMiningResult:String(res.parsed),
-          extractionProof:'Injury status search.',
-          projectionValue:Number(res.parsed),
-          derived:false,
-          sourceAccuracy:'high'
-        };
-      }
-      return {
-        ...resultMap[f.key],
-        status:'ready',
-        statusLabel:'Derived neutral fallback',
-        confidence:55,
-        delta:0.0,
-        parsedResult:'60',
-        evidence:'Neutral injury fallback.',
-        rawMiningResult:'60',
-        extractionProof:'Derived/neutral states carry 0.0 impact.',
-        projectionValue:60,
-        derived:true,
-        sourceAccuracy:'mid'
-      };
-    }
-
-    if (f.key === 'survivability') {
-      const cards = Object.values(resultMap || {});
-      const warningCount = cards.filter(c => c && c.status === 'warning' && !c.derived && (!String(c.evidence || '').trim() || /\[UNKNOWN\]|unknown|warning/i.test(String(c.parsedResult || '') + ' ' + String(c.statusLabel || '')))).length;
-      const derivedCount = cards.filter(c => c && c.derived).length;
-      const pureProbability = standaloneProbability(row, cards);
-      let finalQualified = survivabilityScore(row, cards);
-      finalQualified = Math.max(1, Math.min(99, finalQualified - (warningCount * 10)));
-      let cappedProbability = pureProbability;
-      let capApplied = false;
-      if (derivedCount > 3 && cappedProbability > 0.75) {
-        cappedProbability = 0.75;
-        capApplied = true;
-      }
-      return {
-        ...resultMap[f.key],
-        status: warningCount > 0 ? 'warning' : 'ready',
-        statusLabel:'v8.5 Integrity Shield',
-        confidence: Math.max(45, 92 - warningCount * 8),
-        delta:0,
-        parsedResult:`FINAL_HIT_PROBABILITY ${(cappedProbability*100).toFixed(1)}% • FINAL_QUALIFIED_SCORE ${finalQualified.toFixed(1)}`,
-        evidence:`Warnings ${warningCount} • Derived ${derivedCount} • Derived/neutral states carry 0.0 impact.`,
-        rawMiningResult:`Pure ${pureProbability.toFixed(4)} • Final ${cappedProbability.toFixed(4)}`,
-        extractionProof:`Penalty applies only to UNKNOWN/WARNING states with zero evidence.`,
-        finalProbability:cappedProbability,
-        finalQualifiedScore:finalQualified,
-        warningCount,
-        derivedCount,
-        capApplied,
-        derived:false,
-        sourceAccuracy:'high'
-      };
-    }
-
-    return {
-      ...resultMap[f.key],
-      status:'warning',
-      statusLabel:'No probe configured',
-      confidence:25,
-      delta:0,
-      parsedResult:'[UNKNOWN]',
-      evidence:'',
-      rawMiningResult:'[UNKNOWN]',
-      extractionProof:'No probe configured.',
-      derived:false,
-      sourceAccuracy:'low'
-    };
-  }
-
-  const oldRunBtn = document.getElementById('runBtn');
-  if (oldRunBtn) {
-    oldRunBtn.onclick = () => {
+      Global_Flush(row, 'POOL RESET: SUCCESS');
       state.ran = true;
-      if (!state.activeRowId && state.cleanedRows[0]) state.activeRowId = state.cleanedRows[0].rowId;
       saveState();
       window.location.hash = '#analysis';
       render();
-      const row = activeRow();
-      if (row && row.leagueId === 'nba') {
-        ensureNbaMining(row);
-      }
-    };
+      rich(row.rowId, 'system', 'LeBron James demo loaded for Triple-Threat validation.', 'SUCCESS');
+    } catch(e){}
   }
 
-  const oldIngestBtn = document.getElementById('ingestBtn');
-  if (oldIngestBtn) {
-    oldIngestBtn.onclick = () => {
-      const text = document.getElementById('boardInput').value;
-      const res = ingestText(text);
-      const msg = document.getElementById('ingestMessage');
-      if (msg) {
-        msg.textContent = res.added > 0 ? `✅ ${res.message}` : res.message;
-        msg.classList.toggle('ok', res.added > 0);
-      }
-      if (res.added > 0) document.getElementById('boardInput').value = '';
-      render();
-    };
-  }
-
-  const oldRenderAnalysisFinal = renderAnalysis;
-  renderAnalysis = function(){
-    oldRenderAnalysisFinal();
-    syncV85Header();
-    const hint = document.getElementById('analysisHint');
-    const row = activeRow();
-    const cards = row ? buildMiningStatus(row) : [];
-    const pending = cards.some(c => c && c.status === 'mining');
-    if (hint && pending) hint.textContent = 'Mining...';
-  };
-
-  function loadStephenDemoV86(){
-    try {
-      if ((state.cleanedRows || []).length) return;
-      const row = {
-        rowId:'nba|stephen curry|GSW|DAL|3PTM|4.5|REGULAR',
-        sport:'NBA',
-        leagueId:'nba',
-        entity:'Stephen Curry',
-        team:'GSW',
-        opponent:'DAL',
-        propFamily:'3PTM',
-        propKey:'3ptm',
-        line:'4.5',
-        lineText:'3PTM 4.5',
-        type:'REGULAR',
-        rawText:'⚪ Stephen Curry 3PTM 4.5 More • Stephen Curry 3-pointers made last 10 games StatMuse • 5 6 4 7 5 • Ref: Scott Foster • GSW vs DAL'
-      };
-      Global_Flush(row, 'POOL RESET: SUCCESS');
-      saveState();
-      render();
-      logEvent('SUCCESS: Stephen Curry v8.6 demo row loaded. Click Run to start mining.', 'SUCCESS', row.rowId, 'system');
-    } catch(e) {}
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    syncV85Header();
-    setTimeout(loadStephenDemoV86, 0);
+  document.addEventListener('DOMContentLoaded', function(){
+    syncV87Header();
+    setTimeout(loadLeBronDemoV87, 0);
   });
 })();
 </script>
