@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PickCalc Prompt 1 Intake v8.4 (Global Bridge)</title>
+  <title>PickCalc Prompt 1 Intake v7.5</title>
   <style>
 :root {
   color-scheme: dark;
@@ -223,45 +223,13 @@ thead th { background:#121d35; position:sticky; top:0; }
 .source-accuracy.mid{background:rgba(255,211,110,.12);color:#ffd36e}
 .source-accuracy.low{background:rgba(185,74,90,.16);color:#ffd3d9}
 
-
-.processing-overlay,.mining-overlay{
-  position:absolute; inset:0; display:none; align-items:center; justify-content:center;
-  background:rgba(8,16,31,.72); border-radius:18px; z-index:5;
-}
-.mining-overlay .overlay-box{
-  border:1px solid var(--line); background:#10182c; border-radius:16px; padding:14px 18px; font-weight:700;
-}
-.mining-host{position:relative}
-
-
-.build-tag{display:inline-block;margin-left:8px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:#111b31;color:var(--accent-2);font-size:13px;font-weight:700;vertical-align:middle}
-
-.tag{display:inline-block;margin-left:10px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:#111b31;color:var(--accent-2);font-size:13px;font-weight:700;vertical-align:middle}
-
-.probing-label{
-  display:inline-block;
-  padding:4px 8px;
-  border-radius:999px;
-  border:1px solid var(--line);
-  background:#111b31;
-  color:#ffd36e;
-  font-size:11px;
-  font-weight:700;
-  animation: probingPulse 1.2s ease-in-out infinite;
-}
-@keyframes probingPulse {
-  0% { opacity:.55; transform:scale(1); }
-  50% { opacity:1; transform:scale(1.03); }
-  100% { opacity:.55; transform:scale(1); }
-}
-
 </style>
 </head>
 <body>
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>PickCalc Prompt 1 Intake v8.4 (Global Bridge)<span class="tag">Ironclad Sync</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v7.5</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -307,8 +275,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v8.4</h1>
-          <p id="analysisVersion">Version: v8.4 • Build: Global Bridge • Build: Stealth Connectors</p>
+          <h1 id="analysisTitle">Run Analysis v7.5</h1>
+          <p id="analysisVersion">Version: v7.5 • Build: Stealth Connectors • Build: Stealth Connectors</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -330,7 +298,7 @@ thead th { background:#121d35; position:sticky; top:0; }
       <section class="card">
         <h2 id="miningMatrixTitle">Data-Mining Matrix</h2>
         <p class="mini-muted">This screen is the external-data debug scaffold. It shows what the system should mine for one tennis row. Live source wiring can plug into these slots next.</p>
-        <div class="mining-host"><div id="processing-overlay" class="processing-overlay mining-overlay"><div class="overlay-box">Mining...</div></div><div id="miningGrid" class="mining-grid"></div></div>
+        <div id="miningGrid" class="mining-grid"></div>
       </section>
 
       <section class="card">
@@ -361,14 +329,6 @@ thead th { background:#121d35; position:sticky; top:0; }
     </section>
   </div>
   <script>
-const SYSTEM_VERSION = "8.4";
-const BUILD_NAME = "Global Bridge";
-document.addEventListener('DOMContentLoaded', () => {
-    document.title = `PickCalc Prompt 1 Intake v${SYSTEM_VERSION}`;
-    const h1 = document.querySelector('h1');
-    if (h1) h1.innerHTML = `PickCalc Prompt 1 Intake v${SYSTEM_VERSION} <span class="tag">${BUILD_NAME}</span>`;
-});
-
 const LEAGUES = [
   { id:'nba', label:'NBA', sport:'NBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Pts+Rebs+Asts','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
   { id:'wnba', label:'WNBA', sport:'WNBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Pts+Rebs+Asts','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
@@ -389,10 +349,8 @@ const LEAGUES = [
 ];
 
 const STORAGE_KEY = 'pickcalc-prompt1-v5-7-3';
-const APP_BUILD_VERSION = '8.4';
-const APP_BUILD_LABEL = 'Global Bridge';
-const SYSTEM_VERSION = '8.3';
-const BUILD_NAME = 'Ironclad Sync';
+const APP_BUILD_VERSION = '7.5';
+const APP_BUILD_LABEL = 'Stealth Connectors';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -2709,12 +2667,6 @@ function parsePhoneTennisBlock(block, selectedIds) {
 }
 
 
-
-function detectThreePointPropFromRaw(raw=''){
-  const m = String(raw || '').match(THREE_PROP_REGEX);
-  if (!m) return null;
-  return { prop:'3PTM', line:m[2] };
-}
 function detectType(text) {
   const raw = String(text || '');
   const t = canon(raw);
@@ -2759,10 +2711,9 @@ function parseDesktopLine(line, selectedIds) {
   const cols = line.split(/\t+/).map(norm).filter(Boolean);
   if (cols.length < 3) return null;
   const raw = cols.join(' ');
-  const explicitThree = detectThreePointPropFromRaw(raw);
-  const propMatch = explicitThree ? { prop:'3PTM' } : findPropCandidates(raw, selectedIds)[0];
+  const propMatch = findPropCandidates(raw, selectedIds)[0];
   if (!propMatch) return null;
-  const prop = explicitThree ? '3PTM' : propMatch.prop;
+  const prop = propMatch.prop;
   const leagueId = inferLeagueFromProp(prop, raw, selectedIds);
   if (!leagueId) return null;
   const low = raw.toLowerCase();
@@ -2806,10 +2757,9 @@ function parseBlock(block, selectedIds) {
   const phoneStatRow = parsePhoneStatBlock(block, selectedIds);
   if (phoneStatRow) return phoneStatRow;
   const raw = norm(block);
-  const explicitThree = detectThreePointPropFromRaw(raw);
-  const propMatch = explicitThree ? { prop:'3PTM' } : findPropCandidates(raw, selectedIds)[0];
+  const propMatch = findPropCandidates(raw, selectedIds)[0];
   if (!propMatch) return null;
-  const prop = explicitThree ? '3PTM' : propMatch.prop;
+  const prop = propMatch.prop;
   const leagueId = inferLeagueFromProp(prop, raw, selectedIds);
   if (!leagueId) return null;
 
@@ -3260,7 +3210,7 @@ bindActions();
     renderShieldPanelV7();
     const title = document.getElementById('analysisTitle');
     const version = document.getElementById('analysisVersion');
-    if (title) title.textContent = 'Run Analysis v8.4';
+    if (title) title.textContent = 'Run Analysis v7.5';
     if (version) version.textContent = 'Version: v7.5';
     const summary = document.getElementById('analysisSummary');
     if (summary && !summary.innerHTML.includes('POOL RESET: SUCCESS')) {
@@ -3581,7 +3531,7 @@ bindActions();
     __origRenderAnalysis_v75();
     const title = document.getElementById('analysisTitle');
     const version = document.getElementById('analysisVersion');
-    if (title) title.textContent = 'Run Analysis v8.4';
+    if (title) title.textContent = 'Run Analysis v7.5';
     if (version) version.textContent = 'Version: v7.5';
     const summary = document.getElementById('analysisSummary');
     if (summary) {
@@ -3616,653 +3566,5 @@ bindActions();
 })();
 
 </script>
-
-<script>
-(function(){
-  window.recoverRefFromRawParse = window.recoverRefFromRawParse || function recoverRefFromRawParse(rawText=''){
-    const raw = String(rawText || '');
-    const refereeDb = {
-      'Scott Foster': { over: 52, under: 48, fouls: 39.8 },
-      'Tony Brothers': { over: 57, under: 43, fouls: 41.1 },
-      'Zach Zarba': { over: 54, under: 46, fouls: 38.6 },
-      'James Capers': { over: 56, under: 44, fouls: 40.2 },
-      'Marc Davis': { over: 51, under: 49, fouls: 38.1 },
-      'Bill Kennedy': { over: 53, under: 47, fouls: 37.9 }
-    };
-    const explicit = raw.match(/Ref(?:eree)?\s*:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
-    if (explicit && refereeDb[explicit[1].trim()]) return explicit[1].trim();
-    for (const name of Object.keys(refereeDb)) {
-      if (raw.toLowerCase().includes(name.toLowerCase())) return name;
-    }
-    return '';
-  };
-
-  window.internalRefOuRecord = window.internalRefOuRecord || function internalRefOuRecord(name=''){
-    const db = {
-      'Scott Foster': { over: 52, under: 48, fouls: 39.8 },
-      'Tony Brothers': { over: 57, under: 43, fouls: 41.1 },
-      'Zach Zarba': { over: 54, under: 46, fouls: 38.6 },
-      'James Capers': { over: 56, under: 44, fouls: 40.2 },
-      'Marc Davis': { over: 51, under: 49, fouls: 38.1 },
-      'Bill Kennedy': { over: 53, under: 47, fouls: 37.9 }
-    };
-    return db[String(name || '').trim()] || null;
-  };
-
-  window.SanitizeResult = window.SanitizeResult || function SanitizeResult(parsedResult='', propFamily='', evidence=''){
-    const prop = String(propFamily || '').toUpperCase();
-    const text = `${parsedResult || ''} ${evidence || ''}`;
-    if (prop === '3PTM') {
-      const explicit = [...text.matchAll(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b/gi)]
-        .map(m => Number(m[1]))
-        .filter(Number.isFinite);
-      if (explicit.length) return String(explicit[0]);
-      const nums = [...text.matchAll(/\b(\d+(?:\.\d+)?)\b/g)].map(m => Number(m[1])).filter(Number.isFinite);
-      return nums.length ? String(nums[0]) : '';
-    }
-    const nums = String(parsedResult || '').match(/-?\d+(?:\.\d+)?/g);
-    return nums ? nums.join(' ') : String(parsedResult || '').replace(/[^\w\s.%:+/-]/g,' ').replace(/\s+/g,' ').trim();
-  };
-
-  if (typeof mineNbaRow === 'function') {
-    const __stableMine = mineNbaRow;
-    mineNbaRow = async function(row){
-      try {
-        let result = await Promise.race([
-          __stableMine(row),
-          new Promise((resolve) => setTimeout(() => resolve({ __timeout: true }), 2000))
-        ]);
-
-        if (!result || result.__timeout) {
-          result = {};
-          if (typeof logEvent === 'function') logEvent('WARNING: Stealth probe timeout. Using derivation engine.', 'WARNING', row?.rowId || '', 'system');
-        }
-
-        const ensure = (key, seed) => {
-          result[key] = { ...(result[key] || {}), ...(seed || {}) };
-          return result[key];
-        };
-
-        const raw = String(row?.rawText || row?.lineText || '');
-        const prop = String(row?.propFamily || '');
-
-        if (/3PTM/i.test(prop)) {
-          const nums = [...raw.matchAll(/\b(\d+(?:\.\d+)?)\b/g)].map(m => Number(m[1])).filter(Number.isFinite).slice(-5);
-          const avg = nums.length ? Math.round((nums.reduce((a,b)=>a+b,0)/nums.length)*10)/10 : null;
-          ensure('last5', {
-            key:'last5',
-            title:'Recent Form',
-            tier:'2C',
-            status: Number.isFinite(avg) ? 'ready' : 'warning',
-            statusLabel: Number.isFinite(avg) ? '3PTM stealth recovery' : '3PTM unavailable',
-            confidence: Number.isFinite(avg) ? 62 : 40,
-            delta: Number.isFinite(avg) && typeof scoreDeltaFromContext === 'function' ? scoreDeltaFromContext('last5', avg, row, {}) : 0,
-            parsedResult: Number.isFinite(avg) ? String(avg) : '[UNKNOWN]',
-            evidence: raw,
-            rawMiningResult: Number.isFinite(avg) ? String(avg) : '[UNKNOWN]',
-            extractionProof: Number.isFinite(avg) ? '3PTM isolated from 3-pointers-made text.' : 'No clean 3PTM value found.',
-            sourcesLabel:'v8.2 Stealth 3PTM',
-            projectionValue: avg,
-            derived: Number.isFinite(avg),
-            parsedSource:'raw'
-          });
-        }
-
-        const refName = window.recoverRefFromRawParse(raw);
-        const refDb = window.internalRefOuRecord(refName);
-        if (refDb) {
-          ensure('refs', {
-            key:'refs',
-            title:'Ref Tendency',
-            tier:'2D',
-            status:'ready',
-            statusLabel:'Recovered from raw parse',
-            confidence:63,
-            delta: refDb.over > 55 ? 1.0 : 0.0,
-            parsedResult:`${refName} • O/U ${refDb.over}% Over`,
-            evidence:`Ref: ${refName} • 2025-26 O/U ${refDb.over}% Over • Fouls ${refDb.fouls}`,
-            rawMiningResult:`${refName} ${refDb.over}%`,
-            extractionProof:'recoverRefFromRawParse(rawText) matched internal referee database.',
-            sourcesLabel:'v8.2 Ref Recovery',
-            projectionValue: refDb.over,
-            derived:true
-          });
-        } else if (!result.refs) {
-          ensure('refs', {
-            key:'refs',
-            title:'Ref Tendency',
-            tier:'2D',
-            status:'ready',
-            statusLabel:'Derived neutral fallback',
-            confidence:55,
-            delta:0.0,
-            parsedResult:'[DERIVED: NEUTRAL]',
-            evidence:'No ref name found in raw intake and external lookup unavailable.',
-            rawMiningResult:'[DERIVED: NEUTRAL]',
-            extractionProof:'Neutral ref state carries 0.0 impact and no integrity penalty.',
-            sourcesLabel:'v8.2 Neutral Fallback',
-            projectionValue:0,
-            derived:true
-          });
-        }
-
-        Object.keys(result).forEach((k) => {
-          const c = result[k];
-          if (!c || typeof c !== 'object') return;
-          c.parsedResult = window.SanitizeResult(c.parsedResult || '', row?.propFamily || '', c.evidence || '');
-          if (c.derived && /NEUTRAL/i.test(String(c.parsedResult || '') + ' ' + String(c.statusLabel || ''))) c.delta = 0.0;
-          if (!Number.isFinite(Number(c.delta))) c.delta = 0.0;
-        });
-
-        if (result.survivability && typeof result.survivability === 'object') {
-          const cards = Object.values(result);
-          const warningCount = cards.filter(c => c && c.status === 'warning' && !c.derived && (!String(c.evidence || '').trim() || /\[UNKNOWN\]|unknown|warning/i.test(String(c.parsedResult || '') + ' ' + String(c.statusLabel || '')))).length;
-          const derivedCount = cards.filter(c => c && c.derived).length;
-          let finalScore = Number(result.survivability.finalQualifiedScore || result.survivability.projectionValue || 50);
-          finalScore = Math.max(1, Math.min(99, finalScore - (warningCount * 10)));
-          let finalProb = Number(result.survivability.finalProbability || 0.5);
-          if (derivedCount > 3 && finalProb > 0.75) finalProb = 0.75;
-          result.survivability.warningCount = warningCount;
-          result.survivability.derivedCount = derivedCount;
-          result.survivability.finalQualifiedScore = finalScore;
-          result.survivability.finalProbability = finalProb;
-          result.survivability.parsedResult = `FINAL_HIT_PROBABILITY ${(finalProb*100).toFixed(1)}% • FINAL_QUALIFIED_SCORE ${finalScore.toFixed(1)}`;
-          result.survivability.extractionProof = 'Penalty applies only to WARNING states with zero evidence. DERIVED and NEUTRAL carry 0.0 impact.';
-        }
-
-        return result;
-      } catch (err) {
-        if (typeof logEvent === 'function') logEvent(`ERROR: Mining crash recovered: ${String(err && err.message || err)}`, 'ERROR', row?.rowId || '', 'system');
-        return {
-          survivability: {
-            key:'survivability',
-            title:'Alpha Shield Report',
-            tier:'2F',
-            status:'warning',
-            statusLabel:'Recovered after error',
-            confidence:35,
-            delta:0,
-            parsedResult:'FINAL_HIT_PROBABILITY 50.0% • FINAL_QUALIFIED_SCORE 40.0',
-            evidence:String(err && err.message || err),
-            rawMiningResult:'Recovered fallback',
-            extractionProof:'try/catch recovery prevented undefined cascade.',
-            projectionValue:40,
-            finalProbability:0.5,
-            finalQualifiedScore:40,
-            warningCount:1,
-            derivedCount:0
-          }
-        };
-      }
-    };
-  }
-
-  function loadV82DemoRows(){
-    try {
-      const demos = [
-        {
-          rowId:'nba|collin sexton|UTA|PHX|Points|21.5|REGULAR',
-          sport:'NBA', leagueId:'nba', entity:'Collin Sexton', team:'UTA', opponent:'PHX',
-          propFamily:'Points', propKey:'points', line:'21.5', lineText:'Points 21.5', type:'REGULAR',
-          rawText:'⚪ Collin Sexton Points 21.5 More • Collin Sexton Last 10 Game Logs StatMuse 2026 • 24 22 19 27 23 • Ref: Tony Brothers • UTA vs PHX'
-        },
-        {
-          rowId:'nba|stephen curry|GSW|DAL|3PTM|4.5|REGULAR',
-          sport:'NBA', leagueId:'nba', entity:'Stephen Curry', team:'GSW', opponent:'DAL',
-          propFamily:'3PTM', propKey:'3ptm', line:'4.5', lineText:'3PTM 4.5', type:'REGULAR',
-          rawText:'⚪ Stephen Curry 3PTM 4.5 More • Stephen Curry 3-pointers made last 10 games StatMuse 2026 • 5 6 4 7 5 • Ref: Scott Foster • GSW vs DAL'
-        }
-      ];
-      window.__validationRowsV82 = demos;
-      if (typeof Global_Flush === 'function') {
-        Global_Flush(demos[1], 'POOL RESET: SUCCESS');
-        state.ran = true;
-        saveState();
-        window.location.hash = '#analysis';
-        render();
-      }
-      if (typeof logEvent === 'function') {
-        logEvent('SUCCESS: Collin Sexton validation row prepared under v8.2.', 'SUCCESS', demos[0].rowId, 'system');
-        logEvent('SUCCESS: Stephen Curry 3PTM validation row prepared under v8.2.', 'SUCCESS', demos[1].rowId, 'system');
-      }
-    } catch (err) {}
-  }
-
-  document.addEventListener('DOMContentLoaded', function(){
-    try {
-      const h1 = document.querySelector('.hero h1');
-      if (h1) h1.innerHTML = 'PickCalc Prompt 1 Intake <span class="version-pill">v8.2</span>';
-      document.title = 'PickCalc Prompt 1 Intake v8.3 (State & Version Lock)';
-      const av = document.getElementById('analysisVersion');
-      if (av) av.textContent = 'Version: v8.4 • Build: Global Bridge';
-      loadV82DemoRows();
-    } catch (err) {}
-  });
-})();
-</script>
-
-
-<script>
-(function(){
-  const SYSTEM_VERSION = "8.3";
-const THREE_PROP_REGEX = /(3PTM|3PM|Threes|3-Pointers)\s*(\d+(\.\d+)?)/i;
-
-  const BUILD_NAME = "Global Bridge";
-
-  function syncVersionHeaderV83(){
-    try{
-      const h1 = document.querySelector('.hero h1');
-      if (h1) h1.innerHTML = `PickCalc v${SYSTEM_VERSION} <span class="build-tag">Ironclad Sync</span>`;
-      document.title = `PickCalc Prompt 1 Intake v${SYSTEM_VERSION}`;
-      const av = document.getElementById('analysisVersion');
-      if (av) av.textContent = `Version: v${SYSTEM_VERSION} • Build: ${BUILD_NAME}`;
-    } catch {}
-  }
-
-  function setMiningOverlay(show, label='Mining...'){
-    const ov = document.getElementById('processing-overlay');
-    if (!ov) return;
-    const box = ov.querySelector('.overlay-box');
-    if (box) box.textContent = label;
-    ov.style.display = show ? 'flex' : 'none';
-  }
-
-  window.recoverRefFromRawParse = window.recoverRefFromRawParse || function recoverRefFromRawParse(rawText=''){
-    const raw = String(rawText || '');
-    const refereeDbNames = ['Scott Foster','Tony Brothers','Zach Zarba','James Capers','Marc Davis','Bill Kennedy'];
-    const explicit = raw.match(/Ref(?:eree)?\s*:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
-    if (explicit && refereeDbNames.includes(explicit[1].trim())) return explicit[1].trim();
-    for (const name of refereeDbNames) if (raw.toLowerCase().includes(name.toLowerCase())) return name;
-    return '';
-  };
-
-  window.SanitizeResult = window.SanitizeResult || function SanitizeResult(parsedResult='', propFamily='', evidence=''){
-    const prop = String(propFamily || '').toUpperCase();
-    const blob = `${parsedResult || ''} ${evidence || ''}`;
-    if (prop === '3PTM') {
-      const match = blob.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|made threes)\b/i) ||
-                    blob.match(/\b(?:3ptm|3pm|threes|3-pointers made|made threes)\b[^0-9]{0,10}(\d+(?:\.\d+)?)/i);
-      return match ? String(match[1]) : '';
-    }
-    const nums = String(parsedResult || '').match(/-?\d+(?:\.\d+)?/g);
-    return nums ? nums.join(' ') : String(parsedResult || '').replace(/[^\w\s.%:+/-]/g,' ').replace(/\s+/g,' ').trim();
-  };
-
-  function loadCollinSextonV83(){
-    try{
-      if (typeof Global_Flush !== 'function') return;
-      const row = {
-        rowId:'nba|collin sexton|UTA|PHX|Points|21.5|REGULAR',
-        sport:'NBA',
-        leagueId:'nba',
-        entity:'Collin Sexton',
-        team:'UTA',
-        opponent:'PHX',
-        propFamily:'Points',
-        propKey:'points',
-        line:'21.5',
-        lineText:'Points 21.5',
-        type:'REGULAR',
-        rawText:'⚪ Collin Sexton Points 21.5 More • Collin Sexton Last 10 Game Logs StatMuse 2026 • 24 22 19 27 23 • Ref: Tony Brothers • UTA vs PHX'
-      };
-      Global_Flush(row, 'POOL RESET: SUCCESS');
-      state.ran = true;
-      saveState();
-      window.location.hash = '#analysis';
-      render();
-      if (typeof logEvent === 'function') logEvent('SUCCESS: Collin Sexton validation row loaded under v8.3.', 'SUCCESS', row.rowId, 'system');
-    } catch {}
-  }
-
-  if (typeof ensureNbaMining === 'function') {
-    const __oldEnsureNbaMiningSync = ensureNbaMining;
-    ensureNbaMining = async function(row){
-      if (!row || row.leagueId !== 'nba') return;
-      const key = cacheKeyForRow(row);
-      const existing = runtimeMiningCache[key];
-      if (existing && (existing.status === 'done' || existing.status === 'loading')) return;
-
-      setMiningOverlay(true, 'Mining...');
-      runtimeMiningCache[key] = {
-        status:'loading',
-        cards: NBA_MINING_FACTORS.map(f => ({
-          ...f,
-          tier: f.tier || '2X',
-          status: f.key === 'validation' ? 'ready' : (f.live ? 'loading' : 'waiting'),
-          confidence: f.key === 'validation' ? 100 : 25,
-          delta: 0,
-          statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : (f.live ? 'Loading live probe...' : 'Source wiring next'),
-          sourcesLabel: f.sources.join(' • '),
-          parsedResult: f.key === 'validation' ? `${row.entity} • ${row.propFamily} ${row.line}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • team ${row.team}` : ''}` : '',
-          evidence: f.key === 'validation' ? 'Parsed from ingested row' : ''
-        }))
-      };
-      render();
-
-      let mined = {};
-      try {
-        mined = await mineNbaRow(row);
-      } catch (err) {
-        mined = {};
-        if (typeof logEvent === 'function') logEvent(`ERROR: Mining failure recovered: ${String(err && err.message || err)}`, 'ERROR', row.rowId, 'system');
-      }
-
-      const progressive = [];
-      for (const f of NBA_MINING_FACTORS) {
-        let card = mined[f.key] || {
-          ...f,
-          tier: f.tier || '2X',
-          status:'warning',
-          confidence:35,
-          delta:0,
-          statusLabel:'No mined result',
-          sourcesLabel:(f.sources || []).join(' • '),
-          parsedResult:'[UNKNOWN]',
-          evidence:'',
-          rawMiningResult:'[UNKNOWN]',
-          extractionProof:'No evidence returned.',
-          projectionValue:null
-        };
-        card.parsedResult = window.SanitizeResult(card.parsedResult || '', row.propFamily || '', card.evidence || '');
-        if (card.derived && /NEUTRAL/i.test(String(card.parsedResult || '') + ' ' + String(card.statusLabel || ''))) card.delta = 0.0;
-        progressive.push(card);
-        runtimeMiningCache[key] = { status:'loading', cards:[...progressive, ...NBA_MINING_FACTORS.slice(progressive.length).map(ff => ({
-          ...ff,
-          tier: ff.tier || '2X',
-          status:'waiting',
-          confidence:25,
-          delta:0,
-          statusLabel:'Mining...',
-          sourcesLabel:(ff.sources || []).join(' • '),
-          parsedResult:'',
-          evidence:''
-        }))] };
-        render();
-        await new Promise(r => setTimeout(r, 40));
-      }
-
-      runtimeMiningCache[key] = { status:'done', cards: progressive };
-      saveState();
-      render();
-      setMiningOverlay(false);
-    };
-  }
-
-  if (typeof renderAnalysis === 'function') {
-    const __oldRenderAnalysisV83 = renderAnalysis;
-    renderAnalysis = function(){
-      __oldRenderAnalysisV83();
-      syncVersionHeaderV83();
-      const hint = document.getElementById('analysisHint');
-      const row = typeof activeRow === 'function' ? activeRow() : null;
-      const cards = row ? buildMiningStatus(row) : [];
-      const liveLoading = cards.some(c => c && (c.status === 'loading' || c.status === 'waiting'));
-      if (hint && liveLoading) hint.textContent = 'Mining...';
-      if (!liveLoading) setMiningOverlay(false);
-    };
-  }
-
-  document.addEventListener('DOMContentLoaded', function(){
-    syncVersionHeaderV83();
-    setTimeout(loadCollinSextonV83, 0);
-  });
-})();
-</script>
-
-
-<script>
-(function(){
-  window.recoverRefFromRawParse = window.recoverRefFromRawParse || function recoverRefFromRawParse(rawText=''){
-    const raw = String(rawText || '');
-    const names = ['Scott Foster','Tony Brothers','Zach Zarba','James Capers','Marc Davis','Bill Kennedy'];
-    const explicit = raw.match(/Ref(?:eree)?\s*:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
-    if (explicit && names.includes(explicit[1].trim())) return explicit[1].trim();
-    for (const n of names) if (raw.toLowerCase().includes(n.toLowerCase())) return n;
-    return '';
-  };
-
-  window.showProcessingOverlay = function showProcessingOverlay(){
-    const el = document.getElementById('processing-overlay');
-    if (el) el.style.display = 'flex';
-  };
-
-  window.hideProcessingOverlay = function hideProcessingOverlay(){
-    const el = document.getElementById('processing-overlay');
-    if (el) el.style.display = 'none';
-  };
-
-  window.SanitizeResult = window.SanitizeResult || function SanitizeResult(parsedResult='', propFamily='', evidence=''){
-    const prop = String(propFamily || '').toUpperCase();
-    const blob = `${parsedResult || ''} ${evidence || ''}`;
-    if (prop === '3PTM') {
-      const match = blob.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|made threes)\b/i)
-        || blob.match(/\b(?:3ptm|3pm|threes|3-pointers made|made threes)\b[^0-9]{0,10}(\d+(?:\.\d+)?)/i);
-      return match ? String(match[1]) : '';
-    }
-    const nums = String(parsedResult || '').match(/-?\d+(?:\.\d+)?/g);
-    return nums ? nums.join(' ') : String(parsedResult || '').replace(/[^\w\s.%:+/-]/g,' ').replace(/\s+/g,' ').trim();
-  };
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const ingestBtn = document.getElementById('ingestBtn');
-    if (ingestBtn) {
-      ingestBtn.addEventListener('click', () => {
-        window.showProcessingOverlay();
-        try { render(); } catch(e) {}
-      }, true);
-    }
-  });
-
-  if (typeof ensureNbaMining === 'function') {
-    const __oldEnsureNbaMiningV83Final = ensureNbaMining;
-    ensureNbaMining = function(row){
-      window.showProcessingOverlay();
-      const maybe = __oldEnsureNbaMiningV83Final(row);
-      if (maybe && typeof maybe.then === 'function') {
-        return maybe.finally(() => { try { render(); } catch(e) {} window.hideProcessingOverlay(); });
-      }
-      try { render(); } catch(e) {}
-      window.hideProcessingOverlay();
-      return maybe;
-    };
-  }
-
-  if (typeof mineNbaRow === 'function') {
-    const __oldMineNbaRowV83Final = mineNbaRow;
-    mineNbaRow = function(row){
-      const maybe = __oldMineNbaRowV83Final(row);
-      if (maybe && typeof maybe.then === 'function') {
-        return maybe.then((result) => {
-          try {
-            const prop = String(row?.propFamily || '').toUpperCase();
-            if (prop === '3PTM' && result?.last5) {
-              result.last5.parsedResult = window.SanitizeResult(result.last5.parsedResult || '', prop, result.last5.evidence || '');
-            }
-          } catch(e) {}
-          try { render(); } catch(e) {}
-          return result;
-        }).finally(() => { try { render(); } catch(e) {} });
-      }
-      try { render(); } catch(e) {}
-      return maybe;
-    };
-  }
-})();
-</script>
-
-
-<script>
-(function(){
-  const SYSTEM_VERSION = "8.4";
-  const BUILD_NAME = "Global Bridge";
-
-  function syncBridgeHeader(){
-    try{
-      document.title = `PickCalc Prompt 1 Intake v${SYSTEM_VERSION} (${BUILD_NAME})`;
-      const h1 = document.querySelector('h1');
-      if (h1) h1.innerHTML = `PickCalc Prompt 1 Intake v${SYSTEM_VERSION} <span class="tag">Global Bridge</span>`;
-      const av = document.getElementById('analysisVersion');
-      if (av) av.textContent = `Version: v${SYSTEM_VERSION} • Build: ${BUILD_NAME}`;
-    } catch(e){}
-  }
-
-  window.forceUIRefresh = () => {
-    try { render(); } catch(e) { console.error('Render failed'); }
-  };
-
-  window.showProcessingOverlay = function showProcessingOverlay(){
-    const el = document.getElementById('processing-overlay');
-    if (el) el.style.display = 'flex';
-  };
-
-  window.hideProcessingOverlay = function hideProcessingOverlay(){
-    const el = document.getElementById('processing-overlay');
-    if (el) el.style.display = 'none';
-  };
-
-  function bridgeResultToState(row, resultMap){
-    if (!row) return;
-    state.pool ||= [];
-    const active = {
-      rowId: row.rowId,
-      entity: row.entity,
-      lineText: row.lineText,
-      results: resultMap || {}
-    };
-    state.pool[0] = active;
-  }
-
-  const oldRenderPromptAwareCardBridge = window.renderPromptAwareCard;
-  if (typeof oldRenderPromptAwareCardBridge === 'function') {
-    window.renderPromptAwareCard = function(card){
-      let html = oldRenderPromptAwareCardBridge(card);
-      if (card && card.status === 'mining') {
-        html = html.replace('</h3>', ' <span class="probing-label">PROBING...</span></h3>');
-      }
-      return html;
-    };
-  }
-
-  const oldBuildMiningStatusBridge = window.buildMiningStatus;
-  if (typeof oldBuildMiningStatusBridge === 'function') {
-    window.buildMiningStatus = function(row){
-      const cards = oldBuildMiningStatusBridge(row);
-      return (cards || []).map(card => {
-        if (card && (card.status === 'loading' || card.status === 'waiting')) {
-          return { ...card, status: 'mining', statusLabel: 'PROBING...' };
-        }
-        return card;
-      });
-    };
-  }
-
-  const oldEnsureNbaMiningBridge = window.ensureNbaMining;
-  if (typeof oldEnsureNbaMiningBridge === 'function') {
-    window.ensureNbaMining = async function(row){
-      if (!row || row.leagueId !== 'nba') return;
-      window.showProcessingOverlay();
-
-      const key = typeof cacheKeyForRow === 'function' ? cacheKeyForRow(row) : row.rowId;
-      const existing = window.runtimeMiningCache?.[key];
-      if (existing && (existing.status === 'done' || existing.status === 'loading')) {
-        bridgeResultToState(row, existing.cards || []);
-        window.forceUIRefresh();
-        if (existing.status === 'done') window.hideProcessingOverlay();
-        return;
-      }
-
-      try {
-        window.runtimeMiningCache[key] = {
-          status:'loading',
-          cards: (window.NBA_MINING_FACTORS || []).map(f => ({
-            ...f,
-            status: f.key === 'validation' ? 'ready' : 'mining',
-            statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : 'PROBING...',
-            confidence: f.key === 'validation' ? 100 : 25,
-            delta: 0,
-            sourcesLabel: (f.sources || []).join(' • '),
-            parsedResult: f.key === 'validation' ? `${row.entity} • ${row.propFamily} ${row.line}` : '',
-            evidence: f.key === 'validation' ? 'Parsed from ingested row' : ''
-          }))
-        };
-        bridgeResultToState(row, window.runtimeMiningCache[key].cards);
-        window.forceUIRefresh();
-
-        let mined = {};
-        try {
-          mined = await window.mineNbaRow(row);
-        } catch(e) {
-          mined = {};
-          if (typeof logEvent === 'function') logEvent(`ERROR: ${String(e && e.message || e)}`, 'ERROR', row.rowId, 'system');
-        }
-
-        const progressive = [];
-        for (const f of (window.NBA_MINING_FACTORS || [])) {
-          let card = mined[f.key] || {
-            ...f,
-            status:'warning',
-            statusLabel:'No mined result',
-            confidence:35,
-            delta:0,
-            sourcesLabel:(f.sources || []).join(' • '),
-            parsedResult:'[UNKNOWN]',
-            evidence:'',
-            rawMiningResult:'[UNKNOWN]',
-            extractionProof:'No evidence returned.'
-          };
-          progressive.push(card);
-          window.runtimeMiningCache[key] = { status:'loading', cards:[...progressive] };
-          bridgeResultToState(row, progressive);
-          window.forceUIRefresh();
-          await new Promise(r => setTimeout(r, 50));
-        }
-
-        window.runtimeMiningCache[key] = { status:'done', cards: progressive };
-        bridgeResultToState(row, progressive);
-        window.forceUIRefresh();
-      } finally {
-        window.hideProcessingOverlay();
-        window.forceUIRefresh();
-      }
-    };
-  }
-
-  function loadLeBronBridgeDemo(){
-    try{
-      if (typeof Global_Flush !== 'function') return;
-      const row = {
-        rowId:'nba|lebron james|LAL|OKC|PRA|40.5|REGULAR',
-        sport:'NBA',
-        leagueId:'nba',
-        entity:'LeBron James',
-        team:'LAL',
-        opponent:'OKC',
-        propFamily:'PRA',
-        propKey:'pra',
-        line:'40.5',
-        lineText:'PRA 40.5',
-        type:'REGULAR',
-        rawText:'⚪ LeBron James PRA 40.5 More • LeBron James Last 10 Game Logs StatMuse 2026 • 28 pts, 8 ast, 7 reb • 26 pts, 9 ast, 8 reb • 25 pts, 8 ast, 6 reb • Ref: Tony Brothers • LAL vs OKC'
-      };
-      Global_Flush(row, 'POOL RESET: SUCCESS');
-      state.ran = true;
-      state.pool = [{ rowId: row.rowId, entity: row.entity, lineText: row.lineText, results: {} }];
-      saveState();
-      window.location.hash = '#analysis';
-      window.showProcessingOverlay();
-      window.forceUIRefresh();
-      setTimeout(() => {
-        try { ensureNbaMining(row); } catch(e) {}
-      }, 0);
-    } catch(e){}
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    syncBridgeHeader();
-    setTimeout(loadLeBronBridgeDemo, 0);
-  });
-})();
-</script>
-
 </body>
 </html>
