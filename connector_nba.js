@@ -1,105 +1,69 @@
-import { withTimeout, jinaUrl } from './utils_core.js';
-import { FETCH_TIMEOUT_MS, TEAM_TRICODES } from './config_core.js';
+import { canon, cleanSnippet, norm } from './utils_core.js';
+import { TEAM_TRICODES } from './config_core.js';
+import { searchAndExtract } from './connector_search.js';
 
-async function fetchJson(url, headers={}){
-  try {
-    const res = await withTimeout(fetch(url,{headers}), FETCH_TIMEOUT_MS, 'fetch timeout');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    const proxy = await withTimeout(fetch(jinaUrl(url), { headers:{ 'Accept':'application/json,text/plain,*/*' } }), FETCH_TIMEOUT_MS + 1500, 'fetch timeout');
-    if (!proxy.ok) throw err;
-    const text = await proxy.text();
-    const clean = String(text||'').trim();
-    const start = clean.search(/[\[{]/);
-    if (start < 0) throw err;
-    return JSON.parse(clean.slice(start));
-  }
+function teamFullName(input = '') {
+  const raw = norm(input);
+  return TEAM_TRICODES[raw.toUpperCase()] || raw;
 }
-
-export async function fetchNbaScoreboard(){
-  const url = 'https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json';
-  return await fetchJson(url, { Origin:'https://www.nba.com', Referer:'https://www.nba.com/' });
-}
-
-export async function fetchNbaAdvancedTeamStats(){
-  const url = 'https://stats.nba.com/stats/leaguedashteamstats?MeasureType=Advanced&PerMode=PerGame&Season=2025-26&SeasonType=Regular+Season';
-  return await fetchJson(url, {
-    Host: 'stats.nba.com',
-    Connection: 'keep-alive',
-    Accept: 'application/json, text/plain, */*',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-    Origin: 'https://www.nba.com',
-    Referer: 'https://www.nba.com/',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Accept-Language': 'en-US,en;q=0.9'
-  });
-}
-
-export function getGameContext(scoreboard, team, opponent){
-  const games = scoreboard?.scoreboard?.games || [];
-  const game = games.find(g => (g.homeTeam?.teamTricode===team || g.awayTeam?.teamTricode===team) && (g.homeTeam?.teamTricode===opponent || g.awayTeam?.teamTricode===opponent));
-  if (!game) return null;
-  const isHome = game.homeTeam?.teamTricode === team;
-  return { isHome, opponent: isHome ? game.awayTeam?.teamTricode : game.homeTeam?.teamTricode, gameTime: game.gameEt, status: game.gameStatusText || '' };
-}
-
-export function extractTeamMetrics(json, teamTricode){
-  const rs = json?.resultSets?.[0];
-  const rows = rs?.rowSet || [];
-  const headers = rs?.headers || [];
-  const idxTeam = headers.findIndex(h => String(h).toUpperCase()==='TEAM_NAME');
-  const idxPace = headers.findIndex(h => String(h).toUpperCase()==='PACE');
-  const idxDef = headers.findIndex(h => String(h).toUpperCase()==='DEF_RATING');
-  const full = TEAM_TRICODES[teamTricode] || teamTricode;
-  const row = rows.find(r => String(r[idxTeam]||'').toLowerCase() === full.toLowerCase());
-  if (!row) return null;
-  return { pace: Number(row[idxPace]), defRating: Number(row[idxDef]) };
-}
-
-export async function fetchBbrRatings(){
-  const url = 'https://www.basketball-reference.com/leagues/NBA_2026_ratings.html';
-  try {
-    const res = await withTimeout(fetch(url,{headers:{'User-Agent':'Mozilla/5.0'}}), FETCH_TIMEOUT_MS, 'fetch timeout');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return await res.text();
-  } catch (err) {
-    const res = await withTimeout(fetch(jinaUrl(url)), FETCH_TIMEOUT_MS + 1500, 'fetch timeout');
-    if (!res.ok) throw err;
-    return await res.text();
-  }
-}
-
-export function extractBbrTeamMetrics(html, teamTricode){
-  const full = TEAM_TRICODES[teamTricode] || teamTricode;
-  const body = String(html||'');
-  const fullRe = new RegExp(full.replace(/ /g,'\\s+'),'i');
-
-  // HTML table path
-  const rows = [...body.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/gi)].map(m=>m[1]);
-  for (const row of rows) {
-    if (!fullRe.test(row)) continue;
-    const tds = [...row.matchAll(/<td[^>]*data-stat="([^"]+)"[^>]*>([\s\S]*?)<\/td>/gi)];
-    const obj = Object.fromEntries(tds.map(m=>[m[1], m[2].replace(/<[^>]+>/g,'').trim()]));
-    const pace = Number(obj.pace);
-    const defRating = Number(obj.def_rtg);
-    if (Number.isFinite(pace) || Number.isFinite(defRating)) {
-      return { pace: Number.isFinite(pace)?pace:null, defRating: Number.isFinite(defRating)?defRating:null };
-    }
-  }
-
-  // Markdown/text path from jina fallback
-  const lines = body.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-  for (const line of lines) {
-    if (!line.includes('|')) continue;
-    if (!fullRe.test(line)) continue;
-    const cols = line.split('|').map(s=>s.trim()).filter(Boolean);
-    const nums = cols.map(c=>Number(c)).filter(Number.isFinite);
-    if (nums.length >= 2) {
-      const pace = nums.find(n=>n>85 && n<115) ?? null;
-      const defRating = nums.find(n=>n>95 && n<130 && n!==pace) ?? null;
-      if (pace != null || defRating != null) return { pace, defRating };
-    }
+function numberNearLabel(blob = '', labels = []) {
+  const text = String(blob || '');
+  for (const label of labels) {
+    const esc = String(label).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const rx1 = new RegExp(`${esc}[^0-9-]{0,24}(-?\\d+(?:\\.\\d+)?)`, 'i');
+    const rx2 = new RegExp(`(-?\\d+(?:\\.\\d+)?)\\s*(?:${esc})`, 'i');
+    const m = text.match(rx1) || text.match(rx2);
+    if (m) return Number(m[1]);
   }
   return null;
+}
+export async function detectPlayerPosition(playerName = '') {
+  const found = await searchAndExtract(`${playerName} nba position`, { prefer: ['espn', 'nba.com', 'basketball-reference'] });
+  const blob = cleanSnippet(`${found.result?.title || ''} ${found.result?.snippet || ''} ${found.pageContent || ''}`);
+  const c = canon(blob);
+  let position = '';
+  if (/\bpoint guard\b|\bpg\b/.test(c)) position = 'PG';
+  else if (/\bshooting guard\b|\bsg\b/.test(c)) position = 'SG';
+  else if (/\bsmall forward\b|\bsf\b/.test(c)) position = 'SF';
+  else if (/\bpower forward\b|\bpf\b/.test(c)) position = 'PF';
+  else if (/\bcenter\b|\bc\b/.test(c)) position = 'C';
+  return { position, evidence: blob.slice(0, 260), confidence: found.confidence || 55, source: found.result?.href || '' };
+}
+export async function fetchTeamPace(teamName) {
+  const found = await searchAndExtract(`${teamFullName(teamName)} team pace nba statmuse`, { prefer: ['statmuse', 'nba.com', 'nbastuffer'] });
+  const blob = cleanSnippet(`${found.result?.title || ''} ${found.result?.snippet || ''} ${found.pageContent || ''}`);
+  return { pace: numberNearLabel(blob, ['pace', 'possessions per game']), evidence: blob.slice(0, 320), confidence: found.confidence || 55, source: found.result?.href || '' };
+}
+export async function fetchOpponentDefenseRank(teamName, position = '') {
+  const pos = position || 'all positions';
+  const found = await searchAndExtract(`${teamFullName(teamName)} defense rank vs ${pos} nba`, { prefer: ['statmuse', 'nbastuffer', 'nba.com'] });
+  const blob = cleanSnippet(`${found.result?.title || ''} ${found.result?.snippet || ''} ${found.pageContent || ''}`);
+  return { rank: numberNearLabel(blob, ['rank', 'defense rank', 'allowed rank']), evidence: blob.slice(0, 320), confidence: found.confidence || 55, source: found.result?.href || '' };
+}
+export async function fetchExpectedLineup(playerName, teamName) {
+  const found = await searchAndExtract(`${teamFullName(teamName)} expected lineup ${playerName} NBA`, { prefer: ['rotowire', 'fantasydata', 'nbcsports'] });
+  const blob = cleanSnippet(`${found.result?.title || ''} ${found.result?.snippet || ''} ${found.pageContent || ''}`);
+  const c = canon(blob);
+  let rotation = 'Unknown'; let starter = null;
+  if (/expected lineup|starting lineup|will start|starting five/.test(c)) { rotation = 'Starter'; starter = true; }
+  else if (/bench|second unit|reserve/.test(c)) { rotation = 'Bench'; starter = false; }
+  return { rotation, starter, evidence: blob.slice(0, 320), confidence: found.confidence || 55, source: found.result?.href || '' };
+}
+export async function fetchOfficialTendency(teamName, opponentName) {
+  const found = await searchAndExtract(`${teamFullName(teamName)} vs ${teamFullName(opponentName)} referees over under tendencies covers`, { prefer: ['covers', 'actionnetwork'] });
+  const blob = cleanSnippet(`${found.result?.title || ''} ${found.result?.snippet || ''} ${found.pageContent || ''}`);
+  return { overPct: numberNearLabel(blob, ['over', 'over record', 'over tendency']), foulRate: numberNearLabel(blob, ['fouls per game', 'whistles', 'foul rate']), evidence: blob.slice(0, 320), confidence: found.confidence || 52, source: found.result?.href || '' };
+}
+export function buildRestTravelProfile(events = []) {
+  const dates = (events || []).map((ev) => new Date(ev.date)).filter((d) => !Number.isNaN(d.getTime())).sort((a, b) => b - a);
+  if (!dates.length) return { backToBack: false, restDays: null, fatigueScore: null, evidence: 'No date history.' };
+  const latest = dates[0]; const prev = dates[1] || null;
+  let restDays = null; if (prev) restDays = Math.round((latest - prev) / (24 * 3600 * 1000)) - 1;
+  const backToBack = restDays === 0;
+  let fatigueScore = 72;
+  if (restDays == null) fatigueScore = 72; else if (restDays <= 0) fatigueScore = 20; else if (restDays === 1) fatigueScore = 60; else if (restDays === 2) fatigueScore = 82; else fatigueScore = 92;
+  return { backToBack, restDays, fatigueScore, evidence: backToBack ? 'Back-to-back spot.' : `Rest days: ${restDays == null ? 'unknown' : restDays}` };
+}
+export function calculatePrizePicksFantasyScore(statLine = {}) {
+  return (statLine.points ?? 0) + (statLine.rebounds ?? 0) * 1.2 + (statLine.assists ?? 0) * 1.5 + (statLine.blocks ?? 0) * 3 + (statLine.steals ?? 0) * 3 + (statLine.turnovers ?? 0) * -1;
 }

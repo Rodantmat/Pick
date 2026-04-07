@@ -1,223 +1,111 @@
-import { NBA_FACTORS } from './config_core.js';
-import { ensureDiagState, upsertDiagEntry, finishDiag, rawPreview } from './diagnostics.js';
-import { fetchEspnStatsBundle, fetchEspnCoreStats, computePropAverage, computePropFromTotals, computeProjectedMinutes, computeScheduleFatigue, computeHomeAwaySplitScore } from './connector_espn.js';
-import { fetchNbaScoreboard, fetchNbaAdvancedTeamStats, fetchBbrRatings, getGameContext, extractTeamMetrics, extractBbrTeamMetrics } from './connector_nba.js';
-import { fetchEspnInjuries, parseEspnInjuryStatus } from './connector_injuries.js';
-import { searchWebOneQuery } from './connector_search.js';
-import { average, clampNumber } from './utils_core.js';
+import { average } from './utils_core.js';
+import { fetchEspnPlayerBundle, fetchEspnInjuryStatus, computeRecentAverage, computeSeasonAverage, computeUsageLast3 } from './connector_espn.js';
+import { detectPlayerPosition, fetchTeamPace, fetchOpponentDefenseRank, fetchExpectedLineup, fetchOfficialTendency, buildRestTravelProfile, calculatePrizePicksFantasyScore } from './connector_nba.js';
+import { pushLog, logFetchStart, logFetchSuccess } from './logger.js';
 
-function baseCard(spec){
-  return { ...spec, status: spec.live ? 'loading':'waiting', statusLabel: spec.live ? 'Loading live probe...' : 'Paused', sourcesLabel: spec.sources.join(' • '), parsedResult:'—', evidence: spec.live ? '—' : spec.note };
-}
-
-export function ensureNbaMining(row, onUpdate){
-  row._onMiningUpdate = onUpdate || row._onMiningUpdate || null;
-  if (row._miningLoaded) return;
-  row.miningStatus = NBA_FACTORS.map(baseCard);
-  row._miningLoaded = true;
-  mineNbaRow(row).catch(err => console.error(err));
-}
-
-function notifyRowUpdate(row){
-  try { row._onMiningUpdate && row._onMiningUpdate(); } catch {}
-  try { window.dispatchEvent(new CustomEvent('pickcalc:nba-update',{detail:{rowId:row.rowId}})); } catch {}
-}
-
-function setCard(row, key, patch){
-  const card = row.miningStatus.find(c=>c.key===key); if (!card) return;
-  Object.assign(card, patch);
-  notifyRowUpdate(row);
-}
-
-function asReady(val, provider='direct', evidence=''){
-  return { status:'ready', statusLabel: provider==='direct' ? 'Direct source found' : 'Search evidence found', parsedResult: String(val), evidence: evidence || String(val) };
-}
-function asRaw(evidence, provider='backup search'){ return { status:'waiting', statusLabel:'Trusted raw captured', parsedResult:'Raw data captured.', evidence, sourcesLabel: provider }; }
-function asFailed(msg='No trusted source return.'){ return { status:'failed', statusLabel:'Probe failed', parsedResult:'No trusted source return.', evidence: msg }; }
-
-function queryFor(row, purpose){ return `${row.entity} ${purpose} nba`; }
-
-async function safeSearch(row, key, purpose){
-  const res = await searchWebOneQuery(queryFor(row, purpose));
-  const text = `${res.title} ${res.snippet} ${res.pageContent||''}`.replace(/\s+/g,' ').trim();
-  upsertDiagEntry(row, key, {
-    searchQuery: queryFor(row,purpose),
-    rawSearch: rawPreview(text, 500),
-    resultUrl: res.url || '',
-    searchResults: (res.allResults || []).map(r => ({ title:r.title, url:r.url })).slice(0,3)
-  });
-  return text;
-}
-
-function parseAverageSentence(text, row){
-  const t = String(text||'');
-  const avg = t.match(/averag(?:e|ed)[^\d]{0,20}(\d+(?:\.\d+)?)/i);
-  if (avg) return Number(avg[1]);
-  const p = row.propFamily;
-  const pts = t.match(/(\d+(?:\.\d+)?)\s+points?/i);
-  const reb = t.match(/(\d+(?:\.\d+)?)\s+rebounds?/i);
-  const ast = t.match(/(\d+(?:\.\d+)?)\s+assists?/i);
-  const threes = t.match(/(\d+(?:\.\d+)?)\s+(?:3-pointers?|three-pointers?|threes|3ptm|three point field goals made)/i);
-  const vals = { Points: pts && Number(pts[1]), Rebounds: reb && Number(reb[1]), Assists: ast && Number(ast[1]), '3PTM': threes && Number(threes[1]) };
-  if (p === 'Points') return vals.Points ?? null;
-  if (p === 'Rebounds') return vals.Rebounds ?? null;
-  if (p === 'Assists') return vals.Assists ?? null;
-  if (p === '3PTM') return vals['3PTM'] ?? null;
-  if (p === 'PRA' && vals.Points != null && vals.Rebounds != null && vals.Assists != null) return vals.Points + vals.Rebounds + vals.Assists;
-  if (p === 'Pts+Rebs' && vals.Points != null && vals.Rebounds != null) return vals.Points + vals.Rebounds;
-  if (p === 'Pts+Asts' && vals.Points != null && vals.Assists != null) return vals.Points + vals.Assists;
-  if (p === 'Rebs+Asts' && vals.Rebounds != null && vals.Assists != null) return vals.Rebounds + vals.Assists;
-  return null;
-}
-
-function bestSearchValue(text, row, key){
-  const cleaned = String(text||'').replace(/\s+/g,' ').trim();
-  if (!cleaned) return null;
-  if (/no results found|subscribe now|advertisement/i.test(cleaned)) return null;
-  const parsed = parseAverageSentence(cleaned, row);
-  if (parsed != null && parsed >= 0 && parsed < 100) return parsed;
-
-  const avgCombo = cleaned.match(/has averaged\s+(\d+(?:\.\d+)?)\s+points?,\s+(\d+(?:\.\d+)?)\s+rebounds?\s+and\s+(\d+(?:\.\d+)?)\s+assists?/i);
-  if (avgCombo) {
-    const pts=Number(avgCombo[1]), reb=Number(avgCombo[2]), ast=Number(avgCombo[3]);
-    if (row.propFamily === 'Points') return pts;
-    if (row.propFamily === 'Rebounds') return reb;
-    if (row.propFamily === 'Assists') return ast;
-    if (row.propFamily === 'PRA') return pts+reb+ast;
-    if (row.propFamily === 'Pts+Rebs') return pts+reb;
-    if (row.propFamily === 'Pts+Asts') return pts+ast;
-    if (row.propFamily === 'Rebs+Asts') return reb+ast;
-  }
-  const avgThrees = cleaned.match(/has averaged\s+(\d+(?:\.\d+)?)\s+(?:3-pointers?|threes|three point field goals made)/i);
-  if (avgThrees && row.propFamily === '3PTM') return Number(avgThrees[1]);
-
-  if (key === 'minutes') {
-    const m = cleaned.match(/(?:averag(?:e|ed)|minutes? per game).{0,40}?(\d+(?:\.\d+)?)\s+minutes?/i);
-    if (m) return Number(m[1]);
-  }
-  if (key === 'homeaway') {
-    const m = cleaned.match(/(?:home|away).{0,80}?(\d+(?:\.\d+)?)\s+(?:points|rebounds|assists|minutes)/i);
-    if (m) return Number(m[1]);
-  }
-  if (key === 'starters') {
-    if (/will start|starting lineup|expected lineup|confirmed lineup/i.test(cleaned)) return 100;
-    if (/bench|coming off the bench/i.test(cleaned)) return 20;
-  }
-  if (key === 'injury') {
-    if (/out for season|out/i.test(cleaned)) return 0;
-    if (/doubtful/i.test(cleaned)) return 10;
-    if (/questionable/i.test(cleaned)) return 50;
-    if (/probable/i.test(cleaned)) return 90;
-    if (/available|active/i.test(cleaned)) return 100;
-  }
-  if (key === 'schedule') {
-    const yearCount = (cleaned.match(/20\d{2}/g) || []).length;
-    if (yearCount >= 2) return Math.min(4, yearCount - 1);
-  }
-  return null;
-}
-
-export async function mineNbaRow(row){
-  ensureDiagState(row);
-  const liveKeys = NBA_FACTORS.filter(f=>f.live).map(f=>f.key);
-
-  let espnBundle = null, espnCore = null, scoreboard = null, nbaAdv = null, bbrRatings = null, injuryHtml = null;
-  try { espnBundle = await fetchEspnStatsBundle(row.entity); } catch (e) { upsertDiagEntry(row,'espn',{error:String(e.message||e)}); }
-  try { espnCore = await fetchEspnCoreStats(row.entity); } catch (e) { upsertDiagEntry(row,'espnCore',{error:String(e.message||e)}); }
-  try { scoreboard = await fetchNbaScoreboard(); } catch (e) { upsertDiagEntry(row,'scoreboard',{error:String(e.message||e)}); }
-  try { nbaAdv = await fetchNbaAdvancedTeamStats(); } catch (e) { upsertDiagEntry(row,'nbaAdv',{error:String(e.message||e)}); }
-  if (!nbaAdv) {
-    try { bbrRatings = await fetchBbrRatings(); } catch (e) { upsertDiagEntry(row,'bbr',{error:String(e.message||e)}); }
-  }
-  try { injuryHtml = await fetchEspnInjuries(); } catch (e) { upsertDiagEntry(row,'injuries',{error:String(e.message||e)}); }
-
-  for (const key of liveKeys) {
-    try {
-      if (key === 'validation') {
-        setCard(row, key, { status:'ready', statusLabel:'Parsed from ingested row', parsedResult:`${row.entity} • ${row.lineText} • vs/@ ${row.opponent} • team ${row.team}`, evidence:'Parsed from ingested row' });
-        continue;
-      }
-      if (key === 'coverage') {
-        const live = NBA_FACTORS.filter(f=>f.live).map(f=>f.key).join(',');
-        const paused = NBA_FACTORS.filter(f=>!f.live).map(f=>f.key).join(',');
-        setCard(row, key, { status:'ready', statusLabel:'Internal factor map', parsedResult:`live:${live} | paused:${paused}`, evidence:`live:${live} | paused:${paused}` });
-        continue;
-      }
-
-      if (['last5','last10','last20'].includes(key) && espnBundle?.events?.length) {
-        const nMap = { last5:5,last10:10,last20:20 };
-        const val = computePropAverage(espnBundle.events, row.propFamily, nMap[key]);
-        if (val != null) { setCard(row, key, { ...asReady((Math.round(val*10)/10).toFixed(1),'direct'), sourcesLabel:'ESPN direct' }); continue; }
-      }
-      if (key === 'season') {
-        let val = null;
-        if (espnCore) val = computePropFromTotals(espnCore, row.propFamily);
-        if (val == null && espnBundle?.events?.length) val = computePropAverage(espnBundle.events, row.propFamily, espnBundle.events.length);
-        if (val != null) { setCard(row,key,{ ...asReady((Math.round(val*10)/10).toFixed(1),'direct'), sourcesLabel:'ESPN core/direct' }); continue; }
-      }
-      if (key === 'career') {
-        const text = await safeSearch(row,key,`${row.propFamily} career stats per game`);
-        const val = bestSearchValue(text, row, key);
-        if (val != null) { setCard(row,key,{ ...asReady((Math.round(val*10)/10).toFixed(1),'search'), sourcesLabel:'backup search • winner: ddg' }); continue; }
-        setCard(row,key, asFailed('No trusted direct or search source returned usable data.')); continue;
-      }
-      if (key === 'projection') {
-        const l5 = espnBundle?.events?.length ? (computePropAverage(espnBundle.events,row.propFamily,5) ?? 0) : null;
-        const season = (espnCore ? computePropFromTotals(espnCore,row.propFamily) : null) ?? (espnBundle?.events?.length ? computePropAverage(espnBundle.events,row.propFamily,espnBundle.events.length) : null);
-        if (l5 != null || season != null) {
-          const projection = Math.round((((l5 ?? season ?? 0)*0.6)+((season ?? l5 ?? 0)*0.4))*10)/10;
-          setCard(row,key,{ ...asReady(projection,'direct'), sourcesLabel:'Internal derived from ESPN history' });
-          continue;
-        }
-      }
-      if (key === 'minutes') {
-        if (espnBundle?.events?.length) {
-          const mins = computeProjectedMinutes(espnBundle.events);
-          if (mins != null) { setCard(row,key,{ ...asReady(mins,'direct'), sourcesLabel:'Internal from ESPN history' }); continue; }
-        }
-      }
-      if (key === 'injury' && injuryHtml) {
-        const status = parseEspnInjuryStatus(injuryHtml,row.entity);
-        if (status) { setCard(row,key,{ ...asReady(status.score,'direct', status.status), sourcesLabel:'ESPN injuries' }); continue; }
-      }
-      if (key === 'starters') {
-        const search = await safeSearch(row,key,`${row.entity} starting lineup expected lineup`);
-        const val = /will start|starting lineup|expected lineup|confirmed lineup/i.test(search) ? 100 : (/bench|coming off the bench/i.test(search)?20:null);
-        if (val != null) { setCard(row,key,{ ...asReady(val,'search', String(val)), sourcesLabel:'backup search • winner: ddg' }); continue; }
-      }
-      if (key === 'schedule' && espnBundle?.events?.length) {
-        const fatigue = computeScheduleFatigue(espnBundle.events);
-        if (fatigue != null) { setCard(row,key,{ ...asReady(fatigue,'direct'), sourcesLabel: scoreboard ? 'NBA CDN scoreboard + ESPN history' : 'ESPN history', evidence:String(fatigue) }); continue; }
-      }
-      if (key === 'pace') {
-        let metric = nbaAdv ? extractTeamMetrics(nbaAdv,row.team) : null;
-        if ((!metric || metric.pace == null) && bbrRatings) metric = extractBbrTeamMetrics(bbrRatings,row.team);
-        if (metric?.pace != null) { setCard(row,key,{ ...asReady(Math.round(metric.pace), 'direct', String(metric.pace)), sourcesLabel: nbaAdv ? 'NBA stats advanced' : 'Basketball-Reference backup' }); continue; }
-      }
-      if (key === 'oppdef') {
-        let metric = nbaAdv ? extractTeamMetrics(nbaAdv,row.opponent) : null;
-        if ((!metric || metric.defRating == null) && bbrRatings) metric = extractBbrTeamMetrics(bbrRatings,row.opponent);
-        if (metric?.defRating != null) { setCard(row,key,{ ...asReady(Math.round(metric.defRating), 'direct', String(metric.defRating)), sourcesLabel: nbaAdv ? 'NBA stats advanced' : 'Basketball-Reference backup' }); continue; }
-      }
-      if (key === 'homeaway' && espnBundle?.events?.length) {
-        const gc = scoreboard ? getGameContext(scoreboard,row.team,row.opponent) : null;
-        const currentAway = gc ? !gc.isHome : row.isAwayHint;
-        if (currentAway !== null && currentAway !== undefined) {
-          const score = computeHomeAwaySplitScore(espnBundle.events,currentAway);
-          if (score != null) { setCard(row,key,{ ...asReady(score,'direct'), sourcesLabel: gc ? 'ESPN direct + scoreboard' : 'ESPN direct' }); continue; }
-        }
-      }
-
-      const fallbackPurposeMap = { last5:'last 5 games', last10:'last 10 games', last20:'last 20 games', season:'season averages', career:'career stats per game', minutes:'minutes', schedule:'recent schedule nba', homeaway:'home away splits nba', injury:'injury status', starters:'starting lineup expected lineup', projection:'projection' };
-      if (fallbackPurposeMap[key] && row.entity && !/\s{2,}/.test(row.entity)) {
-        const text = await safeSearch(row,key,`${row.propFamily} ${fallbackPurposeMap[key]}`);
-        const val = bestSearchValue(text, row, key);
-        if (val != null) { setCard(row,key,{ ...asReady((Math.round(val*10)/10).toFixed(1),'search'), sourcesLabel:'backup search • winner: ddg' }); continue; }
-      }
-      setCard(row,key, asFailed('No trusted direct or search source returned usable data.'));
-    } catch (err) {
-      setCard(row,key,{ status:'failed', statusLabel:'Live probe failed', parsedResult:'Mining failed.', evidence:String(err.message||err) });
-    }
+export const FACTOR_BLUEPRINTS = [
+  { key: 'validation', tier: '2A', title: 'Prop Validation', minor: false },
+  { key: 'rotation', tier: '2B', title: 'Rotation Status', minor: false },
+  { key: 'usage', tier: '2B', title: 'Usage Rate', minor: false },
+  { key: 'projection', tier: '2B', title: 'Internal Projection', minor: false },
+  { key: 'oppdef', tier: '2C', title: 'Opponent Defense Rank', minor: false },
+  { key: 'pace', tier: '2C', title: 'Pace & Tempo', minor: false },
+  { key: 'fatigue', tier: '2C', title: 'Rest / Travel Fatigue', minor: false },
+  { key: 'refs', tier: '2D', title: 'Official / Referee Tendency', minor: true },
+  { key: 'injury_nuance', tier: '2D', title: 'Injury Report Nuance', minor: true },
+  { key: 'fantasy_score', tier: '2B', title: 'Fantasy Score Lens', minor: false },
+  { key: 'standalone', tier: '2F', title: 'Clean Standalone Probability', minor: false },
+  { key: 'relational', tier: '2E', title: 'Relational Survivability Score', minor: false }
+];
+function initialCard(f, row) { return { key: f.key, tier: f.tier, title: f.title, status: f.key === 'validation' ? 'ready' : 'waiting', statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : 'Waiting', magnitude: null, confidence: f.key === 'validation' ? 100 : 0, evidence: f.key === 'validation' ? `${row.entity} • ${row.lineText}` : '', source: f.key === 'validation' ? 'Ingested row' : '', minor: !!f.minor, warning: '', recommendation: '' }; }
+export function getInitialNbaCards(row) { return FACTOR_BLUEPRINTS.map((f) => initialCard(f, row)); }
+function getCard(row, key) { row._factorCards ||= getInitialNbaCards(row); return row._factorCards.find((c) => c.key === key); }
+function setCard(row, key, patch) { row._factorCards ||= getInitialNbaCards(row); const card = getCard(row, key); if (!card) return null; Object.assign(card, patch || {}); row._lastUpdatedAt = Date.now(); return card; }
+function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+function magnitudeForType(row, magnitude) { const type = row?.type || 'REGULAR'; if (!Number.isFinite(magnitude)) return null; if (type === 'DEMON') return Math.round(magnitude * 1.35 * 10) / 10; if (type === 'GOBLIN') return Math.round(magnitude * 0.85 * 10) / 10; return Math.round(magnitude * 10) / 10; }
+function confidenceFrom(sourceConfidence, fallback = 60) { const n = Number(sourceConfidence); return Number.isFinite(n) ? clamp(Math.round(n), 0, 100) : fallback; }
+function parseLine(line = '') { const n = Number(String(line || '').match(/-?\d+(?:\.\d+)?/)?.[0]); return Number.isFinite(n) ? n : null; }
+function formatNum(n, digits = 1) { return Number.isFinite(n) ? Number(n).toFixed(digits).replace(/\.0$/, '.0') : '—'; }
+function propLensProjection(row, bundle) { const last5 = computeRecentAverage(bundle.events, row.propFamily, 5); const last10 = computeRecentAverage(bundle.events, row.propFamily, 10); const season = computeSeasonAverage(bundle.events, row.propFamily); if (![last5, last10, season].some(Number.isFinite)) return null; return Math.round((((last5 ?? season ?? 0) * 0.4) + ((last10 ?? season ?? 0) * 0.3) + ((season ?? last5 ?? 0) * 0.3)) * 10) / 10; }
+function probabilityFromSummary(totalMagnitude, avgConfidence) { return clamp(Math.round(58 + (totalMagnitude * 2.8) + ((avgConfidence - 65) * 0.12)), 1, 99); }
+function relationalDragForRow(row, warningCount) { let drag = 0; if (row.type === 'DEMON') drag += 9; if (row.type === 'GOBLIN') drag += 2; if (row.type === 'FREE_PICK') drag -= 2; drag += warningCount * 2.5; return Math.round(drag * 10) / 10; }
+async function guardedStep({ state, row, factor, requestRender, fn }) {
+  setCard(row, factor, { status: 'loading', statusLabel: 'Loading', warning: '' }); requestRender?.();
+  try { const value = await fn(); requestRender?.(); return value; } catch (err) {
+    setCard(row, factor, { status: 'warning', statusLabel: 'Warning', warning: String(err && err.message || err), confidence: 28 });
+    pushLog(state, { rowId: row.rowId, factor, level: 'warn', message: 'step:warning', meta: { error: String(err && err.message || err) } }); requestRender?.(); return null;
   }
 }
+function summarizeFantasy(events = []) { const scores = (events || []).slice(0, 5).map((ev) => calculatePrizePicksFantasyScore(ev)).filter(Number.isFinite); const avg = average(scores); return Number.isFinite(avg) ? Math.round(avg * 10) / 10 : null; }
 
+export async function ensureNbaMining(row, ctx = {}) {
+  if (!row || row.leagueId !== 'nba') return;
+  const state = ctx.state || null; const requestRender = ctx.requestRender || null; const saveState = ctx.saveState || null;
+  row._factorCards ||= getInitialNbaCards(row); row._sweepStatus ||= 'idle'; if (row._sweepStatus === 'loading' || row._sweepStatus === 'done') return;
+  row._sweepStatus = 'loading'; pushLog(state, { rowId: row.rowId, factor: 'system', level: 'info', message: 'sweep:start' }); requestRender?.();
+  let bundle = null;
+  try {
+    setCard(row, 'validation', { status: 'ready', statusLabel: 'Ready', magnitude: 0, confidence: 100, evidence: `${row.entity} • ${row.lineText} • ${row.team || 'No team'} vs ${row.opponent || 'No opponent'}`, source: 'Ingested row' });
+    await guardedStep({ state, row, factor: 'rotation', requestRender, fn: async () => {
+      logFetchStart(state, row.rowId, 'rotation', 'espn:gamelog'); bundle = await fetchEspnPlayerBundle(row.entity); logFetchSuccess(state, row.rowId, 'rotation', 'espn:gamelog', { events: bundle?.events?.length || 0 });
+      const lineup = await fetchExpectedLineup(row.entity, row.team || ''); const starter = lineup?.starter === true; const mag = magnitudeForType(row, starter ? 3.4 : lineup?.starter === false ? -3.8 : -0.4);
+      setCard(row, 'rotation', { status: starter === null || starter === undefined ? 'warning' : 'ready', statusLabel: starter === null || starter === undefined ? 'Warning' : 'Ready', magnitude: mag, confidence: confidenceFrom(lineup?.confidence, 60), evidence: lineup?.evidence || 'Lineup signal not clean.', source: lineup?.source || 'RotoWire/FantasyData search', warning: starter === null || starter === undefined ? 'Rotation not fully confirmed.' : '', recommendation: starter === false ? 'Bench flag' : '' });
+    }});
+    await guardedStep({ state, row, factor: 'usage', requestRender, fn: async () => {
+      const usage = computeUsageLast3(bundle?.events || []); if (!Number.isFinite(usage)) throw new Error('Usage signal unavailable.');
+      setCard(row, 'usage', { status: 'ready', statusLabel: 'Ready', magnitude: magnitudeForType(row, clamp((usage - 18) / 2.6, -4.5, 4.5)), confidence: 78, evidence: `Approx usage load last 3: ${formatNum(usage)}`, source: 'ESPN game log' });
+    }});
+    await guardedStep({ state, row, factor: 'projection', requestRender, fn: async () => {
+      const projection = propLensProjection(row, bundle || { events: [] }); const line = parseLine(row.line); if (!Number.isFinite(projection)) throw new Error('Projection unavailable.');
+      const edge = Number.isFinite(line) ? Math.round((((projection - line) / Math.max(line, 1)) * 1000)) / 1000 : null; row._baselineEdge = edge;
+      setCard(row, 'projection', { status: 'ready', statusLabel: 'Ready', magnitude: magnitudeForType(row, Number.isFinite(edge) ? clamp(edge * 100, -5, 5) : 1.4), confidence: 82, evidence: `Projection ${formatNum(projection)} | Last 5/10/Season weighted`, source: 'Internal projection engine', recommendation: Number.isFinite(edge) ? `baseline_edge ${edge}` : '' });
+    }});
+    await guardedStep({ state, row, factor: 'oppdef', requestRender, fn: async () => {
+      const position = await detectPlayerPosition(row.entity); const oppDef = await fetchOpponentDefenseRank(row.opponent || '', position?.position || ''); const rank = Number(oppDef?.rank); if (!Number.isFinite(rank)) throw new Error('Opponent defense rank unavailable.');
+      setCard(row, 'oppdef', { status: 'ready', statusLabel: 'Ready', magnitude: magnitudeForType(row, clamp((16 - rank) / 3, -4.2, 4.2)), confidence: confidenceFrom(oppDef?.confidence, 62), evidence: `Vs ${position?.position || 'all'} rank: ${rank}`, source: oppDef?.source || 'StatMuse/NBAStuffer' });
+    }});
+    await guardedStep({ state, row, factor: 'pace', requestRender, fn: async () => {
+      const teamPace = await fetchTeamPace(row.team || ''); const pace = Number(teamPace?.pace); if (!Number.isFinite(pace)) throw new Error('Team pace unavailable.');
+      setCard(row, 'pace', { status: 'ready', statusLabel: 'Ready', magnitude: magnitudeForType(row, clamp((pace - 99.5) / 1.3, -4.5, 4.5)), confidence: confidenceFrom(teamPace?.confidence, 60), evidence: `Team Pace: ${formatNum(pace)} possessions`, source: teamPace?.source || 'StatMuse/NBAStuffer' });
+    }});
+    await guardedStep({ state, row, factor: 'fatigue', requestRender, fn: async () => {
+      const rest = buildRestTravelProfile(bundle?.events || []); const fatigueScore = Number(rest?.fatigueScore); if (!Number.isFinite(fatigueScore)) throw new Error('Fatigue profile unavailable.');
+      setCard(row, 'fatigue', { status: 'ready', statusLabel: 'Ready', magnitude: magnitudeForType(row, clamp((fatigueScore - 60) / 10, -4.8, 4.8)), confidence: 80, evidence: rest?.evidence || 'Rest profile computed.', source: 'ESPN schedule history' });
+    }});
+    await guardedStep({ state, row, factor: 'refs', requestRender, fn: async () => {
+      const refs = await fetchOfficialTendency(row.team || '', row.opponent || ''); const overPct = Number(refs?.overPct); const foulRate = Number(refs?.foulRate);
+      const rawMag = Number.isFinite(overPct) ? (overPct - 50) / 6 : Number.isFinite(foulRate) ? (foulRate - 40) / 4 : null; if (!Number.isFinite(rawMag)) throw new Error('Ref tendency unavailable.');
+      setCard(row, 'refs', { status: 'ready', statusLabel: 'Ready', magnitude: magnitudeForType(row, clamp(rawMag, -3.5, 3.5)), confidence: confidenceFrom(refs?.confidence, 52), evidence: refs?.evidence || 'Ref trend parsed.', source: refs?.source || 'Covers' });
+    }});
+    await guardedStep({ state, row, factor: 'injury_nuance', requestRender, fn: async () => {
+      const injury = await fetchEspnInjuryStatus(row.entity); const score = Number(injury?.score); if (!Number.isFinite(score)) throw new Error('Injury nuance unavailable.');
+      setCard(row, 'injury_nuance', { status: 'ready', statusLabel: 'Ready', magnitude: magnitudeForType(row, clamp((score - 70) / 10, -4.8, 3.8)), confidence: confidenceFrom(injury?.confidence, 58), evidence: `${injury?.status || 'Unknown'} • ${injury?.evidence || ''}`.slice(0, 320), source: injury?.source || 'ESPN' });
+    }});
+    await guardedStep({ state, row, factor: 'fantasy_score', requestRender, fn: async () => {
+      const avgFantasy = summarizeFantasy(bundle?.events || []); if (!Number.isFinite(avgFantasy)) throw new Error('Fantasy-score lens unavailable.');
+      setCard(row, 'fantasy_score', { status: 'ready', statusLabel: 'Ready', magnitude: magnitudeForType(row, clamp((avgFantasy - 30) / 8, -3, 4)), confidence: 76, evidence: `PrizePicks fantasy avg last 5: ${formatNum(avgFantasy)}`, source: 'Internal PrizePicks scoring' });
+    }});
+    const major = ['rotation', 'usage', 'projection', 'oppdef', 'pace', 'fatigue', 'fantasy_score'].map((k) => getCard(row, k)).filter(Boolean);
+    const minor = ['refs', 'injury_nuance'].map((k) => getCard(row, k)).filter(Boolean);
+    const majorMagnitude = major.map((c) => Number(c.magnitude)).filter(Number.isFinite);
+    const minorMagnitude = minor.map((c) => Number(c.magnitude)).filter(Number.isFinite);
+    const totalMagnitude = [...majorMagnitude, ...minorMagnitude].reduce((a, b) => a + b, 0);
+    const avgConfidence = average(row._factorCards.map((c) => Number(c.confidence)).filter(Number.isFinite)) || 60;
+    const warningCount = row._factorCards.filter((c) => c.status === 'warning').length;
+    const standaloneProbability = probabilityFromSummary(totalMagnitude, avgConfidence);
+    const relationalDrag = relationalDragForRow(row, warningCount);
+    const relationalScore = clamp(Math.round(standaloneProbability - relationalDrag), 1, 99);
+    let recommendation = standaloneProbability >= 64 ? 'KEEP' : 'WATCH';
+    const minorOnlyNegative = majorMagnitude.reduce((a, b) => a + b, 0) >= 0 && minorMagnitude.reduce((a, b) => a + b, 0) < 0;
+    if (row.type === 'GOBLIN' && minor.some((c) => Number(c.magnitude) < 0)) recommendation = 'QUALITY-CUT';
+    if (minorOnlyNegative && !((row._baselineEdge || 0) > 0.035)) recommendation = 'CUT';
+    if (minorOnlyNegative && ((row._baselineEdge || 0) > 0.035)) recommendation = 'ALPHA-SHIELD KEEP';
+    setCard(row, 'standalone', { status: 'ready', statusLabel: 'Ready', magnitude: Math.round(totalMagnitude * 10) / 10, confidence: Math.round(avgConfidence), evidence: `Standalone Probability ${standaloneProbability}% | baseline_edge ${row._baselineEdge ?? 'n/a'}`, source: '2B-2D internal rollup', recommendation });
+    setCard(row, 'relational', { status: 'ready', statusLabel: 'Ready', magnitude: -relationalDrag, confidence: Math.round(avgConfidence), evidence: `Relational Drag ${formatNum(relationalDrag)} | Survivability ${relationalScore}%`, source: '2E rebuild gate', recommendation: `Standalone ${standaloneProbability}% → Relational ${relationalScore}%` });
+    row._standaloneProbability = standaloneProbability; row._relationalSurvivability = relationalScore; row._relationalDrag = relationalDrag; row._recommendation = recommendation; row._sweepStatus = 'done';
+    pushLog(state, { rowId: row.rowId, factor: 'system', level: 'info', message: 'sweep:done', meta: { standaloneProbability, relationalScore, recommendation } });
+  } catch (err) {
+    row._sweepStatus = 'done'; pushLog(state, { rowId: row.rowId, factor: 'system', level: 'warn', message: 'sweep:crash', meta: { error: String(err && err.message || err) } });
+  }
+  saveState?.(); requestRender?.();
+}
