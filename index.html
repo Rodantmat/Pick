@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PickCalc Prompt 1 Intake v6.2.0</title>
+  <title>PickCalc Prompt 1 Intake v6.3.0</title>
   <style>
 :root {
   color-scheme: dark;
@@ -158,7 +158,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v6.2.0</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v6.3.0</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -204,8 +204,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v6.2.0</h1>
-          <p id="analysisVersion">Version: v6.2.0</p>
+          <h1 id="analysisTitle">Run Analysis v6.3.0</h1>
+          <p id="analysisVersion">Version: v6.3.0</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -1517,8 +1517,9 @@ function confidenceBarHtml(confidence=0) {
 
 
 function retrievalHealthLabel(card) {
-  if (card.status === 'ready' && Number(card.confidence || 0) >= 75) return 'Excellent';
-  if (card.status === 'ready' || card.status === 'warning') return 'Partial';
+  const parsed = String(card?.parsedResult || '').trim().toLowerCase();
+  if (card.status === 'ready' && Number(card.confidence || 0) >= 75 && parsed && !['unknown','no clean source','—'].includes(parsed)) return 'Excellent';
+  if ((card.status === 'ready' || card.status === 'warning') && parsed && !['unknown','no clean source','—'].includes(parsed)) return 'Partial';
   return 'Missing';
 }
 
@@ -1531,6 +1532,7 @@ function renderPromptAwareCard(card) {
   const healthClass = health === 'Excellent' ? 'health-excellent' : health === 'Partial' ? 'health-partial' : 'health-missing';
   const proof = card.extractionProof || card.evidence || '—';
   const raw = card.rawMiningResult || card.parsedResult || '—';
+  const tierLabel = card.tier === '2B' ? 'Tier 2B - Major' : card.tier === '2C' ? 'Tier 2C - Tactical' : card.tier === '2D' ? 'Tier 2D - Minor' : (card.tier || 'Tier 2X');
   return `
     <div class="mining-card ${stateClass}">
       <div class="factor-top">
@@ -1547,20 +1549,20 @@ function renderPromptAwareCard(card) {
         <summary>View Analysis Details</summary>
         <div class="detail-grid">
           <div class="detail-box">
-            <strong>Raw Mining Result</strong>
+            <strong>RETRIEVAL HEALTH</strong>
+            <div class="health-pill ${healthClass}">${escapeHtml(health)}</div>
+          </div>
+          <div class="detail-box">
+            <strong>PARSED VALUE</strong>
             <div>${escapeHtml(String(raw))}</div>
           </div>
           <div class="detail-box">
-            <strong>Retrieval Health</strong>
-            <div class="${healthClass}">${escapeHtml(health)}</div>
+            <strong>EXTRACTION PROOF</strong>
+            <div>${escapeHtml(proof)}</div>
           </div>
           <div class="detail-box">
-            <strong>Prompt Stage</strong>
-            <div><span class="stage-label">${escapeHtml(card.tier || '2X')}</span></div>
-          </div>
-          <div class="detail-box">
-            <strong>Extraction Proof</strong>
-            <span class="proof-snippet">${escapeHtml(String(proof))}</span>
+            <strong>PROMPT TIER</strong>
+            <div>${escapeHtml(tierLabel)}</div>
           </div>
         </div>
       </details>
@@ -1569,7 +1571,17 @@ function renderPromptAwareCard(card) {
 
 function propPositionHint(row) {
   const entity = canon(row?.entity || '');
-  return 'guard';
+  const raw = canon(row?.rawText || '');
+  const guards = ['doncic','brunson','curry','lillard','haliburton','maxey','harden','trae','ball','morant'];
+  const forwards = ['jayson tatum','jaylen brown','kevin durant','jaime jaquez','lebron james','paolo banchero','kawhi leonard'];
+  const centers = ['jokic','embiid','adebayo','gobert','wembanyama','anthony davis','sabonis','ayton','lopez'];
+  if (guards.some(n => entity.includes(n))) return 'guards';
+  if (forwards.some(n => entity.includes(n))) return 'forwards';
+  if (centers.some(n => entity.includes(n))) return 'centers';
+  if (/\bpg\b|\bsg\b|guard/.test(raw)) return 'guards';
+  if (/\bsf\b|\bpf\b|forward/.test(raw)) return 'forwards';
+  if (/\bc\b|center/.test(raw)) return 'centers';
+  return 'forwards';
 }
 
 function lineDirectionFromRow(row) {
@@ -1675,7 +1687,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v6.2.0`,
+    `Version: v6.3.0`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -2028,32 +2040,39 @@ function safeNumber(v) {
 function scoreDeltaFromContext(kind, value, row, extra={}) {
   const line = Number(row?.line || 0);
   const dir = lineDirectionFromRow(row);
-  if (kind === 'rotation') return value === 'Starter' ? 3.5 : -4.5;
-  if (kind === 'usage3') return Number.isFinite(value) ? Math.max(-6, Math.min(6, (value - 20) / 3)) : 0;
-  if (kind === 'teammateImpact') return Number.isFinite(value) ? Math.max(-1, Math.min(4, value * 2.5)) : 0;
-  if (kind === 'teamPace') return Number.isFinite(value) ? Math.max(-5, Math.min(5, (value - 100) * 0.7)) : 0;
-  if (kind === 'oppDefense') return Number.isFinite(value) ? Math.max(-5, Math.min(5, ((15 - value) / 3))) : 0;
-  if (kind === 'schedule') return Number.isFinite(value) ? ((value - 50) / 10) : 0;
-  if (kind === 'refs') return Number.isFinite(value) ? Math.max(-3, Math.min(3, (value - 50) / 10)) : 0;
-  if (kind === 'injury') return Number.isFinite(value) ? ((value - 60) / 12) : 0;
-  if (kind in {'last5':1,'last10':1,'season':1,'projection':1}) {
-    if (!Number.isFinite(value) || !Number.isFinite(line) || !line) return 0;
-    const edge = dir === 'UNDER' ? (line - value) / Math.max(1, line) : (value - line) / Math.max(1, line);
-    return Math.max(-8, Math.min(8, edge * 40));
-  }
-  if (kind === 'odds') {
+  const type = String(row?.type || 'REGULAR').toUpperCase();
+  let delta = 0;
+  if (kind === 'rotation') delta = value === 'Starter' ? 3.5 : -4.5;
+  else if (kind === 'usage3') delta = Number.isFinite(value) ? Math.max(-6, Math.min(6, (value - 20) / 3)) : 0;
+  else if (kind === 'teammateImpact') delta = Number.isFinite(value) ? Math.max(-1, Math.min(6, value * 1.6)) : 0;
+  else if (kind === 'teamPace') delta = Number.isFinite(value) ? Math.max(-5, Math.min(5, (value - 100) * 0.7)) : 0;
+  else if (kind === 'oppDefense') delta = Number.isFinite(value) ? Math.max(-5, Math.min(5, ((15 - value) / 3))) : 0;
+  else if (kind === 'schedule') delta = Number.isFinite(value) ? ((value - 50) / 10) : 0;
+  else if (kind === 'refs') delta = Number.isFinite(value) ? Math.max(-3, Math.min(3, (value - 50) / 10)) : 0;
+  else if (kind === 'injury') delta = Number.isFinite(value) ? ((value - 60) / 12) : 0;
+  else if (kind in {'last5':1,'last10':1,'season':1,'projection':1}) {
+    if (!Number.isFinite(value) || !Number.isFinite(line) || !line) delta = 0;
+    else {
+      const edge = dir === 'UNDER' ? (line - value) / Math.max(1, line) : (value - line) / Math.max(1, line);
+      delta = Math.max(-8, Math.min(8, edge * 40));
+    }
+  } else if (kind === 'odds') {
     const fav = String(extra.side || '').toLowerCase().includes('favorite');
-    return fav ? 1.5 : -1.5;
+    delta = fav ? 1.5 : -1.5;
   }
-  return 0;
+  if (type === 'DEMON' && (kind === 'teamPace' || kind === 'oppDefense' || kind === 'schedule')) delta *= 1.5;
+  if (type === 'GOBLIN' && (kind === 'refs' || kind === 'injury') && delta < 0) delta = Math.min(delta, -3.5);
+  return delta;
 }
 
 function refsBiasFromText(text='') {
   const c = canon(text);
-  const underPct = text.match(/under[^0-9]{0,20}(\d{2,3})%/i);
-  if (underPct && Number(underPct[1]) > 60) return 38;
-  const overPct = text.match(/over[^0-9]{0,20}(\d{2,3})%/i);
-  if (overPct && Number(overPct[1]) > 60) return 62;
+  const underPct = text.match(/under[^0-9]{0,24}(\d{2,3})%/i);
+  const overPct = text.match(/over[^0-9]{0,24}(\d{2,3})%/i);
+  const foulAvg = text.match(/(?:personal fouls?|pf average|fouls per game)[^0-9]{0,20}(\d+(?:\.\d+)?)/i);
+  if (underPct && Number(underPct[1]) > 60) return Math.max(30, 100 - Number(underPct[1]));
+  if (overPct && Number(overPct[1]) > 60) return Math.min(70, Number(overPct[1]));
+  if (foulAvg && Number(foulAvg[1]) >= 40) return 58;
   if (/over trend|leans over|over record/i.test(text)) return 60;
   if (/under trend|leans under|under record/i.test(text)) return 40;
   return null;
@@ -2062,8 +2081,8 @@ function refsBiasFromText(text='') {
 async function runSearchFactor(row, key, query, parseFn, fallback=null) {
   try {
     logEvent(`search:start ${query}`, 'SUCCESS', row.rowId, key);
-    const searched = await withTimeout(multiSearch(query), key === 'odds' || key === 'injury' ? 8000 : 6500, `${key} timeout`);
-    const top = (searched.results || []).slice(0, 3);
+    const searched = await withTimeout(multiSearch(query), ['odds','injury','refs'].includes(key) ? 8000 : 6500, `${key} timeout`);
+    const top = (searched.results || []).slice(0, 4);
     const blob = cleanSnippet(top.map(r => `${r.title || ''} ${r.snippet || ''}`).join(' • '));
     let parsed = parseFn(blob, top);
     if ((parsed == null || parsed === '' || (typeof parsed === 'number' && !Number.isFinite(parsed))) && typeof fallback === 'function') {
@@ -2073,10 +2092,10 @@ async function runSearchFactor(row, key, query, parseFn, fallback=null) {
       throw new Error('no usable parsed result');
     }
     logEvent(`search:ok ${query}`, 'SUCCESS', row.rowId, key);
-    return { ok:true, blob, parsed, provider: searched.provider || 'search' };
+    return { ok:true, blob, parsed, provider: searched.provider || 'search', results: top };
   } catch (err) {
     logEvent(String(err && err.message || err), 'WARNING', row.rowId, key);
-    return { ok:false, blob:'', parsed:null, provider:'' };
+    return { ok:false, blob:'', parsed:null, provider:'', results: [] };
   }
 }
 
@@ -2085,38 +2104,41 @@ function extractAveragingPattern(text='', row=null) {
   const src = String(text || '');
   const prop = canon(row?.propFamily || '');
 
-  const tripleMatch = src.match(/averag(?:ed|es|ing)?[^.\n]{0,120}?(\d+(?:\.\d+)?)\s+points?[^.\n]{0,80}?(\d+(?:\.\d+)?)\s+rebounds?[^.\n]{0,80}?(\d+(?:\.\d+)?)\s+assists?/i)
-    || src.match(/averag(?:ed|es|ing)?[^.\n]{0,120}?(\d+(?:\.\d+)?)\s+points?[^.\n]{0,80}?(\d+(?:\.\d+)?)\s+assists?[^.\n]{0,80}?(\d+(?:\.\d+)?)\s+rebounds?/i);
-
-  if (tripleMatch) {
-    const p = Number(tripleMatch[1]);
-    const b = Number(tripleMatch[2]);
-    const a = Number(tripleMatch[3]);
-    if ([p,b,a].every(Number.isFinite)) {
-      if (prop === 'pra' || prop === 'pts+rebs+asts') return Math.round((p + b + a) * 10) / 10;
-      if (prop === 'pts+rebs') return Math.round((p + b) * 10) / 10;
-      if (prop === 'pts+asts') return Math.round((p + a) * 10) / 10;
-      if (prop === 'rebs+asts') return Math.round((b + a) * 10) / 10;
-      if (prop === 'points') return p;
-      if (prop === 'rebounds') return b;
-      if (prop === 'assists') return a;
-    }
-  }
-
-  const patterns = [
-    /averag(?:ed|es|ing)?[^0-9]{0,12}(\d+(?:\.\d+)?)\s+[a-z]+(?:\s+per\s+game)?/i,
-    /\bavg\.?[^0-9]{0,10}(\d+(?:\.\d+)?)/i,
-    /over\s+(?:his|her|their)\s+last\s+\d+\s+games?[^0-9]{0,24}(\d+(?:\.\d+)?)/i,
-    /(?:last|past)\s+\d+\s+games?[^.\n]{0,60}?averag(?:ed|es|ing)?[^0-9]{0,12}(\d+(?:\.\d+)?)/i,
-    /averag(?:ed|es|ing)\s+(\d+(?:\.\d+)?)\s+[a-z]+\s+over\s+(?:his|her|their)\s+last\s+\d+/i
+  const comboPatterns = [
+    /averag(?:ed|es|ing)?[^.\n]{0,120}?(\d+(?:\.\d+)?)\s*(?:points?|pts?)[^.\n]{0,80}?(\d+(?:\.\d+)?)\s*(?:rebounds?|rebs?)[^.\n]{0,80}?(\d+(?:\.\d+)?)\s*(?:assists?|asts?)/i,
+    /averag(?:ed|es|ing)?[^.\n]{0,120}?(\d+(?:\.\d+)?)\s*(?:points?|pts?)[^.\n]{0,80}?(\d+(?:\.\d+)?)\s*(?:assists?|asts?)[^.\n]{0,80}?(\d+(?:\.\d+)?)\s*(?:rebounds?|rebs?)/i,
+    /(\d+(?:\.\d+)?)\s*(?:points?|pts?)[^.\n]{0,80}?(\d+(?:\.\d+)?)\s*(?:rebounds?|rebs?)[^.\n]{0,80}?(\d+(?:\.\d+)?)\s*(?:assists?|asts?)/i,
+    /(\d+(?:\.\d+)?)\s*(?:points?|pts?)[^.\n]{0,80}?(\d+(?:\.\d+)?)\s*(?:assists?|asts?)[^.\n]{0,80}?(\d+(?:\.\d+)?)\s*(?:rebounds?|rebs?)/i,
+    /averag(?:ed|es|ing)?[^.\n]{0,120}?(\d+(?:\.\d+)?)\s*(?:pts?|points?)[^.\n]{0,40}?(\d+(?:\.\d+)?)\s*(?:ast|asts?|assists?)[^.\n]{0,40}?(\d+(?:\.\d+)?)\s*(?:reb|rebs?|rebounds?)/i
   ];
-  for (const rx of patterns) {
+
+  for (const rx of comboPatterns) {
     const m = src.match(rx);
-    if (m) {
-      const n = Number(m[1]);
-      if (Number.isFinite(n)) return n;
+    if (!m) continue;
+    const a = Number(m[1]), b = Number(m[2]), c = Number(m[3]);
+    if (![a,b,c].every(Number.isFinite)) continue;
+    const labels = src.slice(Math.max(0, m.index - 20), Math.min(src.length, m.index + 160)).toLowerCase();
+    let p=a, r=b, ast=c;
+    if (/pts?.*ast.*reb/.test(labels) || /points?.*assists?.*rebounds?/.test(labels)) {
+      p=a; ast=b; r=c;
     }
+    if (prop === 'pra' || prop === 'pts+rebs+asts') return Math.round((p + r + ast) * 10) / 10;
+    if (prop === 'pts+rebs') return Math.round((p + r) * 10) / 10;
+    if (prop === 'pts+asts') return Math.round((p + ast) * 10) / 10;
+    if (prop === 'rebs+asts') return Math.round((r + ast) * 10) / 10;
+    if (prop === 'points') return p;
+    if (prop === 'rebounds') return r;
+    if (prop === 'assists') return ast;
   }
+
+  const avgRow = src.match(/\b(?:avg|average|averaged|averaging)\b[^0-9]{0,20}(\d+(?:\.\d+)?)/i)
+    || src.match(/\blast\s*(?:5|10)\s*(?:games?)?[^0-9]{0,24}(?:avg|average|averaged|averaging)[^0-9]{0,12}(\d+(?:\.\d+)?)/i)
+    || src.match(/\bavg\b[^0-9]{0,6}(\d+(?:\.\d+)?)/i);
+  if (avgRow) {
+    const n = Number(avgRow[1]);
+    if (Number.isFinite(n) && n > 0 && n < 100) return n;
+  }
+
   return null;
 }
 
@@ -2140,13 +2162,14 @@ function extractRankPattern(text='') {
 function extractPropSpecificComposite(text='', row=null) {
   const src = String(text || '');
   const prop = canon(row?.propFamily || '');
-  const pts = src.match(/(\d+(?:\.\d+)?)\s+points?/i);
-  const rebs = src.match(/(\d+(?:\.\d+)?)\s+rebounds?/i);
-  const asts = src.match(/(\d+(?:\.\d+)?)\s+assists?/i);
-  const stls = src.match(/(\d+(?:\.\d+)?)\s+steals?/i);
-  const blks = src.match(/(\d+(?:\.\d+)?)\s+blocks?/i);
-  const threes = src.match(/(\d+(?:\.\d+)?)\s+(?:3-pointers?|threes?)/i);
-  const tos = src.match(/(\d+(?:\.\d+)?)\s+turnovers?/i);
+
+  const pts = src.match(/(\d+(?:\.\d+)?)\s*(?:points?|pts?\b)/i);
+  const rebs = src.match(/(\d+(?:\.\d+)?)\s*(?:rebounds?|rebs?\b)/i);
+  const asts = src.match(/(\d+(?:\.\d+)?)\s*(?:assists?|asts?\b)/i);
+  const stls = src.match(/(\d+(?:\.\d+)?)\s*(?:steals?|stls?\b)/i);
+  const blks = src.match(/(\d+(?:\.\d+)?)\s*(?:blocks?|blks?\b)/i);
+  const threes = src.match(/(\d+(?:\.\d+)?)\s*(?:3-pointers? made|3pt made|three-pointers? made|threes?\b)/i);
+  const tos = src.match(/(\d+(?:\.\d+)?)\s*(?:turnovers?|tos?\b)/i);
 
   const p = pts ? Number(pts[1]) : null;
   const r = rebs ? Number(rebs[1]) : null;
@@ -2163,14 +2186,16 @@ function extractPropSpecificComposite(text='', row=null) {
   if (prop === 'points' && Number.isFinite(p)) return p;
   if (prop === 'rebounds' && Number.isFinite(r)) return r;
   if (prop === 'assists' && Number.isFinite(a)) return a;
-  if (prop === '3pt made' && Number.isFinite(t3)) return t3;
+  if ((prop === '3pt made' || prop === '3ptm') && Number.isFinite(t3)) return t3;
   if (prop === 'blocks' && Number.isFinite(b)) return b;
   if (prop === 'steals' && Number.isFinite(s)) return s;
   if (prop === 'blks+stls' && Number.isFinite(b) && Number.isFinite(s)) return Math.round((b+s) * 10) / 10;
   if (prop === 'turnovers' && Number.isFinite(to)) return to;
   if (prop === 'fantasy score') {
-    const usable = [p,r,a,b,s,to].filter(Number.isFinite).length;
-    if (usable >= 4) return Math.round((((p||0)*1)+((r||0)*1.2)+((a||0)*1.5)+((b||0)*3)+((s||0)*3)-((to||0)*1)) * 10) / 10;
+    const components = [p,r,a,s,b,to];
+    if (components.some(Number.isFinite)) {
+      return Math.round((((p||0) * 1) + ((r||0) * 1.2) + ((a||0) * 1.5) + ((s||0) * 3) + ((b||0) * 3) - ((to||0) * 1)) * 10) / 10;
+    }
   }
   return null;
 }
@@ -2186,6 +2211,14 @@ function extractNumber(text='', row=null) {
   if (Number.isFinite(composite)) return composite;
   const direct = extractAveragingPattern(text, row);
   if (Number.isFinite(direct)) return direct;
+
+  const avgContext = [];
+  for (const m of String(text || '').matchAll(/(?:avg|average|averaged|averaging|last\s*5|last\s*10)[^0-9]{0,30}(\d+(?:\.\d+)?)/gi)) {
+    avgContext.push(Number(m[1]));
+  }
+  const goodAvg = avgContext.find(n => Number.isFinite(n) && n > 0 && n < 100);
+  if (Number.isFinite(goodAvg)) return goodAvg;
+
   const vals = [...String(text || '').matchAll(/-?\d+(?:\.\d+)?/g)].map(m => Number(m[0])).filter(Number.isFinite);
   const filtered = vals.filter(n => Math.abs(n) < 500 && ![3,5,10].includes(n));
   return filtered.find(n => !Number.isInteger(n) || n > 10) ?? filtered[0] ?? null;
@@ -2201,7 +2234,7 @@ async function mineNbaRow(row) {
       statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : (f.live ? 'Loading live probe...' : 'Source wiring next'),
       sourcesLabel: f.sources.join(' • '),
       parsedResult: f.key === 'validation'
-        ? `${row.entity} • ${row.propFamily} ${row.line}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • team ${row.team}` : ''}`
+        ? `${row.entity} • ${row.propFamily} ${row.lineText || `${row.propFamily} ${row.line}`}${row.opponent ? ` • vs/@ ${row.opponent}` : ''}${row.team ? ` • team ${row.team}` : ''}`
         : '',
       evidence: f.key === 'validation' ? (row.rawText || row.lineText || '') : '',
       confidence: f.key === 'validation' ? 100 : 20,
@@ -2213,6 +2246,7 @@ async function mineNbaRow(row) {
   const teamFull = expandNbaTeamAbbr(row.team || '');
   const position = propPositionHint(row);
   const direction = lineDirectionFromRow(row);
+  const todayLabel = new Date().toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
 
   const setCard = (key, status, parsedResult, evidence, confidence, extra={}) => {
     const parsedNum = safeNumber(extra.projectionValue ?? parsedResult);
@@ -2231,76 +2265,84 @@ async function mineNbaRow(row) {
     };
   };
 
-  const playerQueries = {
-    last5: `${row.entity} last 5 games ${row.propFamily} statmuse nba`,
-    last10: `${row.entity} last 10 games ${row.propFamily} statmuse nba`,
-    season: `${row.entity} season ${row.propFamily} statmuse nba`,
-    rotation: `${row.entity} ${teamFull} expected lineup NBA`,
-    usage3: `${row.entity} last 3 games usage rate nba`,
-    teammateImpact: `${teamFull} injury report ${row.entity} teammate usage nba`,
-    teamPace: `${teamFull} team pace nba statmuse`,
-    oppDefense: `${oppFull} defense vs ${position} nba ${row.propFamily}`,
-    schedule: `${row.entity} recent games rest days nba`,
-    projection: `${row.entity} ${row.propFamily} projection today nba`,
-    odds: `${teamFull} vs ${oppFull} betting odds`,
-    refs: `${teamFull} vs ${oppFull} referee over under tendencies covers`,
-    injury: `${row.entity} NBA injury status`
-  };
-
   const numParse = (blob) => bestSearchValue(blob, row);
 
-  const recent5 = await runSearchFactor(row, 'last5', playerQueries.last5, numParse);
-  if (recent5.ok) setCard('last5', 'ready', recent5.parsed, recent5.blob.slice(0, 260), 76, { projectionValue: Number(recent5.parsed), sourcesLabel: `${result.last5.sourcesLabel} • winner: ${recent5.provider}` });
+  const recent5 = await runSearchFactor(row, 'last5', `${row.entity} last 5 games ${row.propFamily} statmuse nba`, numParse);
+  if (recent5.ok) setCard('last5', 'ready', recent5.parsed, recent5.blob.slice(0, 260), 80, { projectionValue: Number(recent5.parsed), sourcesLabel: `${result.last5.sourcesLabel} • winner: ${recent5.provider}` });
   else setCard('last5', 'warning', 'No clean source', 'Search failed or blocked.', 25);
 
-  const recent10 = await runSearchFactor(row, 'last10', playerQueries.last10, numParse);
-  if (recent10.ok) setCard('last10', 'ready', recent10.parsed, recent10.blob.slice(0, 260), 72, { projectionValue: Number(recent10.parsed), sourcesLabel: `${result.last10.sourcesLabel} • winner: ${recent10.provider}` });
+  const recent10 = await runSearchFactor(row, 'last10', `${row.entity} last 10 games ${row.propFamily} statmuse nba`, numParse);
+  if (recent10.ok) setCard('last10', 'ready', recent10.parsed, recent10.blob.slice(0, 260), 76, { projectionValue: Number(recent10.parsed), sourcesLabel: `${result.last10.sourcesLabel} • winner: ${recent10.provider}` });
   else setCard('last10', 'warning', 'No clean source', 'Search failed or blocked.', 25);
 
-  const season = await runSearchFactor(row, 'season', playerQueries.season, numParse);
-  if (season.ok) setCard('season', 'ready', season.parsed, season.blob.slice(0, 260), 78, { projectionValue: Number(season.parsed), sourcesLabel: `${result.season.sourcesLabel} • winner: ${season.provider}` });
+  const season = await runSearchFactor(row, 'season', `${row.entity} season ${row.propFamily} statmuse nba`, numParse);
+  if (season.ok) setCard('season', 'ready', season.parsed, season.blob.slice(0, 260), 82, { projectionValue: Number(season.parsed), sourcesLabel: `${result.season.sourcesLabel} • winner: ${season.provider}` });
   else setCard('season', 'warning', 'No clean source', 'Search failed or blocked.', 25);
 
-  const rotation = await runSearchFactor(row, 'rotation', playerQueries.rotation, (blob) => {
-    const c = canon(blob);
-    if (/expected lineup|starting lineup|will start|starter|in lineup/.test(c)) return 'Starter';
-    if (/bench|reserve|not in lineup|second unit/.test(c)) return 'Bench';
-    return null;
-  });
-  if (rotation.ok) setCard('rotation', 'ready', rotation.parsed, rotation.blob.slice(0, 260), 70, { sourcesLabel: `${result.rotation.sourcesLabel} • winner: ${rotation.provider}` });
-  else setCard('rotation', 'warning', 'Unknown', 'Could not confirm lineup status.', 20);
+  const rotation = await runSearchFactor(
+    row,
+    'rotation',
+    `${row.entity} ${teamFull} expected starter rotowire lineup nba`,
+    (blob) => {
+      const c = canon(blob);
+      if ((c.includes(canon(row.entity)) || c.includes((canon(row.entity).split(' ').slice(-1)[0] || ''))) && /(expected starter|starting lineup|projected starters|in lineup|starting five|will start|starter)/.test(c)) return 'Expected Starter';
+      if ((c.includes(canon(row.entity)) || c.includes((canon(row.entity).split(' ').slice(-1)[0] || ''))) && /(bench|reserve|second unit|not starting)/.test(c)) return 'Bench';
+      return null;
+    }
+  );
+  if (rotation.ok) {
+    logEvent('SUCCESS: Rotation Status Calculated', 'SUCCESS', row.rowId, 'rotation');
+    setCard('rotation', 'ready', rotation.parsed, rotation.blob.slice(0, 260), 78, { sourcesLabel: `${result.rotation.sourcesLabel} • winner: ${rotation.provider}` });
+  } else setCard('rotation', 'warning', 'Unknown', 'Could not confirm lineup status.', 20);
 
-  const usage = await runSearchFactor(row, 'usage3', playerQueries.usage3, (blob) => {
-    const n = extractNumber(blob);
-    return Number.isFinite(n) ? n : null;
+  const usage = await runSearchFactor(row, 'usage3', `${row.entity} last 3 games usage rate nba`, (blob) => {
+    const n = extractNumber(blob, row);
+    return Number.isFinite(n) && n > 0 && n < 50 ? n : null;
   });
-  if (usage.ok) setCard('usage3', 'ready', usage.parsed, usage.blob.slice(0, 260), 60, { projectionValue: Number(usage.parsed), sourcesLabel: `${result.usage3.sourcesLabel} • winner: ${usage.provider}` });
+  if (usage.ok) setCard('usage3', 'ready', usage.parsed, usage.blob.slice(0, 260), 65, { projectionValue: Number(usage.parsed), sourcesLabel: `${result.usage3.sourcesLabel} • winner: ${usage.provider}` });
   else setCard('usage3', 'warning', 'Unknown', 'Usage pulse unavailable.', 20);
 
-  const teammateImpact = await runSearchFactor(row, 'teammateImpact', playerQueries.teammateImpact, (blob) => {
-    const c = canon(blob);
-    if (/out|inactive|ruled out/.test(c) && /usage|minutes|starting|starter/.test(c)) return 1;
-    if (/questionable|doubtful/.test(c)) return 0.5;
-    return null;
-  });
+  const teammateImpact = await runSearchFactor(
+    row,
+    'teammateImpact',
+    `${teamFull} injury report ${row.entity} usage without teammate nba`,
+    (blob) => {
+      const c = canon(blob);
+      const usageShift = blob.match(/(?:usage (?:rate )?(?:up|increase|bump|without)[^0-9]{0,18}|\\+)(\\d+(?:\\.\\d+)?)%/i);
+      if (usageShift && Number(usageShift[1]) > 3) return Number(usageShift[1]);
+      if (/out|inactive|ruled out/.test(c) && /(high usage|leading scorer|starting guard|starting forward|usage|without)/.test(c)) return 5;
+      return null;
+    }
+  );
   if (teammateImpact.ok) {
-    const flag = Number(teammateImpact.parsed);
-    setCard('teammateImpact', 'ready', flag === 1 ? 'Usage bump active' : 'Soft teammate watch', teammateImpact.blob.slice(0, 260), 61, { projectionValue: flag, sourcesLabel: `${result.teammateImpact.sourcesLabel} • winner: ${teammateImpact.provider}` });
+    logEvent('SUCCESS: Teammate Impact Calculated', 'SUCCESS', row.rowId, 'teammateImpact');
+    const shift = Number(teammateImpact.parsed);
+    const label = Number.isFinite(shift) ? `Usage shift +${shift.toFixed(1)}%` : 'Usage bump active';
+    setCard('teammateImpact', 'ready', label, teammateImpact.blob.slice(0, 260), 66, { projectionValue: Number.isFinite(shift) ? shift : 5, sourcesLabel: `${result.teammateImpact.sourcesLabel} • winner: ${teammateImpact.provider}` });
   } else setCard('teammateImpact', 'warning', 'Neutral', 'No high-usage teammate absence detected.', 20, { projectionValue: 0 });
 
-  const pace = await runSearchFactor(row, 'teamPace', playerQueries.teamPace, (blob) => {
+  const pace = await runSearchFactor(row, 'teamPace', `${teamFull} team pace nba statmuse`, (blob) => {
     const n = extractNumber(blob);
     return Number.isFinite(n) && n > 80 && n < 120 ? n : null;
   });
-  if (pace.ok) setCard('teamPace', 'ready', pace.parsed, pace.blob.slice(0, 260), 68, { projectionValue: Number(pace.parsed), sourcesLabel: `${result.teamPace.sourcesLabel} • winner: ${pace.provider}` });
-  else setCard('teamPace', 'warning', 'Unknown', 'Pace source unavailable.', 20);
+  if (pace.ok) {
+    logEvent(`[2C] Scraped ${teamFull} Pace: ${pace.parsed}`, 'SUCCESS', row.rowId, 'teamPace');
+    setCard('teamPace', 'ready', pace.parsed, pace.blob.slice(0, 260), 70, { projectionValue: Number(pace.parsed), sourcesLabel: `${result.teamPace.sourcesLabel} • winner: ${pace.provider}` });
+  } else setCard('teamPace', 'warning', 'Unknown', 'Pace source unavailable.', 20);
 
-  let opp = await runSearchFactor(row, 'oppDefense', playerQueries.oppDefense, (blob) => {
-    const rank = extractRankPattern(blob);
-    if (Number.isFinite(rank)) return rank;
-    const n = extractNumber(blob);
-    return Number.isFinite(n) && n >= 1 && n <= 30 ? n : null;
-  });
+  let opp = await runSearchFactor(
+    row,
+    'oppDefense',
+    `${oppFull} defense vs ${position} ${row.propFamily} hashtagbasketball statmuse nba`,
+    (blob) => {
+      const rank = extractRankPattern(blob);
+      if (Number.isFinite(rank)) return rank;
+      const dvp = blob.match(/(?:vs|against)[^.\\n]{0,40}?(\\d{1,2})(?:st|nd|rd|th)/i);
+      if (dvp) return Number(dvp[1]);
+      const n = extractNumber(blob);
+      return Number.isFinite(n) && n >= 1 && n <= 30 ? n : null;
+    }
+  );
   if (!opp.ok) {
     opp = await runSearchFactor(row, 'oppDefense', `${oppFull} defensive rating rank nba`, (blob) => {
       const rank = extractRankPattern(blob);
@@ -2310,10 +2352,10 @@ async function mineNbaRow(row) {
     });
     if (opp.ok) logEvent('Defensive Archetype proxy applied via overall defensive rating rank.', 'SUCCESS', row.rowId, 'oppDefense');
   }
-  if (opp.ok) setCard('oppDefense', 'ready', opp.parsed, opp.blob.slice(0, 260), 63, { projectionValue: Number(opp.parsed), sourcesLabel: `${result.oppDefense.sourcesLabel} • winner: ${opp.provider}` });
+  if (opp.ok) setCard('oppDefense', 'ready', opp.parsed, opp.blob.slice(0, 260), 67, { projectionValue: Number(opp.parsed), sourcesLabel: `${result.oppDefense.sourcesLabel} • winner: ${opp.provider}` });
   else setCard('oppDefense', 'warning', 'Unknown', 'Opponent rank unavailable.', 20);
 
-  const schedule = await runSearchFactor(row, 'schedule', playerQueries.schedule, (blob) => {
+  const schedule = await runSearchFactor(row, 'schedule', `${teamFull} ${row.entity} back to back rest travel nba`, (blob) => {
     const c = canon(blob);
     if (/back-to-back|second night/.test(c)) return 0;
     if (/one day rest|1 day rest/.test(c)) return 55;
@@ -2324,7 +2366,7 @@ async function mineNbaRow(row) {
   if (schedule.ok) setCard('schedule', 'ready', schedule.parsed, schedule.blob.slice(0, 260), 58, { projectionValue: Number(schedule.parsed), sourcesLabel: `${result.schedule.sourcesLabel} • winner: ${schedule.provider}` });
   else setCard('schedule', 'warning', '60', 'Schedule source unavailable; neutral rest applied.', 20, { projectionValue: 60 });
 
-  const projection = await runSearchFactor(row, 'projection', playerQueries.projection, numParse);
+  const projection = await runSearchFactor(row, 'projection', `${row.entity} ${row.propFamily} projection today nba`, numParse);
   if (projection.ok) {
     setCard('projection', 'ready', projection.parsed, projection.blob.slice(0, 260), 66, { projectionValue: Number(projection.parsed), sourcesLabel: `${result.projection.sourcesLabel} • winner: ${projection.provider}` });
   } else {
@@ -2336,13 +2378,13 @@ async function mineNbaRow(row) {
     }
   }
 
-  const odds = await runSearchFactor(row, 'odds', playerQueries.odds, (blob) => {
-    const american = [...String(blob || '').matchAll(/[+-]\d{3}/g)].map(m => m[0]);
+  const odds = await runSearchFactor(row, 'odds', `${teamFull} vs ${oppFull} betting odds`, (blob) => {
+    const american = [...String(blob || '').matchAll(/[+-]\\d{3}/g)].map(m => m[0]);
     if (american.length) return american.join(', ');
     return null;
   }, (blob) => {
     const raw = `${blob} ${row.rawText || ''}`;
-    const m = raw.match(/[+-]\d{3}/);
+    const m = raw.match(/[+-]\\d{3}/);
     return m ? m[0] : null;
   });
   if (odds.ok) {
@@ -2352,16 +2394,27 @@ async function mineNbaRow(row) {
     setCard('odds', 'warning', 'Unknown', row.rawText || 'Market odds unavailable.', 20);
   }
 
-  const refs = await runSearchFactor(row, 'refs', playerQueries.refs, (blob) => {
-    const bias = refsBiasFromText(blob);
-    return bias == null ? null : bias;
-  });
-  if (refs.ok) setCard('refs', 'ready', refs.parsed, refs.blob.slice(0, 260), 50, { projectionValue: Number(refs.parsed), sourcesLabel: `${result.refs.sourcesLabel} • winner: ${refs.provider}` });
-  else setCard('refs', 'warning', 'Unknown', 'Official tendency source unavailable.', 20);
+  const refs = await runSearchFactor(
+    row,
+    'refs',
+    `NBA Referee Crew ${todayLabel} ${teamFull} vs ${oppFull} Covers`,
+    (blob) => {
+      const bias = refsBiasFromText(blob);
+      return bias == null ? null : bias;
+    }
+  );
+  if (refs.ok) {
+    const foulAvg = String(refs.blob || '').match(/(?:personal fouls?|fouls per game)[^0-9]{0,20}(\\d+(?:\\.\\d+)?)/i);
+    const proof = refs.blob.slice(0, 260) + (foulAvg ? ` • PF avg ${foulAvg[1]}` : '');
+    setCard('refs', 'ready', refs.parsed, refs.blob.slice(0, 260), 54, { projectionValue: Number(refs.parsed), sourcesLabel: `${result.refs.sourcesLabel} • winner: ${refs.provider}`, extractionProof: proof });
+  } else {
+    logEvent('ERROR: Ref Scrape Failed', 'ERROR', row.rowId, 'refs');
+    setCard('refs', 'warning', 'Unknown', 'Official tendency source unavailable.', 20);
+  }
 
-  const injury = await runSearchFactor(row, 'injury', playerQueries.injury, (blob) => {
+  const injury = await runSearchFactor(row, 'injury', `${row.entity} NBA injury status`, (blob) => {
     const c = canon(blob);
-    if (/out for season|\bout\b/.test(c)) return 0;
+    if (/out for season|\\bout\\b/.test(c)) return 0;
     if (/doubtful/.test(c)) return 20;
     if (/questionable/.test(c)) return 50;
     if (/probable/.test(c)) return 80;
@@ -2373,21 +2426,31 @@ async function mineNbaRow(row) {
 
   const baseEdge = baselineEdgeForRow(row, Object.values(result));
   const pureProb = standaloneProbability(row, Object.values(result));
+  const seasonVal = Number(result.season?.projectionValue ?? result.season?.parsedResult ?? NaN);
+  const line = Number(row?.line || 0);
+  const zScore = Number.isFinite(line) && Number.isFinite(seasonVal) ? Math.round((((line - seasonVal) / Math.max(1, seasonVal || 1)) * 100) * 10) / 10 : 0;
   const minorDrag = ['refs','injury'].reduce((sum, key) => sum + Number(result[key]?.delta || 0), 0);
+  const goblinQualityCut = String(row?.type || '').toUpperCase() === 'GOBLIN' && minorDrag < 0;
   let finalScore = survivabilityScore(row, Object.values(result));
   let survivabilityDelta = Math.max(-4, Math.min(4, (finalScore - pureProb*100) / 8));
+  let finalStatus = goblinQualityCut ? 'QUALITY_CUT' : 'SURVIVE';
+
   if (baseEdge > 0.035 && minorDrag < 0) {
     finalScore = Math.max(finalScore, pureProb * 100);
     survivabilityDelta = Math.max(0, survivabilityDelta);
+    finalStatus = 'SURVIVE';
     logEvent('Alpha Shield prevented minor-only quality cut.', 'SUCCESS', row.rowId, 'survivability');
+  } else if (goblinQualityCut) {
+    finalStatus = 'QUALITY_CUT';
+    logEvent('Goblin type purity triggered immediate QUALITY_CUT warning.', 'WARNING', row.rowId, 'survivability');
   }
 
   result.survivability = {
     ...result.survivability,
-    status:'ready',
+    status: finalStatus === 'QUALITY_CUT' ? 'warning' : 'ready',
     statusLabel:'Internal gate logic',
     parsedResult:`FINAL_HIT_PROBABILITY ${Math.round(pureProb*1000)/10}% • FINAL_QUALIFIED_SCORE ${Math.round(finalScore*10)/10}`,
-    evidence:`baseline_edge ${baseEdge.toFixed(4)} • Relational_Drag ${minorDrag.toFixed(2)} • Alpha Shield ${baseEdge > 0.035 ? 'ACTIVE' : 'inactive'}`,
+    evidence:`baseline_edge ${baseEdge.toFixed(4)} • Z_SCORE ${zScore.toFixed(1)} • Relational_Drag ${minorDrag.toFixed(2)} • Alpha Shield ${baseEdge > 0.035 ? 'ACTIVE' : 'inactive'} • ${finalStatus}`,
     confidence:88,
     delta: survivabilityDelta,
     sourcesLabel: result.survivability.sourcesLabel,
