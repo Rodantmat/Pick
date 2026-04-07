@@ -164,7 +164,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   font-weight:700;
   white-space:nowrap;
 }
-.derived-badge{background:rgba(56,189,248,.16);color:#38bdf8;border-color:#38bdf8}
+.derived-badge{background:rgba(255,211,110,.16);color:#ffd36e;border-color:#ffd36e}
 .mined-badge{background:rgba(36,87,59,.25);color:#baf2cb}
 .parsed-badge{background:rgba(110,168,254,.15);color:#8cc3ff}
 .warning-banner{
@@ -250,7 +250,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1 id="intakeTitle">Prompt 1 Intake <span class="version-pill">v8.8</span></h1>
+        <h1 id="intakeTitle">Prompt 1 Intake <span class="version-pill">v6.4.0</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -297,8 +297,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis 8.8</h1>
-          <p id="analysisVersion">Version: 8.8 (Reference Lock / Triple-Threat)</p>
+          <h1 id="analysisTitle">Run Analysis v6.4.0</h1>
+          <p id="analysisVersion">Version: v6.4.0 (Triple-Sweep & Data Integrity Lock)</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -312,7 +312,7 @@ thead th { background:#121d35; position:sticky; top:0; }
         <div id="analysisHint" class="message"></div>
         <div id="runOverlay" class="run-overlay hidden">
           <div class="run-overlay-card">
-            <div class="overlay-title">Triple-Threat Mining</div>
+            <div class="overlay-title">Triple-Sweep Mining</div>
             <div id="overlaySub" class="overlay-sub">Initializing…</div>
             <div id="overlayBody" class="message">Preparing factor cards.</div>
           </div>
@@ -325,14 +325,14 @@ thead th { background:#121d35; position:sticky; top:0; }
       </section>
 
       <section class="card">
-        <h2>Triple-Threat Matrix</h2>
-        <p class="mini-muted">14-factor recursive mining. Each card probes Source 1 → Source 2 → Source 3 → [DERIVED] fallback, with rich logs and live rendering after every resolution.</p>
+        <h2>Triple-Sweep Matrix</h2>
+        <p class="mini-muted">14-factor recursive mining. Each card probes Source A → Source B → Source C → [DERIVED NEUTRAL] fallback, with rich logs, Data Integrity Lock, and live rendering after every resolution.</p>
         <div id="analysisKpis" class="analysis-kpis"></div>
         <div id="miningGrid" class="mining-grid"></div>
       </section>
 
       <section class="card">
-        <h2>Alpha Shield v8.8</h2>
+        <h2>Alpha Shield v6.4.0</h2>
         <div id="shieldPanel" class="shield-grid"></div>
       </section>
 
@@ -366,7 +366,7 @@ thead th { background:#121d35; position:sticky; top:0; }
 
 
 <script>
-const SYSTEM_VERSION = "8.8 (Reference Lock / Triple-Threat)";
+const SYSTEM_VERSION = "v6.4.0 (Triple-Sweep & Data Integrity Lock)";
 const STORAGE_KEY = "pickcalc-nba-8-8-reference-lock";
 const APP_BUILD_LABEL = "Reference Lock / Triple-Threat";
 const TYPE_META = {
@@ -404,21 +404,71 @@ const REF_NAMES = [
   'Scott Foster','Tony Brothers','Zach Zarba','James Capers','Bill Kennedy','Ben Taylor','Marc Davis',
   'John Goble','Tyler Ford','Sean Wright','David Guthrie','Eric Lewis','Tre Maddox','Brian Forte'
 ];
+
+const GARBAGE_KEYWORDS = ['academy of music','museum','historic','highlight','jersey'];
+
+function blobHasGarbageKeywords(text='') {
+  const c = canon(text || '');
+  return GARBAGE_KEYWORDS.some(word => c.includes(word));
+}
+function playerAnchorParts(row) {
+  const parts = canon(row?.entity || '').split(' ').filter(Boolean);
+  const last = parts.slice(-1)[0] || '';
+  const first = parts[0] || '';
+  const team = canon(expandTeamName(row?.team || ''));
+  return { first, last, team };
+}
+function expandTeamName(team='') {
+  const key = norm(team).toUpperCase();
+  const map = {
+    ATL:'Atlanta Hawks', BOS:'Boston Celtics', BKN:'Brooklyn Nets', CHA:'Charlotte Hornets',
+    CHI:'Chicago Bulls', CLE:'Cleveland Cavaliers', DAL:'Dallas Mavericks', DEN:'Denver Nuggets',
+    DET:'Detroit Pistons', GSW:'Golden State Warriors', HOU:'Houston Rockets', IND:'Indiana Pacers',
+    LAC:'Los Angeles Clippers', LAL:'Los Angeles Lakers', MEM:'Memphis Grizzlies', MIA:'Miami Heat',
+    MIL:'Milwaukee Bucks', MIN:'Minnesota Timberwolves', NOP:'New Orleans Pelicans', NYK:'New York Knicks',
+    OKC:'Oklahoma City Thunder', ORL:'Orlando Magic', PHI:'Philadelphia 76ers', PHX:'Phoenix Suns',
+    POR:'Portland Trail Blazers', SAC:'Sacramento Kings', SAS:'San Antonio Spurs', TOR:'Toronto Raptors',
+    UTA:'Utah Jazz', WAS:'Washington Wizards'
+  };
+  return map[key] || norm(team);
+}
+function sourceBlobFailsIntegrity(blob='', row=null) {
+  const c = canon(blob || '');
+  if (!c) return true;
+  if (blobHasGarbageKeywords(c)) return true;
+  const { first, last, team } = playerAnchorParts(row || {});
+  if (last && !c.includes(last)) return true;
+  if (first && first.length > 2 && !c.includes(first)) return true;
+  if (team && /\bbam\b|\badebayo\b/i.test(row?.entity || '') && !(c.includes(team) || c.includes('nba player stats') || c.includes('bam adebayo miami heat'))) return true;
+  if (!c.includes('nba') && !c.includes('espn') && !c.includes('basketball') && !c.includes('statmuse') && !c.includes('reference') && !c.includes('covers') && !c.includes('official')) return true;
+  return false;
+}
+function extractionMethodForSource(source, factor) {
+  const name = String(source?.name || '');
+  if (/ESPN/i.test(name) && /(Recent Form|Stability Window|Extended Form)/i.test(factor?.title || '')) return 'ESPN Table Parse';
+  if (/Basketball-Reference|BBR/i.test(name)) return 'Basketball-Reference Table Parse';
+  if (/Official NBA Assignments/i.test(name)) return 'Official NBA Crew Scrape';
+  if (/Covers/i.test(name)) return 'Covers Static Scrape';
+  if (/DuckDuckGo|Search/i.test(name)) return 'DuckDuckGo Snippet Parse';
+  if (/StatMuse/i.test(name)) return 'StatMuse Structured Snippet Parse';
+  return 'Structured Source Parse';
+}
+
 const FACTORS = [
   { key:'recentForm', title:'Recent Form (L5)', tier:'2B', parse:'number', fallback:'last3Blend', probeLabel:'L5', sources:[
-      { id:'S1', name:'StatMuse Raw Log', query:(r)=>`${r.entity} last 5 games ${r.propFamily} statmuse nba` },
-      { id:'S2', name:'ESPN Box Score', query:(r)=>`${r.entity} last 5 games game log ESPN nba ${r.propFamily}` },
-      { id:'S3', name:'Search', query:(r)=>`${r.entity} last 5 games logs 2026 nba ${r.propFamily}` }
+      { id:'S1', name:'ESPN Game Log Table', query:(r)=>`${r.entity} ESPN game log last 5 games nba ${r.propFamily}` },
+      { id:'S2', name:'Basketball-Reference', query:(r)=>`${r.entity} basketball reference game log last 5 games nba ${r.propFamily}` },
+      { id:'S3', name:'StatMuse Raw Log', query:(r)=>`${r.entity} last 5 games ${r.propFamily} statmuse nba player stats` }
   ]},
   { key:'stabilityWindow', title:'Stability Window (L10)', tier:'2B', parse:'number', fallback:'last3Blend', probeLabel:'L10', sources:[
-      { id:'S1', name:'StatMuse Raw Log', query:(r)=>`${r.entity} last 10 games ${r.propFamily} statmuse nba` },
-      { id:'S2', name:'BBR', query:(r)=>`${r.entity} last 10 games basketball reference ${r.propFamily} nba` },
-      { id:'S3', name:'Search', query:(r)=>`${r.entity} last 10 games logs 2026 nba ${r.propFamily}` }
+      { id:'S1', name:'ESPN Game Log Table', query:(r)=>`${r.entity} ESPN game log last 10 games nba ${r.propFamily}` },
+      { id:'S2', name:'Basketball-Reference', query:(r)=>`${r.entity} last 10 games basketball reference ${r.propFamily} nba` },
+      { id:'S3', name:'StatMuse Raw Log', query:(r)=>`${r.entity} last 10 games ${r.propFamily} statmuse nba player stats` }
   ]},
   { key:'extendedForm', title:'Extended Form (L20)', tier:'2B', parse:'number', fallback:'last3Blend', probeLabel:'L20', sources:[
-      { id:'S1', name:'NBA.com', query:(r)=>`${r.entity} last 20 games nba.com stats ${r.propFamily}` },
-      { id:'S2', name:'StatMuse', query:(r)=>`${r.entity} last 20 games statmuse ${r.propFamily} nba` },
-      { id:'S3', name:'BBR Cumulative', query:(r)=>`${r.entity} last 20 games basketball reference ${r.propFamily}` }
+      { id:'S1', name:'ESPN Game Log Table', query:(r)=>`${r.entity} ESPN game log last 20 games nba ${r.propFamily}` },
+      { id:'S2', name:'Basketball-Reference', query:(r)=>`${r.entity} last 20 games basketball reference ${r.propFamily}` },
+      { id:'S3', name:'NBA.com', query:(r)=>`${r.entity} last 20 games nba.com stats ${r.propFamily}` }
   ]},
   { key:'seasonBaseline', title:'Season Baseline', tier:'2B', parse:'number', fallback:'seasonFallback', probeLabel:'SEASON', sources:[
       { id:'S1', name:'NBA.com Official', query:(r)=>`${r.entity} season stats nba.com ${r.propFamily}` },
@@ -468,9 +518,9 @@ const FACTORS = [
       { id:'S3', name:'Derived Narrative', query:(r)=>`${r.entity} revenge game vs ${r.opponent} nba` }
   ]},
   { key:'officialRef', title:'Official / Ref Tendency', tier:'2D', parse:'ref', fallback:'refFallback', probeLabel:'REF', sources:[
-      { id:'S1', name:'Official NBA Assignments', query:(r)=>`${r.team} vs ${r.opponent} nba referee assignments today` },
-      { id:'S2', name:'RefMetrics/Covers', query:(r)=>`${r.team} vs ${r.opponent} referee over under record covers nba` },
-      { id:'S3', name:'Derived Bias Score', query:(r)=>`${r.team} vs ${r.opponent} whistle tendency nba ref` }
+      { id:'A', name:'Official NBA Assignments', query:(r)=>`site:official.nba.com referee assignments April 6 2026 ${r.team} ${r.opponent} nba` },
+      { id:'B', name:'Covers Static Scrape', query:(r)=>`site:covers.com April 6 2026 ${r.team} ${r.opponent} referee over under record nba` },
+      { id:'C', name:'DuckDuckGo Search', query:(r)=>`${r.team} ${r.opponent} referee over under record April 6 2026 nba` }
   ]},
   { key:'survivabilityShield', title:'Survivability Shield', tier:'2F', parse:'shield', fallback:'shieldFallback', probeLabel:'SHIELD', sources:[
       { id:'S1', name:'Internal Alpha Purity', query:(r)=>`${r.entity} shield internal` },
@@ -689,6 +739,7 @@ function rowCardHtml(row) {
       <div class="cell"><strong>Line</strong>${escapeHtml(row.line)}</div>
       <div class="cell"><strong>Type</strong>${TYPE_META[row.type]?.icon || '⚪'} ${escapeHtml(TYPE_META[row.type]?.label || row.type)}</div>
       <div class="cell"><strong>Raw Parse</strong>${escapeHtml(row.rawText || row.lineText)}</div>
+      <div class="cell"><strong>Alpha Shield</strong>${escapeHtml((buildMiningStatus(row).find(c => c.key === 'survivabilityShield')?.parsedResult) || 'Pending')}</div>
     </div>`;
 }
 function confidenceBarHtml(confidence=0) {
@@ -731,6 +782,7 @@ function renderPromptAwareCard(card) {
           <div class="detail-box"><strong>Retrieval Health</strong><div class="${healthClass}">${escapeHtml(health)}</div></div>
           <div class="detail-box"><strong>Probe Log</strong><div>${escapeHtml(card.probeLog || '—')}</div></div>
           <div class="detail-box"><strong>Source Winner</strong><div>${escapeHtml(card.sourceWinner || '—')}</div></div>
+          <div class="detail-box"><strong>Extraction Method</strong><div>${escapeHtml(card.extractionMethod || '—')}</div></div>
           <div class="detail-box"><strong>Extraction Proof</strong><div>${escapeHtml(card.extractionProof || '—')}</div></div>
         </div>
       </details>
@@ -1003,6 +1055,7 @@ function extractAmericanOdds(text='') {
 }
 function parseFactorResult(mode, text, row) {
   const raw = String(text || '');
+  if (blobHasGarbageKeywords(raw)) return null;
   if (mode === 'number') return extractNumberForProp(raw, row);
   if (mode === 'physicality') {
     const h = raw.match(/(\d{1,2})\s*(?:-|ft|feet)\s*(\d{1,2})?/i);
@@ -1077,10 +1130,10 @@ function buildFallbackValue(kind, row, results) {
     case 'defenderFallback': return 'Derived neutral defender';
     case 'travelFallback': {
       const alt = getGeoAltitude(row.opponent || row.team || '');
-      return alt ? `${alt} ft` : 'Derived neutral travel';
+      return alt ? `[DERIVED NEUTRAL] ${alt} ft altitude check` : '[DERIVED NEUTRAL] travel';
     }
-    case 'motivationFallback': return /former|revenge/i.test(row.rawText || '') ? 'Derived revenge angle' : 'Derived neutral motivation';
-    case 'refFallback': return 'Derived neutral whistle';
+    case 'motivationFallback': return /former|revenge/i.test(row.rawText || '') ? '[DERIVED NEUTRAL] revenge angle' : '[DERIVED NEUTRAL] motivation';
+    case 'refFallback': return '[DERIVED NEUTRAL] whistle';
     case 'shieldFallback': return 'Alpha shield fallback engaged';
     default: return '[DERIVED]';
   }
@@ -1098,6 +1151,7 @@ function computeScoreDelta(card, row, results) {
     const edge = dir === 'UNDER' ? (line - numeric) / line : (numeric - line) / line;
     return round1(Math.max(-8, Math.min(8, edge * 35)));
   }
+  if (card.derived && /\[DERIVED NEUTRAL\]/i.test(card.parsedResult || '')) return 0;
   if (card.key === 'officialRef' && /Over\s(\d{2,3})%/i.test(card.parsedResult || '')) return 1.0;
   if (card.key === 'rotationUsage' && /STARTER/i.test(card.evidence || card.parsedResult || '')) return 2.0;
   if (card.key === 'altitudeTravel' && /ft|miles|B2B/i.test(card.parsedResult || '')) return -1.5;
@@ -1125,7 +1179,8 @@ function initCards(row) {
       confidence:18,
       scoreDelta:0,
       derived:false,
-      numericValue:null
+      numericValue:null,
+      extractionMethod:'Awaiting source resolution'
     };
   });
   return out;
@@ -1148,7 +1203,8 @@ async function runFactor(row, factor, cards, runToken) {
     statusLabel:'PROBING...',
     parsedResult:'PROBING...',
     evidence:'Recursive 3-source loop active.',
-    extractionProof:'Triple-Threat protocol armed.',
+    extractionProof:'Triple-Source protocol armed.',
+    extractionMethod:'Awaiting source resolution',
     confidence:20
   });
   for (let i=0; i<factor.sources.length; i++) {
@@ -1160,19 +1216,43 @@ async function runFactor(row, factor, cards, runToken) {
     update({
       probeLog: logParts.join(' | '),
       phase:`PROBING... ${source.id}`,
-      evidence:`${source.name} → ${query}`
+      evidence:`${source.name} → ${query}`,
+      extractionMethod: extractionMethodForSource(source, factor)
     });
     logEvent(`${factor.title} :: ${source.id} probing`, 'SUCCESS', row.rowId, factor.key);
     try {
       const search = await withTimeout(multiSearch(query), 11000, `${factor.key} search timeout`);
       const results = search.results || [];
       const blob = combinedBlob(results);
+      if (sourceBlobFailsIntegrity(blob, row)) {
+        logParts.push(`[${nowStamp()}] ${factor.probeLabel}: ${source.id} GARBAGE DATA`);
+        update({
+          status:'loading',
+          phase:`PROBING... ${factor.sources[i+1]?.id || 'FALLBACK'}`,
+          statusLabel:`${source.id} GARBAGE DATA`,
+          probeLog: logParts.join(' | '),
+          evidence:'Data Integrity Lock rejected the source blob.'
+        });
+        continue;
+      }
       const parsed = parseFactorResult(factor.parse, blob, row);
+      const numericCandidate = factor.parse === 'number'
+        ? Number(extractNumberForProp(String(parsed), row) ?? parsed)
+        : (factor.key === 'rotationUsage' ? deriveUsagePulseFromText(blob) : null);
+      const careerBase = Number(cards.careerBaseline?.numericValue);
+      if (['recentForm','stabilityWindow','extendedForm'].includes(factor.key) && Number.isFinite(numericCandidate) && Number.isFinite(careerBase) && careerBase > 0 && numericCandidate > (careerBase * 3)) {
+        logParts.push(`[${nowStamp()}] ${factor.probeLabel}: ${source.id} GARBAGE DATA >3x CAREER`);
+        update({
+          status:'loading',
+          phase:`PROBING... ${factor.sources[i+1]?.id || 'FALLBACK'}`,
+          statusLabel:`${source.id} GARBAGE DATA`,
+          probeLog: logParts.join(' | '),
+          evidence:`Reality Check rejected ${numericCandidate} vs career ${careerBase}.`
+        });
+        continue;
+      }
       if (parsed !== null && parsed !== undefined && String(parsed).trim() !== '') {
         const safe = SanitizeResult(parsed, row.propFamily, blob);
-        const numericValue = factor.parse === 'number'
-          ? Number(extractNumberForProp(String(parsed), row) ?? parsed)
-          : (factor.key === 'rotationUsage' ? deriveUsagePulseFromText(blob) : null);
         const probeLine = `[${nowStamp()}] ${factor.probeLabel}: ${source.id} Success: ${safe.value}`;
         logParts.push(probeLine);
         update({
@@ -1182,12 +1262,13 @@ async function runFactor(row, factor, cards, runToken) {
           parsedResult:String(safe.value),
           evidence:safe.evidence.slice(0, 320),
           extractionProof:blob.slice(0, 320),
+          extractionMethod: extractionMethodForSource(source, factor),
           sourceWinner:`${source.id} • ${source.name} • ${search.provider}`,
           sourcesLabel: sourceLabelFromSources(factor.sources, `${source.id}/${search.provider}`),
           probeLog: logParts.join(' | '),
           confidence: computeCardConfidence('ready', i, false),
           derived:false,
-          numericValue: Number.isFinite(numericValue) ? numericValue : null
+          numericValue: Number.isFinite(numericCandidate) ? numericCandidate : null
         });
         card.scoreDelta = computeScoreDelta(card, row, cards);
         runtimeMiningCache[cacheKeyForRow(row)] = { status:'loading', cards };
@@ -1225,16 +1306,17 @@ async function runFactor(row, factor, cards, runToken) {
   const numericValue = factor.parse === 'number'
     ? Number(extractNumberForProp(String(fallback), row) ?? fallback)
     : (factor.key === 'rotationUsage' ? deriveUsagePulseFromText(row.rawText || '') : null);
-  logParts.push(`[${nowStamp()}] ${factor.probeLabel}: FALLBACK [DERIVED]`);
+  logParts.push(`[${nowStamp()}] ${factor.probeLabel}: FALLBACK [DERIVED NEUTRAL]`);
   update({
     status:'ready',
     phase:'DERIVED LOCK',
-    statusLabel:'[DERIVED] FALLBACK',
-    parsedResult:`[DERIVED] ${safe.value}`,
+    statusLabel:'[DERIVED NEUTRAL]',
+    parsedResult:String(safe.value),
     evidence:safe.evidence || 'Derived from internal rules.',
     extractionProof:`Derived via ${factor.fallback}`,
-    sourceWinner:'[DERIVED]',
-    sourcesLabel: sourceLabelFromSources(factor.sources, '[DERIVED]'),
+    extractionMethod:'Heuristic Fallback',
+    sourceWinner:'[DERIVED NEUTRAL]',
+    sourcesLabel: sourceLabelFromSources(factor.sources, '[DERIVED NEUTRAL]'),
     probeLog: logParts.join(' | '),
     confidence: computeCardConfidence('ready', 3, true),
     derived:true,
@@ -1289,7 +1371,14 @@ async function ensureNbaMining(row) {
   render();
   showOverlay('Run Analysis engaged', 'Building 14 factor cards...');
   try {
-    for (const factor of FACTORS) {
+    const factorOrder = [
+      'seasonBaseline','careerBaseline','rotationUsage',
+      'recentForm','stabilityWindow','extendedForm',
+      'headToHead','matchupPhysicality','clutchPerformance','individualDefender',
+      'altitudeTravel','motivation','officialRef','survivabilityShield'
+    ];
+    const orderedFactors = factorOrder.map(key => FACTORS.find(f => f.key === key)).filter(Boolean);
+    for (const factor of orderedFactors) {
       if (runToken !== activeRunToken) return;
       document.getElementById('overlayBody').textContent = `Probing ${factor.title}`;
       await runFactor(row, factor, cards, runToken);
@@ -1398,11 +1487,13 @@ function renderAnalysis() {
   const shieldPanel = document.getElementById('shieldPanel');
   const kpis = document.getElementById('analysisKpis');
 
+  const alphaTop = row ? (buildMiningStatus(row).find(c => c.key === 'survivabilityShield')?.statusLabel || 'PENDING') : 'PENDING';
   summary.innerHTML = `
     <div class="pill">Day: ${escapeHtml(state.dayScope)}</div>
     <div class="pill">Rows in pool: ${state.cleanedRows.length}</div>
     <div class="pill">Selected row: ${row ? escapeHtml(row.entity) : 'None'}</div>
     <div class="pill">League: ${row ? escapeHtml(findLeague(row.leagueId)?.label || row.leagueId) : 'None'}</div>
+    <div class="pill">Alpha Shield: ${escapeHtml(alphaTop)}</div>
   `;
   if (!row) {
     hint.textContent = 'Ingest one row, then run analysis.';
