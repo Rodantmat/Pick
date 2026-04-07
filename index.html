@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PickCalc Prompt 1 Intake v8.5</title>
+  <title>PickCalc v8.6 (Unlocked Execution)</title>
   <style>
 :root {
   color-scheme: dark;
@@ -224,41 +224,32 @@ thead th { background:#121d35; position:sticky; top:0; }
 .source-accuracy.low{background:rgba(185,74,90,.16);color:#ffd3d9}
 
 
-.processing-overlay{
-  position:fixed;
-  inset:0;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  background:rgba(8,16,31,.72);
-  z-index:9999;
-}
-.processing-overlay .overlay-box{
-  border:1px solid var(--line);
-  background:#10182c;
-  border-radius:16px;
-  padding:14px 18px;
-  font-weight:700;
-}
+.processing-overlay{display:none !important}
 .probing-label{
   display:inline-block;
-  padding:4px 8px;
+  margin-left:8px;
+  padding:3px 8px;
   border-radius:999px;
   border:1px solid var(--line);
   background:#111b31;
   color:#ffd36e;
   font-size:11px;
   font-weight:700;
+  animation: probingPulse 1.2s ease-in-out infinite;
+}
+@keyframes probingPulse {
+  0% { opacity:.55; transform:scale(1); }
+  50% { opacity:1; transform:scale(1.03); }
+  100% { opacity:.55; transform:scale(1); }
 }
 
 </style>
 </head>
 <body>
-  <div id="processing-overlay" class="processing-overlay"><div class="overlay-box">Mining...</div></div>
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>PickCalc Prompt 1 Intake <span class="version-pill">v8.5</span></h1>
+        <h1>PickCalc v8.6 <span class="version-pill">Unlocked Execution</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -304,8 +295,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v8.5</h1>
-          <p id="analysisVersion">Version: v8.5 • Build: Stealth + Sync</p>
+          <h1 id="analysisTitle">Run Analysis v8.6</h1>
+          <p id="analysisVersion">Version: v8.6 • Build: Unlocked Execution</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -378,8 +369,8 @@ const LEAGUES = [
 ];
 
 const STORAGE_KEY = 'pickcalc-prompt1-v5-7-3';
-const APP_BUILD_VERSION = '8.5';
-const APP_BUILD_LABEL = 'Stealth + Sync';
+const APP_BUILD_VERSION = '8.6';
+const APP_BUILD_LABEL = 'Unlocked Execution';
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -3597,81 +3588,100 @@ bindActions();
 </script>
 
 <script>
-const SYSTEM_VERSION = "8.5";
-const BUILD_NAME = "Stealth + Sync";
+const SYSTEM_VERSION = "8.6";
+const BUILD_NAME = "Unlocked Execution";
 
 (function(){
-  function syncV85Header() {
-    try {
-      document.title = `PickCalc Prompt 1 Intake v${SYSTEM_VERSION}`;
+  function syncV86Header(){
+    try{
+      document.title = `PickCalc v${SYSTEM_VERSION} (${BUILD_NAME})`;
       const h1 = document.querySelector('.hero h1');
-      if (h1) h1.innerHTML = `PickCalc Prompt 1 Intake <span class="version-pill">v${SYSTEM_VERSION}</span>`;
-      const title = document.getElementById('analysisTitle');
-      if (title) title.textContent = `Run Analysis v${SYSTEM_VERSION}`;
-      const version = document.getElementById('analysisVersion');
-      if (version) version.textContent = `Version: v${SYSTEM_VERSION} • Build: ${BUILD_NAME}`;
-    } catch (e) {}
+      if (h1) h1.innerHTML = `PickCalc v${SYSTEM_VERSION} <span class="version-pill">${BUILD_NAME}</span>`;
+      const t = document.getElementById('analysisTitle');
+      if (t) t.textContent = `Run Analysis v${SYSTEM_VERSION}`;
+      const v = document.getElementById('analysisVersion');
+      if (v) v.textContent = `Version: v${SYSTEM_VERSION} • Build: ${BUILD_NAME}`;
+    } catch(e) {}
   }
-
-  window.showProcessingOverlay = function showProcessingOverlay(label='Mining...'){
-    const el = document.getElementById('processing-overlay');
-    if (!el) return;
-    const box = el.querySelector('.overlay-box');
-    if (box) box.textContent = label;
-    el.style.display = 'flex';
-  };
-
-  window.hideProcessingOverlay = function hideProcessingOverlay(){
-    const el = document.getElementById('processing-overlay');
-    if (!el) return;
-    el.style.display = 'none';
-  };
 
   window.recoverRefFromRawParse = function recoverRefFromRawParse(rawText=''){
     const raw = String(rawText || '');
-    const refereeNames = ['Scott Foster','Tony Brothers','Zach Zarba','James Capers','Marc Davis','Bill Kennedy'];
+    const names = ['Scott Foster','Tony Brothers','Zach Zarba','James Capers','Marc Davis','Bill Kennedy'];
     const explicit = raw.match(/Ref(?:eree)?\s*:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i);
-    if (explicit && refereeNames.includes(explicit[1].trim())) return explicit[1].trim();
-    for (const name of refereeNames) {
-      if (raw.toLowerCase().includes(name.toLowerCase())) return name;
-    }
+    if (explicit && names.includes(explicit[1].trim())) return explicit[1].trim();
+    for (const n of names) if (raw.toLowerCase().includes(n.toLowerCase())) return n;
     return '';
   };
 
-  const REF_DB = {
-    'Scott Foster': { over: 52, under: 48, fouls: 39.8 },
-    'Tony Brothers': { over: 57, under: 43, fouls: 41.1 },
-    'Zach Zarba': { over: 54, under: 46, fouls: 38.6 },
-    'James Capers': { over: 56, under: 44, fouls: 40.2 },
-    'Marc Davis': { over: 51, under: 49, fouls: 38.1 },
-    'Bill Kennedy': { over: 53, under: 47, fouls: 37.9 }
-  };
-
-  function lookupRefRecord(name=''){
-    return REF_DB[String(name || '').trim()] || null;
-  }
-
   window.SanitizeResult = function SanitizeResult(parsedResult='', propFamily='', evidence=''){
     const prop = String(propFamily || '').toUpperCase();
-    const parsed = String(parsedResult || '');
-    const blob = `${parsed} ${String(evidence || '')}`;
-
-    if (prop === '3PTM' || prop === '3PT MADE' || prop === '3PTM ') {
-      const direct =
-        blob.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b/i) ||
-        blob.match(/\b(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b[^0-9]{0,10}(\d+(?:\.\d+)?)/i);
-      return direct ? String(direct[1]) : '';
+    const blob = `${parsedResult || ''} ${evidence || ''}`;
+    if (prop === '3PTM' || /(3PTM|3PM|THREES|3-POINTERS)/i.test(prop)) {
+      const m = blob.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b/i) ||
+                blob.match(/\b(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b[^0-9]{0,10}(\d+(?:\.\d+)?)/i);
+      return m ? String(m[1]) : '';
     }
-
-    const nums = parsed.match(/-?\d+(?:\.\d+)?/g);
-    if (nums && nums.length) return nums.join(' ');
-    return parsed.replace(/[^\w\s.%:+/-]/g,' ').replace(/\s+/g,' ').trim();
+    const nums = String(parsedResult || '').match(/-?\d+(?:\.\d+)?/g);
+    return nums ? nums.join(' ') : String(parsedResult || '').replace(/[^\w\s.%:+/-]/g,' ').replace(/\s+/g,' ').trim();
   };
 
   function is3PTMRow(row){
-    const t = `${row?.propFamily || ''} ${row?.lineText || ''} ${row?.rawText || ''}`;
-    return /(3PTM|3PM|Threes|3-Pointers)/i.test(t);
+    const s = `${row?.propFamily || ''} ${row?.lineText || ''} ${row?.rawText || ''}`;
+    return /(3PTM|3PM|Threes|3-Pointers)/i.test(s);
   }
+
+  const oldParseBlock = parseBlock;
+  parseBlock = function(block, selectedIds){
+    const row = oldParseBlock(block, selectedIds);
+    if (!row) return row;
+    const raw = String(block || '');
+    const m = raw.match(/(3PTM|3PM|Threes|3-Pointers)\s*(\d+(?:\.\d+)?)/i);
+    if (m) {
+      row.propFamily = '3PTM';
+      row.propKey = '3ptm';
+      row.line = m[2];
+      row.lineText = `3PTM ${m[2]}`;
+      row.rowId = `${row.leagueId}|${canon(row.entity)}|${canon(row.team)}|3ptm|${row.line}|${row.type}`;
+    }
+    return row;
+  };
+
+  const oldParseDesktopLine = parseDesktopLine;
+  parseDesktopLine = function(line, selectedIds){
+    const row = oldParseDesktopLine(line, selectedIds);
+    if (!row) return row;
+    const raw = String(line || '');
+    const m = raw.match(/(3PTM|3PM|Threes|3-Pointers)\s*(\d+(?:\.\d+)?)/i);
+    if (m) {
+      row.propFamily = '3PTM';
+      row.propKey = '3ptm';
+      row.line = m[2];
+      row.lineText = `3PTM ${m[2]}`;
+      row.rowId = `${row.leagueId}|${canon(row.entity)}|${canon(row.team)}|3ptm|${row.line}|${row.type}`;
+    }
+    return row;
+  };
+
+  const oldRenderPromptAwareCard = renderPromptAwareCard;
+  renderPromptAwareCard = function(card){
+    let html = oldRenderPromptAwareCard(card);
+    if (card && card.status === 'mining') {
+      html = html.replace('</h3>', ' <span class="probing-label">PROBING...</span></h3>');
+      html = html.replace(/(✅|⚠️|❌|🟡)\s[^<]*/, '🟡 PROBING...');
+    }
+    return html;
+  };
+
+  const oldBuildMiningStatus = buildMiningStatus;
+  buildMiningStatus = function(row){
+    const cards = oldBuildMiningStatus(row);
+    return (cards || []).map(c => {
+      if (c && (c.status === 'loading' || c.status === 'waiting')) {
+        return { ...c, status:'mining', statusLabel:'PROBING...' };
+      }
+      return c;
+    });
+  };
 
   function cardTemplate(f, row){
     return {
@@ -3690,51 +3700,28 @@ const BUILD_NAME = "Stealth + Sync";
   }
 
   function updateCacheCard(key, factorKey, card){
-    const set = runtimeMiningCache[key];
-    if (!set || !Array.isArray(set.cards)) return;
-    const idx = set.cards.findIndex(c => c.key === factorKey);
-    if (idx >= 0) set.cards[idx] = { ...set.cards[idx], ...card };
+    const bucket = runtimeMiningCache[key];
+    if (!bucket || !Array.isArray(bucket.cards)) return;
+    const idx = bucket.cards.findIndex(c => c.key === factorKey);
+    if (idx >= 0) bucket.cards[idx] = { ...bucket.cards[idx], ...card };
   }
 
-  function renderProbingCard(card){
-    if (card && card.status === 'mining') {
-      return { ...card, statusLabel:'PROBING...' };
-    }
-    return card;
-  }
-
-  const originalBuildMiningStatus = buildMiningStatus;
-  buildMiningStatus = function(row){
-    const cards = originalBuildMiningStatus(row);
-    return (cards || []).map(renderProbingCard);
+  const REF_DB = {
+    'Scott Foster': { over: 52, under: 48, fouls: 39.8 },
+    'Tony Brothers': { over: 57, under: 43, fouls: 41.1 },
+    'Zach Zarba': { over: 54, under: 46, fouls: 38.6 },
+    'James Capers': { over: 56, under: 44, fouls: 40.2 },
+    'Marc Davis': { over: 51, under: 49, fouls: 38.1 },
+    'Bill Kennedy': { over: 53, under: 47, fouls: 37.9 }
   };
 
-  const originalRenderPromptAwareCard = renderPromptAwareCard;
-  renderPromptAwareCard = function(card){
-    let html = originalRenderPromptAwareCard(card);
-    if (card && card.status === 'mining') {
-      html = html.replace('</h3>', ' <span class="probing-label">PROBING...</span></h3>');
-    }
-    return html;
-  };
+  function lookupRef(name=''){ return REF_DB[String(name || '').trim()] || null; }
 
-  async function probeRecent(row, keyName, q, sourceLabel){
-    return runSearchFactor(row, keyName, q, (blob) => {
-      if (is3PTMRow(row)) {
-        const direct =
-          blob.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b/i) ||
-          blob.match(/\b(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b[^0-9]{0,10}(\d+(?:\.\d+)?)/i);
-        if (direct) return Number(direct[1]);
-      }
-      return extractStealthRecentForm(blob, row.propFamily) ?? bestSearchValue(blob, row);
-    });
-  }
-
-  async function probeFactor(row, f, resultMap){
+  async function probeFactorV86(row, f, resultMap){
     const propIs3 = is3PTMRow(row);
 
     if (f.key === 'validation') {
-      resultMap[f.key] = {
+      return {
         ...resultMap[f.key],
         status:'ready',
         statusLabel:'Parsed from ingested row',
@@ -3742,32 +3729,38 @@ const BUILD_NAME = "Stealth + Sync";
         parsedResult:`${row.entity} • ${row.propFamily} ${row.line}`,
         evidence: row.rawText || row.lineText || '',
         rawMiningResult: row.rawText || row.lineText || '',
-        extractionProof: row.rawText || row.lineText || ''
+        extractionProof: row.rawText || row.lineText || '',
+        derived:false,
+        sourceAccuracy:'high'
       };
-      return resultMap[f.key];
     }
 
     if (f.key === 'last5') {
       const q = propIs3
         ? `${row.entity} 3-pointers made last 10 games StatMuse`
         : `${row.entity} Last 10 Game Logs StatMuse 2026 ${row.propFamily} NBA`;
-      const res = await probeRecent(row, 'last5', q, 'Stealth Connector');
+      const res = await runSearchFactor(row, 'last5', q, (blob) => {
+        if (propIs3) {
+          const m = blob.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b/i) ||
+                    blob.match(/\b(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b[^0-9]{0,10}(\d+(?:\.\d+)?)/i);
+          if (m) return Number(m[1]);
+        }
+        return extractStealthRecentForm(blob, row.propFamily) ?? bestSearchValue(blob, row);
+      });
       if (res.ok) {
-        const value = res.parsed;
+        const val = Number(res.parsed);
         return {
           ...resultMap[f.key],
           status:'ready',
           statusLabel:'Stealth game log parse',
           confidence:72,
-          delta: scoreDeltaFromContext('last5', Number(value), row, {}),
-          parsedResult: String(value),
-          evidence: res.blob.slice(0, 260),
-          rawMiningResult: String(value),
-          extractionProof: propIs3
-            ? 'Query: [Player] 3-pointers made last 10 games StatMuse. 3PTM kept isolated from Points.'
-            : 'Query: [Player] Last 10 Game Logs StatMuse 2026. Manual log parsing applied.',
+          delta: scoreDeltaFromContext('last5', val, row, {}),
+          parsedResult:String(res.parsed),
+          evidence: res.blob.slice(0,260),
+          rawMiningResult:String(res.parsed),
+          extractionProof: propIs3 ? 'Query: [Player] 3-pointers made last 10 games StatMuse. 3PTM isolated from Points.' : 'Query: [Player] Last 10 Game Logs StatMuse 2026.',
           sourcesLabel:`${(f.sources || []).join(' • ')} • winner: ${res.provider || 'search'}`,
-          projectionValue: Number(value),
+          projectionValue: val,
           derived:false,
           sourceAccuracy:'high'
         };
@@ -3793,7 +3786,14 @@ const BUILD_NAME = "Stealth + Sync";
       const q = propIs3
         ? `${row.entity} 3-pointers made last 10 games StatMuse`
         : `${row.entity} Last 10 Game Logs StatMuse 2026 ${row.propFamily} NBA`;
-      const res = await probeRecent(row, 'last10', q, 'Stealth Connector');
+      const res = await runSearchFactor(row, 'last10', q, (blob) => {
+        if (propIs3) {
+          const m = blob.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b/i) ||
+                    blob.match(/\b(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b[^0-9]{0,10}(\d+(?:\.\d+)?)/i);
+          if (m) return Number(m[1]);
+        }
+        return extractStealthRecentForm(blob, row.propFamily) ?? bestSearchValue(blob, row);
+      });
       if (res.ok) {
         return {
           ...resultMap[f.key],
@@ -3801,12 +3801,12 @@ const BUILD_NAME = "Stealth + Sync";
           statusLabel:'Stealth game log parse',
           confidence:68,
           delta: scoreDeltaFromContext('last10', Number(res.parsed), row, {}),
-          parsedResult: String(res.parsed),
-          evidence: res.blob.slice(0, 260),
-          rawMiningResult: String(res.parsed),
+          parsedResult:String(res.parsed),
+          evidence: res.blob.slice(0,260),
+          rawMiningResult:String(res.parsed),
           extractionProof:'Stealth last-10 recovery from game log query.',
           sourcesLabel:`${(f.sources || []).join(' • ')} • winner: ${res.provider || 'search'}`,
-          projectionValue: Number(res.parsed),
+          projectionValue:Number(res.parsed),
           derived:false,
           sourceAccuracy:'high'
         };
@@ -3821,26 +3821,34 @@ const BUILD_NAME = "Stealth + Sync";
         evidence:'',
         rawMiningResult:'[UNKNOWN]',
         extractionProof:'No evidence returned.',
+        derived:false,
         sourceAccuracy:'low'
       };
     }
 
     if (f.key === 'season') {
       const q = `${row.entity} season ${propIs3 ? '3-pointers made' : row.propFamily} StatMuse NBA`;
-      const res = await runSearchFactor(row, 'season', q, (blob) => extractStealthRecentForm(blob, row.propFamily) ?? bestSearchValue(blob, row));
+      const res = await runSearchFactor(row, 'season', q, (blob) => {
+        if (propIs3) {
+          const m = blob.match(/(\d+(?:\.\d+)?)\s*(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b/i) ||
+                    blob.match(/\b(?:3ptm|3pm|threes|3-pointers made|three-pointers made|made threes)\b[^0-9]{0,10}(\d+(?:\.\d+)?)/i);
+          if (m) return Number(m[1]);
+        }
+        return extractStealthRecentForm(blob, row.propFamily) ?? bestSearchValue(blob, row);
+      });
       if (res.ok) {
         return {
           ...resultMap[f.key],
           status:'ready',
           statusLabel:'Season baseline recovered',
           confidence:74,
-          delta: 0,
-          parsedResult: String(res.parsed),
+          delta:0,
+          parsedResult:String(res.parsed),
           evidence: res.blob.slice(0,260),
-          rawMiningResult: String(res.parsed),
+          rawMiningResult:String(res.parsed),
           extractionProof:'Stealth season baseline recovery.',
           sourcesLabel:`${(f.sources || []).join(' • ')} • winner: ${res.provider || 'search'}`,
-          projectionValue: Number(res.parsed),
+          projectionValue:Number(res.parsed),
           derived:false,
           sourceAccuracy:'high'
         };
@@ -3863,19 +3871,18 @@ const BUILD_NAME = "Stealth + Sync";
     }
 
     if (f.key === 'rotation') {
-      const blob = row.rawText || '';
-      const derived = deriveRotationStatusV7(blob);
+      const rot = deriveRotationStatusV7(row.rawText || '');
       return {
         ...resultMap[f.key],
-        status: derived === 'UNKNOWN' ? 'warning' : 'ready',
-        statusLabel: derived === 'UNKNOWN' ? 'No clean source' : 'Derived from last 3 minutes',
-        confidence: derived === 'UNKNOWN' ? 30 : 56,
-        delta: scoreDeltaFromContext('rotation', derived === 'LOCK_STARTER' ? 'Starter' : 'Bench', row, {}),
-        parsedResult: derived,
-        evidence: blob,
-        rawMiningResult: derived,
+        status: rot === 'UNKNOWN' ? 'warning' : 'ready',
+        statusLabel: rot === 'UNKNOWN' ? 'No clean source' : 'Derived from last 3 minutes',
+        confidence: rot === 'UNKNOWN' ? 30 : 56,
+        delta: scoreDeltaFromContext('rotation', rot === 'LOCK_STARTER' ? 'Starter' : 'Bench', row, {}),
+        parsedResult: rot,
+        evidence: row.rawText || '',
+        rawMiningResult: rot,
         extractionProof:'If MP > 30 in 2 of last 3 games => LOCK_STARTER.',
-        projectionValue: derived === 'LOCK_STARTER' ? 1 : 0,
+        projectionValue: rot === 'LOCK_STARTER' ? 1 : 0,
         derived:true,
         sourceAccuracy:'mid'
       };
@@ -3923,11 +3930,11 @@ const BUILD_NAME = "Stealth + Sync";
         status:'ready',
         statusLabel:'Standard pace fallback',
         confidence:58,
-        delta: scoreDeltaFromContext('pace', pace, row, {}),
-        parsedResult: String(pace.toFixed(1)),
+        delta:0.0,
+        parsedResult:String(pace.toFixed(1)),
         evidence:`Fallback pace for ${row.team || 'team'} = ${pace.toFixed(1)}`,
         rawMiningResult:String(pace.toFixed(1)),
-        extractionProof:'Standard pace fallback applied.',
+        extractionProof:'Derived/neutral states carry 0.0 impact.',
         projectionValue: pace,
         derived:true,
         sourceAccuracy:'mid'
@@ -3941,7 +3948,7 @@ const BUILD_NAME = "Stealth + Sync";
         status:'ready',
         statusLabel:'DRTG permissiveness fallback',
         confidence:57,
-        delta: 0.0,
+        delta:0.0,
         parsedResult:`${def.label} • DRTG ${def.drtg}`,
         evidence:`Opponent ${row.opponent || ''} DRTG ${def.drtg}`,
         rawMiningResult:`DRTG ${def.drtg}`,
@@ -3970,8 +3977,7 @@ const BUILD_NAME = "Stealth + Sync";
     }
 
     if (f.key === 'projection') {
-      const current = resultMap;
-      const projection = calculateInternalProjection(row, current);
+      const projection = calculateInternalProjection(row, resultMap);
       return {
         ...resultMap[f.key],
         status: projection != null ? 'ready' : 'warning',
@@ -4009,7 +4015,7 @@ const BUILD_NAME = "Stealth + Sync";
 
     if (f.key === 'refs') {
       const refName = recoverRefFromRawParse(row.rawText || '');
-      const refDb = lookupRefRecord(refName);
+      const refDb = lookupRef(refName);
       if (refDb) {
         return {
           ...resultMap[f.key],
@@ -4125,63 +4131,50 @@ const BUILD_NAME = "Stealth + Sync";
     };
   }
 
-  ensureNbaMining = async function(row){
-    if (!row || row.leagueId !== 'nba') return;
-    const key = cacheKeyForRow(row);
-    const existing = runtimeMiningCache[key];
-    if (existing && (existing.status === 'done' || existing.status === 'loading')) return;
+  const oldRunBtn = document.getElementById('runBtn');
+  if (oldRunBtn) {
+    oldRunBtn.onclick = () => {
+      state.ran = true;
+      if (!state.activeRowId && state.cleanedRows[0]) state.activeRowId = state.cleanedRows[0].rowId;
+      saveState();
+      window.location.hash = '#analysis';
+      render();
+      const row = activeRow();
+      if (row && row.leagueId === 'nba') {
+        ensureNbaMining(row);
+      }
+    };
+  }
 
-    showProcessingOverlay('Mining...');
-    runtimeMiningCache[key] = { status:'loading', cards: NBA_MINING_FACTORS.map(f => cardTemplate(f, row)) };
-    render();
+  const oldIngestBtn = document.getElementById('ingestBtn');
+  if (oldIngestBtn) {
+    oldIngestBtn.onclick = () => {
+      const text = document.getElementById('boardInput').value;
+      const res = ingestText(text);
+      const msg = document.getElementById('ingestMessage');
+      if (msg) {
+        msg.textContent = res.added > 0 ? `✅ ${res.message}` : res.message;
+        msg.classList.toggle('ok', res.added > 0);
+      }
+      if (res.added > 0) document.getElementById('boardInput').value = '';
+      render();
+    };
+  }
 
-    const resultMap = {};
-    for (const f of NBA_MINING_FACTORS) {
-      const promise = Promise.resolve(probeFactor(row, f, resultMap));
-      await promise.then((card) => {
-        const cleanCard = { ...card };
-        cleanCard.parsedResult = SanitizeResult(cleanCard.parsedResult || '', row.propFamily || '', cleanCard.evidence || '');
-        if (cleanCard.derived && /NEUTRAL/i.test(String(cleanCard.parsedResult || '') + ' ' + String(cleanCard.statusLabel || ''))) cleanCard.delta = 0.0;
-        resultMap[f.key] = cleanCard;
-        updateCacheCard(key, f.key, cleanCard);
-        render();
-      }).finally(() => {
-        render();
-      });
-    }
-
-    runtimeMiningCache[key] = { status:'done', cards: NBA_MINING_FACTORS.map(f => resultMap[f.key] || cardTemplate(f, row)) };
-    saveState();
-    hideProcessingOverlay();
-    render();
-  };
-
-  const oldBindActionsV85 = bindActions;
-  bindActions = function(){
-    oldBindActionsV85();
-    const ingestBtn = document.getElementById('ingestBtn');
-    if (ingestBtn && !ingestBtn.dataset.v85Bound) {
-      ingestBtn.dataset.v85Bound = '1';
-      ingestBtn.addEventListener('click', () => {
-        showProcessingOverlay('Mining...');
-      }, true);
-    }
-  };
-
-  const oldRenderAnalysisV85 = renderAnalysis;
+  const oldRenderAnalysisFinal = renderAnalysis;
   renderAnalysis = function(){
-    oldRenderAnalysisV85();
+    oldRenderAnalysisFinal();
     syncV85Header();
     const hint = document.getElementById('analysisHint');
     const row = activeRow();
     const cards = row ? buildMiningStatus(row) : [];
     const pending = cards.some(c => c && c.status === 'mining');
     if (hint && pending) hint.textContent = 'Mining...';
-    if (!pending) hideProcessingOverlay();
   };
 
-  function loadStephenDemoV85(){
+  function loadStephenDemoV86(){
     try {
+      if ((state.cleanedRows || []).length) return;
       const row = {
         rowId:'nba|stephen curry|GSW|DAL|3PTM|4.5|REGULAR',
         sport:'NBA',
@@ -4197,18 +4190,15 @@ const BUILD_NAME = "Stealth + Sync";
         rawText:'⚪ Stephen Curry 3PTM 4.5 More • Stephen Curry 3-pointers made last 10 games StatMuse • 5 6 4 7 5 • Ref: Scott Foster • GSW vs DAL'
       };
       Global_Flush(row, 'POOL RESET: SUCCESS');
-      state.ran = true;
       saveState();
-      window.location.hash = '#analysis';
       render();
-      logEvent('SUCCESS: Stephen Curry v8.5 demo row loaded.', 'SUCCESS', row.rowId, 'system');
-    } catch (e) {}
+      logEvent('SUCCESS: Stephen Curry v8.6 demo row loaded. Click Run to start mining.', 'SUCCESS', row.rowId, 'system');
+    } catch(e) {}
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     syncV85Header();
-    try { bindActions(); } catch (e) {}
-    setTimeout(loadStephenDemoV85, 0);
+    setTimeout(loadStephenDemoV86, 0);
   });
 })();
 </script>
