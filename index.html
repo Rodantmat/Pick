@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PickCalc Prompt 1 Intake v6.3.0</title>
+  <title>PickCalc Prompt 1 Intake v7.0</title>
   <style>
 :root {
   color-scheme: dark;
@@ -152,13 +152,25 @@ thead th { background:#121d35; position:sticky; top:0; }
 .proof-snippet{display:block;background:#0b1326;border:1px solid var(--line);border-radius:10px;padding:8px;white-space:pre-wrap}
 .stage-label{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-size:11px;color:var(--accent-2)}
 
+
+.derived-badge,.mined-badge,.parsed-badge,.shield-badge{
+  display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--line);
+  font-size:11px;font-weight:700;margin-left:8px;
+}
+.derived-badge{background:rgba(255,211,110,.12);color:#ffd36e}
+.mined-badge{background:rgba(36,87,59,.22);color:#baf2cb}
+.parsed-badge{background:rgba(110,168,254,.14);color:#8cc3ff}
+.shield-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.shield-cell{border:1px solid var(--line);background:#0f172a;border-radius:16px;padding:12px}
+.shield-cell strong{display:block;margin-bottom:6px;color:var(--muted);font-size:12px;text-transform:uppercase}
+
 </style>
 </head>
 <body>
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>Prompt 1 Intake <span class="version-pill">v6.3.0</span></h1>
+        <h1>Prompt 1 Intake <span class="version-pill">v7.0</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -204,8 +216,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v6.3.0</h1>
-          <p id="analysisVersion">Version: v6.3.0</p>
+          <h1 id="analysisTitle">Run Analysis v7.0</h1>
+          <p id="analysisVersion">Version: v7.0</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -306,7 +318,7 @@ const NBA_MINING_FACTORS = [
   { key:'last10', title:'Stability Window', tier:'2B', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 10-game prop average.' },
   { key:'season', title:'Season Baseline', tier:'2B', live:true, sources:['NBA.com search','ESPN search','Basketball-Reference search'], note:'Season prop average.' },
   { key:'rotation', title:'Rotation Status', tier:'2B', live:true, sources:['RotoWire search','ESPN search'], note:'Starter vs bench confirmation.' },
-  { key:'usage3', title:'Usage Rate', tier:'2B', live:true, sources:['ESPN game log','StatMuse search'], note:'Approximate last-3 usage pulse.' },
+  { key:'usage3', title:'Usage Pulse', tier:'2B', live:true, sources:['ESPN game log','StatMuse search'], note:'Approximate last-3 usage pulse or v7.0 derived usage.' },
   { key:'teammateImpact', title:'Teammate Impact', tier:'2B', live:true, sources:['ESPN injury report','RotoWire lineup news'], note:'High-usage teammate out bump.' },
   { key:'teamPace', title:'Pace & Environment', tier:'2C', live:true, sources:['StatMuse search','NBAStuffer search'], note:'Team pace / possessions context.' },
   { key:'oppDefense', title:'Defensive Archetype', tier:'2C', live:true, sources:['StatMuse defense search','NBAStuffer search'], note:'Opponent rank versus prop family.' },
@@ -1687,7 +1699,7 @@ function buildAnalysisCopyText(row) {
   const matrix = buildMiningStatus(row);
   const lines = [
     'Run Analysis',
-    `Version: v6.3.0`,
+    `Version: v7.0`,
     `Day: ${state.dayScope}`,
     `Rows in pool: ${state.cleanedRows.length}`,
     `Selected row: ${row ? row.entity : 'None'}`,
@@ -2845,6 +2857,298 @@ function bindActions() {
 render();
 renderSystemConsole();
 bindActions();
+
+
+<script>
+(function(){
+  function v7NowLabel(){
+    try { return new Date().toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); } catch { return ''; }
+  }
+
+  function Global_Flush(newRows){
+    const rows = Array.isArray(newRows) ? newRows.filter(Boolean) : [];
+    state.cleanedRows = rows.slice(0, 1);
+    state.activeRowId = state.cleanedRows[0] ? state.cleanedRows[0].rowId : null;
+    state.ran = false;
+    Object.keys(runtimeMiningCache || {}).forEach(k => delete runtimeMiningCache[k]);
+    logEvent(`v7.0 GLOBAL_FLUSH applied • rows ${state.cleanedRows.length}`, 'SUCCESS', state.activeRowId || '', 'system');
+    saveState();
+  }
+
+  function parseMarketOddsFromRawText(raw){
+    const t = String(raw || '');
+    const nums = [...t.matchAll(/([+-]\d{3})/g)].map(m => Number(m[1]));
+    const direction = lineDirectionFromRow({ rawText:t, lineText:t });
+    let sharpDrag = 0;
+    let label = 'No prop juice parsed';
+    if (nums.length){
+      const heavyUnder = nums.find(n => n <= -135);
+      if (direction === 'UNDER' && heavyUnder != null){
+        sharpDrag = -5;
+        label = `Under juice ${heavyUnder}`;
+      } else {
+        label = nums.slice(0,2).join(' / ');
+      }
+    } else if (/less|more/i.test(t)) {
+      label = /less/i.test(t) ? 'Less/More detected' : 'Market side text detected';
+    }
+    return { label, sharpDrag, nums };
+  }
+
+  function deriveRotationStatusV7(logBlob){
+    const mins = [...String(logBlob || '').matchAll(/(\d+(?:\.\d+)?)\s*(?:minutes|min)\b/gi)].map(m => Number(m[1])).filter(Number.isFinite);
+    const top3 = mins.slice(0,3);
+    const over30 = top3.filter(n => n > 30).length;
+    return over30 >= 2 ? 'LOCK_STARTER' : (top3.length ? 'ROTATION_PLAYER' : 'UNKNOWN');
+  }
+
+  function deriveUsagePulseV7(logBlob, teamPoss=100){
+    const fga = [...String(logBlob || '').matchAll(/(\d+(?:\.\d+)?)\s*(?:fga|field goal attempts?)/gi)].map(m => Number(m[1]));
+    const fta = [...String(logBlob || '').matchAll(/(\d+(?:\.\d+)?)\s*(?:fta|free throw attempts?)/gi)].map(m => Number(m[1]));
+    const tov = [...String(logBlob || '').matchAll(/(\d+(?:\.\d+)?)\s*(?:tov|turnovers?)/gi)].map(m => Number(m[1]));
+    const mp = [...String(logBlob || '').matchAll(/(\d+(?:\.\d+)?)\s*(?:minutes|min)\b/gi)].map(m => Number(m[1]));
+    const use = [];
+    for (let i=0;i<Math.min(3, Math.max(fga.length, fta.length, tov.length, mp.length));i++){
+      const FGA = fga[i] || 0, FTA = fta[i] || 0, TOV = tov[i] || 0, MP = mp[i] || 30;
+      const val = 100 * (((FGA + (0.44 * FTA) + TOV) * (240 / 5)) / (Math.max(1, MP) * Math.max(1, teamPoss)));
+      if (Number.isFinite(val)) use.push(val);
+    }
+    if (!use.length) return null;
+    return Math.round((use.reduce((a,b)=>a+b,0)/use.length) * 10) / 10;
+  }
+
+  function deriveMinutesProjectionV7(logBlob, seasonAvgMinutes){
+    const mins = [...String(logBlob || '').matchAll(/(\d+(?:\.\d+)?)\s*(?:minutes|min)\b/gi)].map(m => Number(m[1])).filter(Number.isFinite);
+    const avg3 = mins.slice(0,3).length ? mins.slice(0,3).reduce((a,b)=>a+b,0)/mins.slice(0,3).length : null;
+    if (!Number.isFinite(avg3) && !Number.isFinite(seasonAvgMinutes)) return null;
+    const proj = ((Number.isFinite(avg3) ? avg3 : seasonAvgMinutes) + (Number.isFinite(seasonAvgMinutes) ? seasonAvgMinutes : avg3)) / 2;
+    return Math.round(proj * 10) / 10;
+  }
+
+  function applyV7Integrity(result, row){
+    const cards = Object.values(result);
+    const warningCount = cards.filter(c => c && c.status === 'warning').length;
+    const derivedCount = cards.filter(c => c && c.derived).length;
+    const pureProb = standaloneProbability(row, cards);
+    let finalScore = survivabilityScore(row, cards);
+    finalScore = Math.max(1, Math.min(99, finalScore - (warningCount * 10)));
+    let finalProb = pureProb;
+    let capApplied = false;
+    if (derivedCount > 3 && finalProb > 0.75) {
+      finalProb = 0.75;
+      capApplied = true;
+    }
+    const line = Number(row?.line || 0);
+    const seasonVal = Number(result.season?.projectionValue ?? result.season?.parsedResult ?? NaN);
+    const zScore = Number.isFinite(line) && Number.isFinite(seasonVal) ? Math.round((((line - seasonVal) / Math.max(1, seasonVal || 1)) * 100) * 10) / 10 : 0;
+    const baseEdge = baselineEdgeForRow(row, cards);
+    const minorDrag = ['refs','injury'].reduce((sum, key) => sum + Number(result[key]?.delta || 0), 0);
+    let finalStatus = 'SURVIVE';
+    if (!(baseEdge > 0.035) && String(row?.type || '').toUpperCase() === 'GOBLIN' && minorDrag < 0) finalStatus = 'QUALITY_CUT';
+    if (baseEdge > 0.035) finalStatus = 'SURVIVE';
+
+    result.survivability = {
+      ...result.survivability,
+      status: finalStatus === 'QUALITY_CUT' ? 'warning' : 'ready',
+      statusLabel:'v7.0 Integrity Shield',
+      parsedResult:`FINAL_HIT_PROBABILITY ${(finalProb*100).toFixed(1)}% • FINAL_QUALIFIED_SCORE ${finalScore.toFixed(1)}`,
+      evidence:`Rows in pool ${state.cleanedRows.length} • WARNING_COUNT ${warningCount} • DERIVED_COUNT ${derivedCount} • Z_SCORE ${zScore.toFixed(1)} • Alpha Shield ${baseEdge > 0.035 ? 'ACTIVE' : 'inactive'}`,
+      confidence: Math.max(40, 92 - warningCount * 8),
+      delta: 0,
+      projectionValue: finalScore,
+      rawMiningResult:`${pureProb.toFixed(4)} | ${finalProb.toFixed(4)} | ${finalScore.toFixed(2)}`,
+      extractionProof:`DATA INTEGRITY PENALTY ${warningCount*10}% • CONFIDENCE CAP ${capApplied ? 'YES' : 'NO'} • FINAL STATUS ${finalStatus}`,
+      warningCount,
+      derivedCount,
+      capApplied,
+      zScore,
+      finalProbability: finalProb,
+      finalQualifiedScore: finalScore,
+      baselineEdge: baseEdge
+    };
+    return result;
+  }
+
+  const __origIngest = ingestText;
+  ingestText = function(text){
+    const selectedIds = [...state.selectedLeagueIds];
+    if (!selectedIds.length) return { added:0, message:'Select at least one league first.' };
+    const found = [];
+    const lines = String(text || '').replace(/\r/g,'').split('\n');
+    for (const line of lines) {
+      if (line.includes('\t')) {
+        const row = parseDesktopLine(line, selectedIds);
+        if (row) found.push(row);
+      }
+    }
+    const nonTabText = lines.filter(x => !x.includes('\t')).join('\n');
+    const blocks = splitIntoBlocks(nonTabText);
+    for (const block of blocks) {
+      const row = parseBlock(block, selectedIds);
+      if (row) found.push(row);
+    }
+    const firstRow = found[0] || null;
+    if (!firstRow) return { added:0, message:'No recognizable rows found for the leagues you selected. Try one clean chunk from one board section, or check that the right league is selected.' };
+    firstRow.lineText = firstRow.lineText || `${firstRow.propFamily} ${firstRow.line}`;
+    if (state.cleanedRows.length > 1) {
+      logEvent('SYSTEM_WIPE triggered due to pool > 1 at ingestion start.', 'WARNING', state.activeRowId || '', 'system');
+    }
+    Global_Flush([firstRow]);
+    return { added:1, message:'Global flush complete. Ingested 1 clean row.' };
+  };
+
+  const __origRenderPromptAwareCard = renderPromptAwareCard;
+  renderPromptAwareCard = function(card){
+    const html = __origRenderPromptAwareCard(card);
+    const badge = card.derived ? '<span class="derived-badge">[DERIVED]</span>' : (card.parsedSource === 'raw' ? '<span class="parsed-badge">[PARSED]</span>' : '<span class="mined-badge">[MINED]</span>');
+    return html.replace('</h3>', ` ${badge}</h3>`);
+  };
+
+  function ensureShieldPanel(){
+    const analysis = document.getElementById('analysisScreen');
+    if (!analysis || document.getElementById('shieldPanel')) return;
+    const card = document.createElement('section');
+    card.className = 'card';
+    card.innerHTML = '<h2>Alpha Shield v7.0 Report</h2><div id="shieldPanel" class="shield-grid"></div>';
+    const consoleCard = document.getElementById('systemConsole')?.closest('.card');
+    if (consoleCard && consoleCard.parentNode) consoleCard.parentNode.insertBefore(card, consoleCard);
+    else analysis.appendChild(card);
+  }
+
+  function renderShieldPanelV7(){
+    ensureShieldPanel();
+    const wrap = document.getElementById('shieldPanel');
+    if (!wrap) return;
+    const row = activeRow();
+    const cards = buildMiningStatus(row);
+    const surv = cards.find(c => c.key === 'survivability') || {};
+    wrap.innerHTML = `
+      <div class="shield-cell"><strong>Run Analysis</strong>v7.0 • Rows in pool: ${escapeHtml(String(state.cleanedRows.length))}</div>
+      <div class="shield-cell"><strong>Data Integrity Penalty</strong>${escapeHtml(String((surv.warningCount || 0) * 10))}%</div>
+      <div class="shield-cell"><strong>Confidence Cap Applied</strong>${surv.capApplied ? 'YES' : 'NO'}</div>
+      <div class="shield-cell"><strong>Final Hit Probability</strong>${Number.isFinite(surv.finalProbability) ? (surv.finalProbability*100).toFixed(1) + '%' : '—'}</div>
+      <div class="shield-cell"><strong>Final Qualified Score</strong>${Number.isFinite(surv.finalQualifiedScore) ? surv.finalQualifiedScore.toFixed(1) : '—'}</div>
+      <div class="shield-cell"><strong>Z-Score</strong>${Number.isFinite(surv.zScore) ? surv.zScore.toFixed(1) : '—'}</div>
+    `;
+  }
+
+  const __origRenderAnalysis = renderAnalysis;
+  renderAnalysis = function(){
+    ensureShieldPanel();
+    __origRenderAnalysis();
+    const title = document.getElementById('analysisTitle');
+    const ver = document.getElementById('analysisVersion');
+    if (title) title.textContent = 'Run Analysis v7.0';
+    if (ver) ver.textContent = 'Version: v7.0';
+    const summary = document.getElementById('analysisSummary');
+    if (summary) {
+      const current = summary.innerHTML;
+      summary.innerHTML = `<div class="pill">RUN ANALYSIS v7.0</div><div class="pill">POOL STATUS: ${state.cleanedRows.length} ROW${state.cleanedRows.length===1?'':'S'} - FLUSH SUCCESSFUL</div>` + current;
+    }
+    renderShieldPanelV7();
+  };
+
+  const __origMineNbaRow = mineNbaRow;
+  mineNbaRow = async function(row){
+    let result = await __origMineNbaRow(row);
+    const teamLog = `${result.last5?.evidence || ''} • ${result.last10?.evidence || ''} • ${result.season?.evidence || ''} • ${row.rawText || ''}`;
+    const seasonVal = Number(result.season?.projectionValue ?? result.season?.parsedResult ?? NaN);
+    const seasonMP = Number(result.rotation?.extractionProof?.match(/(\d+(?:\.\d+)?)\s*(?:minutes|min)/i)?.[1] || NaN);
+
+    if (!result.usage3 || result.usage3.status !== 'ready') {
+      const derivedUsage = deriveUsagePulseV7(teamLog, 100);
+      if (Number.isFinite(derivedUsage)) {
+        result.usage3 = {
+          ...result.usage3,
+          status:'ready',
+          statusLabel:'Derived from last 3 box scores',
+          parsedResult:`${derivedUsage.toFixed(1)}%`,
+          evidence:'v7.0 usage pulse derivation applied.',
+          confidence:58,
+          delta: scoreDeltaFromContext('usage3', derivedUsage, row, {}),
+          projectionValue: derivedUsage,
+          rawMiningResult: derivedUsage,
+          extractionProof: 'Usage ≈ 100 * ((FGA + 0.44 * FTA + TOV) * (Team_MP / 5)) / (MP * Team_Possessions)',
+          derived:true
+        };
+        logEvent(`SUCCESS: Usage Pulse [DERIVED] ${derivedUsage.toFixed(1)}%`, 'SUCCESS', row.rowId, 'usage3');
+      }
+    }
+    if (!result.rotation || result.rotation.status !== 'ready' || /Unknown/i.test(String(result.rotation.parsedResult||''))) {
+      const rot = deriveRotationStatusV7(teamLog);
+      result.rotation = {
+        ...result.rotation,
+        status: rot === 'UNKNOWN' ? 'warning' : 'ready',
+        statusLabel: rot === 'UNKNOWN' ? 'Warning state' : 'Derived from last 3 minutes',
+        parsedResult: rot,
+        evidence:'v7.0 rotation derivation applied.',
+        confidence:56,
+        delta: scoreDeltaFromContext('rotation', rot === 'LOCK_STARTER' ? 'Starter' : 'Bench', row, {}),
+        projectionValue: rot === 'LOCK_STARTER' ? 1 : 0,
+        rawMiningResult: rot,
+        extractionProof:'If MP > 30 in 2 of last 3 games => LOCK_STARTER',
+        derived:true
+      };
+      logEvent(`SUCCESS: Rotation Status [DERIVED] ${rot}`, 'SUCCESS', row.rowId, 'rotation');
+    }
+
+    const mpProj = deriveMinutesProjectionV7(teamLog, seasonMP);
+    if ((!result.projection || result.projection.status !== 'ready' || /fallback|unknown|No clean/i.test(String(result.projection.parsedResult||''))) && Number.isFinite(mpProj) && Number.isFinite(seasonVal)) {
+      const perMin = seasonVal / Math.max(1, (seasonMP || mpProj));
+      const internalProj = Math.round((perMin * mpProj) * 100) / 100;
+      result.projection = {
+        ...result.projection,
+        status:'ready',
+        statusLabel:'Internal v7.0 projection',
+        parsedResult: internalProj.toFixed(2),
+        evidence:`Proj_Min ${(mpProj).toFixed(1)} • Season_Prop_Per_Min ${(perMin).toFixed(3)}`,
+        confidence:60,
+        delta: scoreDeltaFromContext('projection', internalProj, row, {}),
+        projectionValue: internalProj,
+        rawMiningResult: internalProj,
+        extractionProof:'Proj_Min = (L3_Avg_Min + Season_Avg_Min) / 2; Projection = Season_Prop_Per_Minute * Proj_Min',
+        derived:true
+      };
+    }
+
+    const oddsParsed = parseMarketOddsFromRawText(row.rawText || row.lineText || '');
+    if (oddsParsed.label && (!result.odds || result.odds.status !== 'ready' || /Unknown|unavailable/i.test(String(result.odds.parsedResult||'')))) {
+      result.odds = {
+        ...result.odds,
+        status:'ready',
+        statusLabel:'Parsed from raw intake text',
+        parsedResult: oddsParsed.label,
+        evidence: row.rawText || row.lineText || '',
+        confidence:64,
+        delta: (Number(result.odds?.delta || 0) + (oddsParsed.sharpDrag < 0 ? -1.5 : 0)),
+        projectionValue: oddsParsed.sharpDrag,
+        rawMiningResult: oddsParsed.label,
+        extractionProof:'v7.0 MARKET_ODDS parser scanned Less/More and juice tokens.',
+        parsedSource:'raw'
+      };
+      if (oddsParsed.sharpDrag < 0) logEvent('WARNING: Sharp_Money_Drag triggered from heavy Under juice.', 'WARNING', row.rowId, 'odds');
+    }
+
+    if (result.refs && result.refs.status === 'ready') {
+      const overMatch = String(result.refs.evidence || '').match(/over[^0-9]{0,20}(\d{2,3})%/i);
+      const overPct = overMatch ? Number(overMatch[1]) : null;
+      if (Number.isFinite(overPct) && overPct > 55) {
+        result.refs.delta = Number(result.refs.delta || 0) + 1.0;
+        result.refs.extractionProof = String(result.refs.extractionProof || result.refs.evidence || '') + ' • v7.0 Whistle_Bump +1.0';
+      }
+    }
+
+    result = applyV7Integrity(result, row);
+    return result;
+  };
+
+  document.addEventListener('DOMContentLoaded', function(){
+    ensureShieldPanel();
+    const h1 = document.querySelector('.version-pill');
+    if (h1) h1.textContent = 'v7.0';
+  });
+})();
+</script>
 
 </script>
 </body>
