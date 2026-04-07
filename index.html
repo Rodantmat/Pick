@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PickCalc Prompt 1 Intake v8.3</title>
+  <title>PickCalc Prompt 1 Intake v8.4 (Global Bridge)</title>
   <style>
 :root {
   color-scheme: dark;
@@ -237,13 +237,31 @@ thead th { background:#121d35; position:sticky; top:0; }
 .build-tag{display:inline-block;margin-left:8px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:#111b31;color:var(--accent-2);font-size:13px;font-weight:700;vertical-align:middle}
 
 .tag{display:inline-block;margin-left:10px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:#111b31;color:var(--accent-2);font-size:13px;font-weight:700;vertical-align:middle}
+
+.probing-label{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:#111b31;
+  color:#ffd36e;
+  font-size:11px;
+  font-weight:700;
+  animation: probingPulse 1.2s ease-in-out infinite;
+}
+@keyframes probingPulse {
+  0% { opacity:.55; transform:scale(1); }
+  50% { opacity:1; transform:scale(1.03); }
+  100% { opacity:.55; transform:scale(1); }
+}
+
 </style>
 </head>
 <body>
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1>PickCalc Prompt 1 Intake v8.3 <span class="tag">Ironclad Sync</span></h1>
+        <h1>PickCalc Prompt 1 Intake v8.4 (Global Bridge)<span class="tag">Ironclad Sync</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -289,8 +307,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v8.3</h1>
-          <p id="analysisVersion">Version: v8.3 • Build: Ironclad Sync • Build: Stealth Connectors</p>
+          <h1 id="analysisTitle">Run Analysis v8.4</h1>
+          <p id="analysisVersion">Version: v8.4 • Build: Global Bridge • Build: Stealth Connectors</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -312,7 +330,7 @@ thead th { background:#121d35; position:sticky; top:0; }
       <section class="card">
         <h2 id="miningMatrixTitle">Data-Mining Matrix</h2>
         <p class="mini-muted">This screen is the external-data debug scaffold. It shows what the system should mine for one tennis row. Live source wiring can plug into these slots next.</p>
-        <div class="mining-host"><div id="processingOverlay" class="processing-overlay mining-overlay"><div class="overlay-box">Mining...</div></div><div id="miningGrid" class="mining-grid"></div></div>
+        <div class="mining-host"><div id="processing-overlay" class="processing-overlay mining-overlay"><div class="overlay-box">Mining...</div></div><div id="miningGrid" class="mining-grid"></div></div>
       </section>
 
       <section class="card">
@@ -343,8 +361,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     </section>
   </div>
   <script>
-const SYSTEM_VERSION = "8.3";
-const BUILD_NAME = "Ironclad Sync";
+const SYSTEM_VERSION = "8.4";
+const BUILD_NAME = "Global Bridge";
 document.addEventListener('DOMContentLoaded', () => {
     document.title = `PickCalc Prompt 1 Intake v${SYSTEM_VERSION}`;
     const h1 = document.querySelector('h1');
@@ -371,8 +389,8 @@ const LEAGUES = [
 ];
 
 const STORAGE_KEY = 'pickcalc-prompt1-v5-7-3';
-const APP_BUILD_VERSION = '8.3';
-const APP_BUILD_LABEL = 'Ironclad Sync';
+const APP_BUILD_VERSION = '8.4';
+const APP_BUILD_LABEL = 'Global Bridge';
 const SYSTEM_VERSION = '8.3';
 const BUILD_NAME = 'Ironclad Sync';
 const TYPE_META = {
@@ -3242,7 +3260,7 @@ bindActions();
     renderShieldPanelV7();
     const title = document.getElementById('analysisTitle');
     const version = document.getElementById('analysisVersion');
-    if (title) title.textContent = 'Run Analysis v8.3';
+    if (title) title.textContent = 'Run Analysis v8.4';
     if (version) version.textContent = 'Version: v7.5';
     const summary = document.getElementById('analysisSummary');
     if (summary && !summary.innerHTML.includes('POOL RESET: SUCCESS')) {
@@ -3563,7 +3581,7 @@ bindActions();
     __origRenderAnalysis_v75();
     const title = document.getElementById('analysisTitle');
     const version = document.getElementById('analysisVersion');
-    if (title) title.textContent = 'Run Analysis v8.3';
+    if (title) title.textContent = 'Run Analysis v8.4';
     if (version) version.textContent = 'Version: v7.5';
     const summary = document.getElementById('analysisSummary');
     if (summary) {
@@ -3816,7 +3834,7 @@ bindActions();
       if (h1) h1.innerHTML = 'PickCalc Prompt 1 Intake <span class="version-pill">v8.2</span>';
       document.title = 'PickCalc Prompt 1 Intake v8.3 (State & Version Lock)';
       const av = document.getElementById('analysisVersion');
-      if (av) av.textContent = 'Version: v8.3 • Build: Ironclad Sync';
+      if (av) av.textContent = 'Version: v8.4 • Build: Global Bridge';
       loadV82DemoRows();
     } catch (err) {}
   });
@@ -3829,7 +3847,7 @@ bindActions();
   const SYSTEM_VERSION = "8.3";
 const THREE_PROP_REGEX = /(3PTM|3PM|Threes|3-Pointers)\s*(\d+(\.\d+)?)/i;
 
-  const BUILD_NAME = "Ironclad Sync";
+  const BUILD_NAME = "Global Bridge";
 
   function syncVersionHeaderV83(){
     try{
@@ -3842,7 +3860,7 @@ const THREE_PROP_REGEX = /(3PTM|3PM|Threes|3-Pointers)\s*(\d+(\.\d+)?)/i;
   }
 
   function setMiningOverlay(show, label='Mining...'){
-    const ov = document.getElementById('processingOverlay');
+    const ov = document.getElementById('processing-overlay');
     if (!ov) return;
     const box = ov.querySelector('.overlay-box');
     if (box) box.textContent = label;
@@ -4004,12 +4022,12 @@ const THREE_PROP_REGEX = /(3PTM|3PM|Threes|3-Pointers)\s*(\d+(\.\d+)?)/i;
   };
 
   window.showProcessingOverlay = function showProcessingOverlay(){
-    const el = document.getElementById('processingOverlay');
+    const el = document.getElementById('processing-overlay');
     if (el) el.style.display = 'flex';
   };
 
   window.hideProcessingOverlay = function hideProcessingOverlay(){
-    const el = document.getElementById('processingOverlay');
+    const el = document.getElementById('processing-overlay');
     if (el) el.style.display = 'none';
   };
 
@@ -4069,6 +4087,180 @@ const THREE_PROP_REGEX = /(3PTM|3PM|Threes|3-Pointers)\s*(\d+(\.\d+)?)/i;
       return maybe;
     };
   }
+})();
+</script>
+
+
+<script>
+(function(){
+  const SYSTEM_VERSION = "8.4";
+  const BUILD_NAME = "Global Bridge";
+
+  function syncBridgeHeader(){
+    try{
+      document.title = `PickCalc Prompt 1 Intake v${SYSTEM_VERSION} (${BUILD_NAME})`;
+      const h1 = document.querySelector('h1');
+      if (h1) h1.innerHTML = `PickCalc Prompt 1 Intake v${SYSTEM_VERSION} <span class="tag">Global Bridge</span>`;
+      const av = document.getElementById('analysisVersion');
+      if (av) av.textContent = `Version: v${SYSTEM_VERSION} • Build: ${BUILD_NAME}`;
+    } catch(e){}
+  }
+
+  window.forceUIRefresh = () => {
+    try { render(); } catch(e) { console.error('Render failed'); }
+  };
+
+  window.showProcessingOverlay = function showProcessingOverlay(){
+    const el = document.getElementById('processing-overlay');
+    if (el) el.style.display = 'flex';
+  };
+
+  window.hideProcessingOverlay = function hideProcessingOverlay(){
+    const el = document.getElementById('processing-overlay');
+    if (el) el.style.display = 'none';
+  };
+
+  function bridgeResultToState(row, resultMap){
+    if (!row) return;
+    state.pool ||= [];
+    const active = {
+      rowId: row.rowId,
+      entity: row.entity,
+      lineText: row.lineText,
+      results: resultMap || {}
+    };
+    state.pool[0] = active;
+  }
+
+  const oldRenderPromptAwareCardBridge = window.renderPromptAwareCard;
+  if (typeof oldRenderPromptAwareCardBridge === 'function') {
+    window.renderPromptAwareCard = function(card){
+      let html = oldRenderPromptAwareCardBridge(card);
+      if (card && card.status === 'mining') {
+        html = html.replace('</h3>', ' <span class="probing-label">PROBING...</span></h3>');
+      }
+      return html;
+    };
+  }
+
+  const oldBuildMiningStatusBridge = window.buildMiningStatus;
+  if (typeof oldBuildMiningStatusBridge === 'function') {
+    window.buildMiningStatus = function(row){
+      const cards = oldBuildMiningStatusBridge(row);
+      return (cards || []).map(card => {
+        if (card && (card.status === 'loading' || card.status === 'waiting')) {
+          return { ...card, status: 'mining', statusLabel: 'PROBING...' };
+        }
+        return card;
+      });
+    };
+  }
+
+  const oldEnsureNbaMiningBridge = window.ensureNbaMining;
+  if (typeof oldEnsureNbaMiningBridge === 'function') {
+    window.ensureNbaMining = async function(row){
+      if (!row || row.leagueId !== 'nba') return;
+      window.showProcessingOverlay();
+
+      const key = typeof cacheKeyForRow === 'function' ? cacheKeyForRow(row) : row.rowId;
+      const existing = window.runtimeMiningCache?.[key];
+      if (existing && (existing.status === 'done' || existing.status === 'loading')) {
+        bridgeResultToState(row, existing.cards || []);
+        window.forceUIRefresh();
+        if (existing.status === 'done') window.hideProcessingOverlay();
+        return;
+      }
+
+      try {
+        window.runtimeMiningCache[key] = {
+          status:'loading',
+          cards: (window.NBA_MINING_FACTORS || []).map(f => ({
+            ...f,
+            status: f.key === 'validation' ? 'ready' : 'mining',
+            statusLabel: f.key === 'validation' ? 'Parsed from ingested row' : 'PROBING...',
+            confidence: f.key === 'validation' ? 100 : 25,
+            delta: 0,
+            sourcesLabel: (f.sources || []).join(' • '),
+            parsedResult: f.key === 'validation' ? `${row.entity} • ${row.propFamily} ${row.line}` : '',
+            evidence: f.key === 'validation' ? 'Parsed from ingested row' : ''
+          }))
+        };
+        bridgeResultToState(row, window.runtimeMiningCache[key].cards);
+        window.forceUIRefresh();
+
+        let mined = {};
+        try {
+          mined = await window.mineNbaRow(row);
+        } catch(e) {
+          mined = {};
+          if (typeof logEvent === 'function') logEvent(`ERROR: ${String(e && e.message || e)}`, 'ERROR', row.rowId, 'system');
+        }
+
+        const progressive = [];
+        for (const f of (window.NBA_MINING_FACTORS || [])) {
+          let card = mined[f.key] || {
+            ...f,
+            status:'warning',
+            statusLabel:'No mined result',
+            confidence:35,
+            delta:0,
+            sourcesLabel:(f.sources || []).join(' • '),
+            parsedResult:'[UNKNOWN]',
+            evidence:'',
+            rawMiningResult:'[UNKNOWN]',
+            extractionProof:'No evidence returned.'
+          };
+          progressive.push(card);
+          window.runtimeMiningCache[key] = { status:'loading', cards:[...progressive] };
+          bridgeResultToState(row, progressive);
+          window.forceUIRefresh();
+          await new Promise(r => setTimeout(r, 50));
+        }
+
+        window.runtimeMiningCache[key] = { status:'done', cards: progressive };
+        bridgeResultToState(row, progressive);
+        window.forceUIRefresh();
+      } finally {
+        window.hideProcessingOverlay();
+        window.forceUIRefresh();
+      }
+    };
+  }
+
+  function loadLeBronBridgeDemo(){
+    try{
+      if (typeof Global_Flush !== 'function') return;
+      const row = {
+        rowId:'nba|lebron james|LAL|OKC|PRA|40.5|REGULAR',
+        sport:'NBA',
+        leagueId:'nba',
+        entity:'LeBron James',
+        team:'LAL',
+        opponent:'OKC',
+        propFamily:'PRA',
+        propKey:'pra',
+        line:'40.5',
+        lineText:'PRA 40.5',
+        type:'REGULAR',
+        rawText:'⚪ LeBron James PRA 40.5 More • LeBron James Last 10 Game Logs StatMuse 2026 • 28 pts, 8 ast, 7 reb • 26 pts, 9 ast, 8 reb • 25 pts, 8 ast, 6 reb • Ref: Tony Brothers • LAL vs OKC'
+      };
+      Global_Flush(row, 'POOL RESET: SUCCESS');
+      state.ran = true;
+      state.pool = [{ rowId: row.rowId, entity: row.entity, lineText: row.lineText, results: {} }];
+      saveState();
+      window.location.hash = '#analysis';
+      window.showProcessingOverlay();
+      window.forceUIRefresh();
+      setTimeout(() => {
+        try { ensureNbaMining(row); } catch(e) {}
+      }, 0);
+    } catch(e){}
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    syncBridgeHeader();
+    setTimeout(loadLeBronBridgeDemo, 0);
+  });
 })();
 </script>
 
