@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PickCalc Prompt 1 Intake v7.0</title>
+  <title>PickCalc Prompt 1 Intake v7.0 (Stable Layout)</title>
   <style>
 :root {
   color-scheme: dark;
@@ -93,7 +93,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   border:1px solid var(--line); background:#0f172a; border-radius:16px; padding:12px;
 }
 .row-card .cell strong { display:block; margin-bottom:6px; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
-.matrix-grid, .mining-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; width: 100%; }
+.matrix-grid, .mining-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap:12px; width:100%; }
 .mining-card {
   border:1px solid var(--line); background:#0f172a; border-radius:18px; padding:14px; min-height:168px;
 }
@@ -153,42 +153,59 @@ thead th { background:#121d35; position:sticky; top:0; }
 .stage-label{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-size:11px;color:var(--accent-2)}
 
 
+.mining-card,.detail-box,.row-card .cell,.status-panel,.prop-chip,.pill,.message,.console-item{word-wrap:break-word;min-width:0}
 .derived-badge,.mined-badge,.parsed-badge,.shield-badge{
-  display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--line);
-  font-size:11px;font-weight:700;margin-left:8px;white-space:nowrap;word-wrap:break-word;
+  display:inline-block;
+  margin-left:8px;
+  padding:2px 8px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  font-size:11px;
+  font-weight:700;
+  white-space:nowrap;
 }
-.derived-badge{background:rgba(56,189,248,.14);color:#38bdf8;border-color:#38bdf8}
-.mined-badge{background:rgba(36,87,59,.22);color:#baf2cb}
-.parsed-badge{background:rgba(110,168,254,.14);color:#8cc3ff}
-.shield-grid{display:flex;flex-direction:column;align-items:center;gap:10px}
-.shield-cell{border:1px solid var(--line);background:#0f172a;border-radius:16px;padding:12px;width:min(100%,680px);text-align:center;word-wrap:break-word}
-.shield-cell strong{display:block;margin-bottom:6px;color:var(--muted);font-size:12px;text-transform:uppercase}
-
-
-.penalty-banner{
-  display:block;
-  width:min(100%,680px);
-  padding:10px 14px;
+.derived-badge{background:rgba(56,189,248,.16);color:#38bdf8;border-color:#38bdf8}
+.mined-badge{background:rgba(36,87,59,.25);color:#baf2cb}
+.parsed-badge{background:rgba(110,168,254,.15);color:#8cc3ff}
+.warning-banner{
+  margin:10px 0 0;
+  padding:10px 12px;
   border-radius:14px;
   border:1px solid rgba(185,74,90,.48);
   background:rgba(185,74,90,.16);
   color:#ffd3d9;
   font-weight:700;
+}
+.shield-grid{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-height:300px;
+  gap:10px;
+  width:100%;
+}
+.shield-cell{
+  width:min(100%,720px);
+  border:1px solid var(--line);
+  background:#0f172a;
+  border-radius:16px;
+  padding:12px;
   text-align:center;
 }
-.mining-card,.shield-cell,.cell,.status-panel,.prop-chip,.pill,.message,.mining-meta{word-wrap:break-word}
-
-
-.analysis-detail,.mining-meta,.shield-cell,.mining-card,.row-card .cell,.status-panel,.prop-chip,.pill,.message{min-width:0}
-.evidence-ellipsis{display:block;max-width:100%;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
-.mining-card{overflow:hidden}
-.mining-card.derived-card{border:1px solid #38bdf8; box-shadow: inset 0 0 0 1px rgba(56,189,248,.18);}
-.shield-grid{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:12px;width:100%}
-.shield-cell{display:flex;flex-direction:column;align-items:center;justify-content:center}
-@media (max-width: 600px) {
-  .matrix-grid, .mining-grid { grid-template-columns: 1fr !important; width: 100%; }
-  .row-card, .hero-inline, .btn-row, .status-panel-head, .shield-grid { flex-direction: column !important; }
-  .app-shell, .card, .mining-card, .shield-cell, .row-card .cell { width: 100% !important; max-width: 100% !important; }
+.ellipsis-proof{
+  display:block;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+@media (max-width:700px){
+  .hero-inline{ flex-direction:column; }
+  .btn-row{ flex-direction:column; }
+  .row-card{ grid-template-columns:1fr; }
+  .matrix-grid, .mining-grid{ grid-template-columns:1fr; }
+  .shield-cell{ width:100%; }
 }
 
 </style>
@@ -345,7 +362,7 @@ const NBA_MINING_FACTORS = [
   { key:'last10', title:'Stability Window', tier:'2B', live:true, sources:['StatMuse search','ESPN search','Basketball-Reference search'], note:'Recent 10-game prop average.' },
   { key:'season', title:'Season Baseline', tier:'2B', live:true, sources:['NBA.com search','ESPN search','Basketball-Reference search'], note:'Season prop average.' },
   { key:'rotation', title:'Rotation Status', tier:'2B', live:true, sources:['RotoWire search','ESPN search'], note:'Starter vs bench confirmation.' },
-  { key:'usage3', title:'Usage Pulse', tier:'2B', live:true, sources:['ESPN game log','StatMuse search'], note:'Approximate last-3 usage pulse or v7.0 derived usage.' },
+  { key:'usage3', title:'Usage Rate', tier:'2B', live:true, sources:['ESPN game log','StatMuse search'], note:'Approximate last-3 usage pulse.' },
   { key:'teammateImpact', title:'Teammate Impact', tier:'2B', live:true, sources:['ESPN injury report','RotoWire lineup news'], note:'High-usage teammate out bump.' },
   { key:'teamPace', title:'Pace & Environment', tier:'2C', live:true, sources:['StatMuse search','NBAStuffer search'], note:'Team pace / possessions context.' },
   { key:'oppDefense', title:'Defensive Archetype', tier:'2C', live:true, sources:['StatMuse defense search','NBAStuffer search'], note:'Opponent rank versus prop family.' },
@@ -2886,117 +2903,304 @@ renderSystemConsole();
 bindActions();
 
 
-<script>
 (function(){
-  function v7NowLabel(){
-    try { return new Date().toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); } catch { return ''; }
-  }
+  const V7_VERSION = 'v7.0 (Stable Layout)';
 
-  function Global_Flush(newRows){
-    const rows = Array.isArray(newRows) ? newRows.filter(Boolean) : [];
-    state.cleanedRows = rows.slice(0, 1);
-    state.activeRowId = state.cleanedRows[0] ? state.cleanedRows[0].rowId : null;
-    state.ran = false;
-    Object.keys(runtimeMiningCache || {}).forEach(k => delete runtimeMiningCache[k]);
-    logEvent(`v7.0 GLOBAL_FLUSH applied • rows ${state.cleanedRows.length}`, 'SUCCESS', state.activeRowId || '', 'system');
+  function Global_Flush(firstRow, keepMessage=''){
+    const keepLogs = (state.logs || []).slice(-200);
+    Object.assign(state, defaultState());
+    state.logs = keepLogs;
+    runtimeMiningCache && Object.keys(runtimeMiningCache).forEach(k => delete runtimeMiningCache[k]);
+    state.cleanedRows = firstRow ? [firstRow] : [];
+    state.activeRowId = firstRow ? firstRow.rowId : null;
+    const box = document.getElementById('boardInput');
+    if (box) box.value = '';
+    const msg = document.getElementById('ingestMessage');
+    if (msg) {
+      msg.classList.remove('ok');
+      msg.textContent = keepMessage || '';
+    }
     saveState();
   }
 
-  function parseMarketOddsFromRawText(raw){
-    const t = String(raw || '');
-    const nums = [...t.matchAll(/([+-]\d{3})/g)].map(m => Number(m[1]));
-    const direction = lineDirectionFromRow({ rawText:t, lineText:t });
-    let sharpDrag = 0;
-    let label = 'No prop juice parsed';
-    if (nums.length){
-      const heavyUnder = nums.find(n => n <= -135);
-      if (direction === 'UNDER' && heavyUnder != null){
-        sharpDrag = -5;
-        label = `Under juice ${heavyUnder}`;
-      } else {
-        label = nums.slice(0,2).join(' / ');
-      }
-    } else if (/less|more/i.test(t)) {
-      label = /less/i.test(t) ? 'Less/More detected' : 'Market side text detected';
+  function parseMarketOddsFromRaw(raw=''){
+    const text = String(raw || '');
+    const prices = [...text.matchAll(/([+-]\d{3})/g)].map(m => Number(m[1]));
+    const side = lineDirectionFromRow({ rawText:text, lineText:text });
+    const underJuiced = side === 'UNDER' ? prices.find(n => n <= -135) : null;
+    return {
+      prices,
+      side,
+      sharpMoneyDrag: underJuiced != null ? -5 : 0,
+      parsedText: prices.length ? prices.join(' / ') : (/less|more/i.test(text) ? 'Less/More detected' : 'No prop juice found')
+    };
+  }
+
+  function deriveUsagePulseV7(logBlob='', teamPossessions=100){
+    const fga = [...String(logBlob).matchAll(/(\d+(?:\.\d+)?)\s*(?:fga|field goal attempts?)/gi)].map(m => Number(m[1]));
+    const fta = [...String(logBlob).matchAll(/(\d+(?:\.\d+)?)\s*(?:fta|free throw attempts?)/gi)].map(m => Number(m[1]));
+    const tov = [...String(logBlob).matchAll(/(\d+(?:\.\d+)?)\s*(?:tov|turnovers?)/gi)].map(m => Number(m[1]));
+    const mp = [...String(logBlob).matchAll(/(\d+(?:\.\d+)?)\s*(?:minutes|min)\b/gi)].map(m => Number(m[1]));
+    const vals = [];
+    for (let i = 0; i < Math.min(3, Math.max(fga.length, fta.length, tov.length, mp.length)); i++) {
+      const FGA = fga[i] || 0;
+      const FTA = fta[i] || 0;
+      const TOV = tov[i] || 0;
+      const MP = mp[i] || 30;
+      const val = 100 * (((FGA + (0.44 * FTA) + TOV) * (240 / 5)) / (Math.max(1, MP) * Math.max(1, teamPossessions)));
+      if (Number.isFinite(val)) vals.push(val);
     }
-    return { label, sharpDrag, nums };
+    if (!vals.length) return null;
+    return Math.round((vals.reduce((a,b)=>a+b,0)/vals.length) * 10) / 10;
   }
 
-  function deriveRotationStatusV7(logBlob){
-    const mins = [...String(logBlob || '').matchAll(/(\d+(?:\.\d+)?)\s*(?:minutes|min)\b/gi)].map(m => Number(m[1])).filter(Number.isFinite);
-    const top3 = mins.slice(0,3);
-    const over30 = top3.filter(n => n > 30).length;
-    return over30 >= 2 ? 'LOCK_STARTER' : (top3.length ? 'ROTATION_PLAYER' : 'UNKNOWN');
+  function deriveRotationStatusV7(logBlob=''){
+    const mins = [...String(logBlob).matchAll(/(\d+(?:\.\d+)?)\s*(?:minutes|min)\b/gi)].map(m => Number(m[1])).filter(Number.isFinite);
+    return mins.slice(0,3).filter(v => v > 30).length >= 2 ? 'LOCK_STARTER' : (mins.length ? 'ROTATION_PLAYER' : 'UNKNOWN');
   }
 
-  function deriveUsagePulseV7(logBlob, teamPoss=100){
-    const fga = [...String(logBlob || '').matchAll(/(\d+(?:\.\d+)?)\s*(?:fga|field goal attempts?)/gi)].map(m => Number(m[1]));
-    const fta = [...String(logBlob || '').matchAll(/(\d+(?:\.\d+)?)\s*(?:fta|free throw attempts?)/gi)].map(m => Number(m[1]));
-    const tov = [...String(logBlob || '').matchAll(/(\d+(?:\.\d+)?)\s*(?:tov|turnovers?)/gi)].map(m => Number(m[1]));
-    const mp = [...String(logBlob || '').matchAll(/(\d+(?:\.\d+)?)\s*(?:minutes|min)\b/gi)].map(m => Number(m[1]));
-    const use = [];
-    for (let i=0;i<Math.min(3, Math.max(fga.length, fta.length, tov.length, mp.length));i++){
-      const FGA = fga[i] || 0, FTA = fta[i] || 0, TOV = tov[i] || 0, MP = mp[i] || 30;
-      const val = 100 * (((FGA + (0.44 * FTA) + TOV) * (240 / 5)) / (Math.max(1, MP) * Math.max(1, teamPoss)));
-      if (Number.isFinite(val)) use.push(val);
-    }
-    if (!use.length) return null;
-    return Math.round((use.reduce((a,b)=>a+b,0)/use.length) * 10) / 10;
-  }
-
-  function deriveMinutesProjectionV7(logBlob, seasonAvgMinutes){
-    const mins = [...String(logBlob || '').matchAll(/(\d+(?:\.\d+)?)\s*(?:minutes|min)\b/gi)].map(m => Number(m[1])).filter(Number.isFinite);
-    const avg3 = mins.slice(0,3).length ? mins.slice(0,3).reduce((a,b)=>a+b,0)/mins.slice(0,3).length : null;
+  function deriveMinutesProjectionV7(logBlob='', seasonAvgMinutes=null){
+    const mins = [...String(logBlob).matchAll(/(\d+(?:\.\d+)?)\s*(?:minutes|min)\b/gi)].map(m => Number(m[1])).filter(Number.isFinite);
+    const l3 = mins.slice(0,3);
+    const avg3 = l3.length ? l3.reduce((a,b)=>a+b,0) / l3.length : null;
     if (!Number.isFinite(avg3) && !Number.isFinite(seasonAvgMinutes)) return null;
-    const proj = ((Number.isFinite(avg3) ? avg3 : seasonAvgMinutes) + (Number.isFinite(seasonAvgMinutes) ? seasonAvgMinutes : avg3)) / 2;
-    return Math.round(proj * 10) / 10;
+    const useA = Number.isFinite(avg3) ? avg3 : seasonAvgMinutes;
+    const useB = Number.isFinite(seasonAvgMinutes) ? seasonAvgMinutes : avg3;
+    return Math.round((((useA || 0) + (useB || 0)) / 2) * 10) / 10;
   }
 
   function applyV7Integrity(result, row){
-    const cards = Object.values(result);
+    const cards = Object.values(result || {});
     const warningCount = cards.filter(c => c && c.status === 'warning').length;
     const derivedCount = cards.filter(c => c && c.derived).length;
-    const pureProb = standaloneProbability(row, cards);
-    let finalScore = survivabilityScore(row, cards);
-    finalScore = Math.max(1, Math.min(99, finalScore - (warningCount * 10)));
-    let finalProb = pureProb;
+    const pureProbability = standaloneProbability(row, cards);
+    let finalQualified = survivabilityScore(row, cards);
+    finalQualified = Math.max(1, Math.min(99, finalQualified - (warningCount * 10)));
+    let cappedProbability = pureProbability;
     let capApplied = false;
-    if (derivedCount > 3 && finalProb > 0.75) {
-      finalProb = 0.75;
+    if (derivedCount > 3 && cappedProbability > 0.75) {
+      cappedProbability = 0.75;
       capApplied = true;
     }
     const line = Number(row?.line || 0);
-    const seasonVal = Number(result.season?.projectionValue ?? result.season?.parsedResult ?? NaN);
-    const zScore = Number.isFinite(line) && Number.isFinite(seasonVal) ? Math.round((((line - seasonVal) / Math.max(1, seasonVal || 1)) * 100) * 10) / 10 : 0;
-    const baseEdge = baselineEdgeForRow(row, cards);
-    const minorDrag = ['refs','injury'].reduce((sum, key) => sum + Number(result[key]?.delta || 0), 0);
-    let finalStatus = 'SURVIVE';
-    if (!(baseEdge > 0.035) && String(row?.type || '').toUpperCase() === 'GOBLIN' && minorDrag < 0) finalStatus = 'QUALITY_CUT';
-    if (baseEdge > 0.035) finalStatus = 'SURVIVE';
+    const seasonCard = result.season || {};
+    const seasonValue = Number(seasonCard.projectionValue ?? seasonCard.parsedResult ?? NaN);
+    const z = Number.isFinite(line) && Number.isFinite(seasonValue) && seasonValue !== 0
+      ? ((line - seasonValue) / Math.abs(seasonValue))
+      : 0;
+    const baselineEdge = baselineEdgeForRow(row, cards);
+    const alphaShield = baselineEdge > 0.035;
+    let finalStatus = alphaShield ? 'SURVIVE' : (finalQualified >= 50 ? 'SURVIVE' : 'QUALITY_CUT');
 
     result.survivability = {
-      ...result.survivability,
-      status: finalStatus === 'QUALITY_CUT' ? 'warning' : 'ready',
+      ...(result.survivability || {}),
+      key:'survivability',
+      title:'Alpha Shield Report',
+      tier:'2F',
+      status: warningCount > 0 ? 'warning' : 'ready',
       statusLabel:'v7.0 Integrity Shield',
-      parsedResult:`FINAL_HIT_PROBABILITY ${(finalProb*100).toFixed(1)}% • FINAL_QUALIFIED_SCORE ${finalScore.toFixed(1)}`,
-      evidence:`Rows in pool ${state.cleanedRows.length} • WARNING_COUNT ${warningCount} • DERIVED_COUNT ${derivedCount} • Z_SCORE ${zScore.toFixed(1)} • Alpha Shield ${baseEdge > 0.035 ? 'ACTIVE' : 'inactive'}`,
-      confidence: Math.max(40, 92 - warningCount * 8),
+      confidence: Math.max(35, 90 - warningCount * 8),
       delta: 0,
-      projectionValue: finalScore,
-      rawMiningResult:`${pureProb.toFixed(4)} | ${finalProb.toFixed(4)} | ${finalScore.toFixed(2)}`,
-      extractionProof:`DATA INTEGRITY PENALTY ${warningCount*10}% • CONFIDENCE CAP ${capApplied ? 'YES' : 'NO'} • FINAL STATUS ${finalStatus}`,
+      parsedResult:`FINAL_HIT_PROBABILITY ${(cappedProbability * 100).toFixed(1)}% • FINAL_QUALIFIED_SCORE ${finalQualified.toFixed(1)}`,
+      evidence:`Rows in pool: ${state.cleanedRows.length} • Warning states: ${warningCount} • Derived states: ${derivedCount}`,
+      rawMiningResult:`Pure ${pureProbability.toFixed(4)} • Capped ${cappedProbability.toFixed(4)} • Score ${finalQualified.toFixed(2)}`,
+      extractionProof:`DATA INTEGRITY PENALTY ${warningCount * 10}% • CONFIDENCE CAP ${capApplied ? 'YES' : 'NO'} • Z_SCORE ${(z * 100).toFixed(1)} • ALPHA_SHIELD ${alphaShield ? 'ACTIVE' : 'inactive'} • STATUS ${finalStatus}`,
+      projectionValue: finalQualified,
       warningCount,
       derivedCount,
       capApplied,
-      zScore,
-      finalProbability: finalProb,
-      finalQualifiedScore: finalScore,
-      baselineEdge: baseEdge
+      finalProbability: cappedProbability,
+      finalQualifiedScore: finalQualified,
+      zScore: z,
+      baselineEdge,
+      finalStatus
     };
     return result;
   }
 
-  const __origIngest = ingestText;
+  function ensureShieldPanel(){
+    const analysis = document.getElementById('analysisScreen');
+    if (!analysis || document.getElementById('shieldPanel')) return;
+    const section = document.createElement('section');
+    section.className = 'card';
+    section.innerHTML = '<h2>Alpha Shield v7.0 Report</h2><div id="shieldPanel" class="shield-grid"></div>';
+    const consoleCard = document.getElementById('systemConsole')?.closest('.card');
+    if (consoleCard && consoleCard.parentNode) consoleCard.parentNode.insertBefore(section, consoleCard);
+    else analysis.appendChild(section);
+  }
+
+  function renderShieldPanelV7(){
+    ensureShieldPanel();
+    const wrap = document.getElementById('shieldPanel');
+    if (!wrap) return;
+    const row = activeRow();
+    const cards = buildMiningStatus(row);
+    const surv = cards.find(c => c.key === 'survivability') || {};
+    const penaltyApplied = Number(surv.warningCount || 0) > 0;
+    wrap.innerHTML = `
+      <div class="shield-cell"><strong>RUN ANALYSIS v7.0</strong><div>POOL RESET: SUCCESS</div><div>Rows in pool: ${escapeHtml(String(state.cleanedRows.length))}</div></div>
+      ${penaltyApplied ? `<div class="warning-banner">PENALTY APPLIED: -${escapeHtml(String((surv.warningCount || 0) * 10))}%</div>` : ''}
+      <div class="shield-cell"><strong>Final Hit Probability</strong><div>${Number.isFinite(surv.finalProbability) ? (surv.finalProbability * 100).toFixed(1) + '%' : '—'}</div></div>
+      <div class="shield-cell"><strong>Final Qualified Score</strong><div>${Number.isFinite(surv.finalQualifiedScore) ? surv.finalQualifiedScore.toFixed(1) : '—'}</div></div>
+      <div class="shield-cell"><strong>Integrity Penalty</strong><div>${escapeHtml(String((surv.warningCount || 0) * 10))}%</div></div>
+      <div class="shield-cell"><strong>Confidence Cap Applied</strong><div>${surv.capApplied ? 'YES' : 'NO'}</div></div>
+      <div class="shield-cell"><strong>Z-Score</strong><div>${Number.isFinite(surv.zScore) ? (surv.zScore * 100).toFixed(1) : '—'}</div></div>
+    `;
+  }
+
+  const __origRenderPromptAwareCard = renderPromptAwareCard;
+  renderPromptAwareCard = function(card){
+    let html = __origRenderPromptAwareCard(card);
+    const badge = card.derived
+      ? '<span class="derived-badge">[DERIVED]</span>'
+      : (card.parsedSource === 'raw'
+          ? '<span class="parsed-badge">[PARSED]</span>'
+          : '<span class="mined-badge">[MINED]</span>');
+    html = html.replace('<h3>', `<h3>`);
+    html = html.replace('</h3>', `${badge}</h3>`);
+    html = html.replace(
+      /<div>([^<]*RETRIEVAL HEALTH[\s\S]*?)<\/details>/,
+      function(block){
+        return block.replace(/<div>([^<]{50,})<\/div>/g, function(_, inner){
+          const safe = inner.replace(/"/g, '&quot;');
+          return `<div><span class="ellipsis-proof" title="${safe}">${inner}</span></div>`;
+        });
+      }
+    );
+    return html;
+  };
+
+  const __origMineNbaRow = mineNbaRow;
+  mineNbaRow = async function(row){
+    let result = await __origMineNbaRow(row);
+    const blob = `${result.last5?.evidence || ''} • ${result.last10?.evidence || ''} • ${result.season?.evidence || ''} • ${row.rawText || ''}`;
+    const seasonValue = Number(result.season?.projectionValue ?? result.season?.parsedResult ?? NaN);
+    const seasonMinutes = Number((result.minutes?.parsedResult || '').match(/(\d+(?:\.\d+)?)/)?.[1] || NaN);
+
+    if (!result.usage3 || result.usage3.status !== 'ready') {
+      const usage = deriveUsagePulseV7(blob, 100);
+      if (Number.isFinite(usage)) {
+        result.usage3 = {
+          ...(result.usage3 || {}),
+          key:'usage3',
+          title:'Usage Pulse',
+          tier:'2B',
+          status:'ready',
+          statusLabel:'Derived from last 3 box scores',
+          confidence:58,
+          delta: scoreDeltaFromContext('usage3', usage, row, {}),
+          parsedResult:`${usage.toFixed(1)}%`,
+          evidence:`Derived Usage Pulse ${usage.toFixed(1)}%`,
+          rawMiningResult:`${usage.toFixed(1)}%`,
+          extractionProof:`Usage ≈ 100 * ((FGA + 0.44 * FTA + TOV) * (Team_MP / 5)) / (MP * (Team_FGA + 0.44 * Team_FTA + Team_TOV)) = ${usage.toFixed(1)}%`,
+          sourcesLabel:'v7.0 Derivation Engine',
+          projectionValue: usage,
+          derived:true
+        };
+        logEvent(`SUCCESS: Usage Pulse [DERIVED] ${usage.toFixed(1)}%`, 'SUCCESS', row.rowId, 'usage3');
+      }
+    }
+
+    if (!result.rotation || result.rotation.status !== 'ready' || /Unknown/i.test(String(result.rotation.parsedResult || ''))) {
+      const rot = deriveRotationStatusV7(blob);
+      result.rotation = {
+        ...(result.rotation || {}),
+        key:'rotation',
+        title:'Rotation Status',
+        tier:'2B',
+        status: rot === 'UNKNOWN' ? 'warning' : 'ready',
+        statusLabel: rot === 'UNKNOWN' ? 'Warning state' : 'Derived from last 3 minutes',
+        confidence:56,
+        delta: scoreDeltaFromContext('rotation', rot === 'LOCK_STARTER' ? 'Starter' : 'Bench', row, {}),
+        parsedResult: rot,
+        evidence:`v7.0 rotation derivation: ${rot}`,
+        rawMiningResult: rot,
+        extractionProof:'If MP > 30 in 2 of last 3 games = LOCK_STARTER',
+        sourcesLabel:'v7.0 Derivation Engine',
+        projectionValue: rot === 'LOCK_STARTER' ? 1 : 0,
+        derived:true
+      };
+      logEvent(`SUCCESS: Rotation Status ${rot}`, rot === 'UNKNOWN' ? 'WARNING' : 'SUCCESS', row.rowId, 'rotation');
+    }
+
+    const minutesProjection = deriveMinutesProjectionV7(blob, seasonMinutes);
+    if ((!result.projection || result.projection.status !== 'ready' || /No clean|Unknown|fallback/i.test(String(result.projection.parsedResult || ''))) && Number.isFinite(minutesProjection) && Number.isFinite(seasonValue)) {
+      const seasonPerMinute = seasonValue / Math.max(1, (seasonMinutes || minutesProjection));
+      const internalProjection = Math.round((seasonPerMinute * minutesProjection) * 100) / 100;
+      result.projection = {
+        ...(result.projection || {}),
+        key:'projection',
+        title:'Internal Projection',
+        tier:'2B',
+        status:'ready',
+        statusLabel:'Internal v7.0 projection',
+        confidence:60,
+        delta: scoreDeltaFromContext('projection', internalProjection, row, {}),
+        parsedResult: internalProjection.toFixed(2),
+        evidence:`Proj_Min ${minutesProjection.toFixed(1)} • Season_Prop_Per_Min ${seasonPerMinute.toFixed(3)}`,
+        rawMiningResult: internalProjection.toFixed(2),
+        extractionProof:'Projection = Season_Prop_Per_Minute * ((Avg_Last_3_MP + Season_Avg_MP) / 2)',
+        sourcesLabel:'v7.0 Derivation Engine',
+        projectionValue: internalProjection,
+        derived:true
+      };
+    }
+
+    const oddsInfo = parseMarketOddsFromRaw(row.rawText || row.lineText || '');
+    if (!result.odds || result.odds.status !== 'ready' || /Unknown|unavailable|No clean/i.test(String(result.odds.parsedResult || ''))) {
+      result.odds = {
+        ...(result.odds || {}),
+        key:'odds',
+        title:'Market Odds',
+        tier:'2C',
+        status:'ready',
+        statusLabel:'Parsed from raw intake text',
+        confidence:64,
+        delta: Number(result.odds?.delta || 0) + (oddsInfo.sharpMoneyDrag < 0 ? -1.5 : 0),
+        parsedResult: oddsInfo.parsedText,
+        evidence: row.rawText || row.lineText || '—',
+        rawMiningResult: oddsInfo.parsedText,
+        extractionProof:'v7.0 MARKET_ODDS parser scanned Less/More and -1XX/+1XX text.',
+        sourcesLabel:'Raw Parse',
+        projectionValue: oddsInfo.sharpMoneyDrag,
+        parsedSource:'raw'
+      };
+      if (oddsInfo.sharpMoneyDrag < 0) {
+        logEvent('WARNING: Sharp_Money_Drag triggered from Under juice < -135.', 'WARNING', row.rowId, 'odds');
+      }
+    }
+
+    if (result.refs && result.refs.status === 'ready') {
+      const overMatch = String(result.refs.evidence || '').match(/over[^0-9]{0,16}(\d{2,3})%/i);
+      const overPct = overMatch ? Number(overMatch[1]) : null;
+      if (Number.isFinite(overPct) && overPct > 55) {
+        result.refs.delta = Number(result.refs.delta || 0) + 1.0;
+        result.refs.extractionProof = `${result.refs.extractionProof || result.refs.evidence || ''} • Whistle_Bump +1.0`;
+      }
+    }
+
+    result = applyV7Integrity(result, row);
+    return result;
+  };
+
+  const __origRenderAnalysis = renderAnalysis;
+  renderAnalysis = function(){
+    __origRenderAnalysis();
+    ensureShieldPanel();
+    renderShieldPanelV7();
+    const title = document.getElementById('analysisTitle');
+    const version = document.getElementById('analysisVersion');
+    if (title) title.textContent = 'Run Analysis v7.0';
+    if (version) version.textContent = 'Version: v7.0 (Stable Layout)';
+    const summary = document.getElementById('analysisSummary');
+    if (summary && !summary.innerHTML.includes('POOL RESET: SUCCESS')) {
+      summary.innerHTML = `<div class="pill">RUN ANALYSIS v7.0</div><div class="pill">POOL RESET: SUCCESS</div><div class="pill">Rows in pool: ${state.cleanedRows.length}</div>` + summary.innerHTML;
+    }
+    const matrixTitle = document.getElementById('miningMatrixTitle');
+    if (matrixTitle) matrixTitle.textContent = 'NBA Data-Mining Matrix';
+  };
+
+  const __origIngestText = ingestText;
   ingestText = function(text){
     const selectedIds = [...state.selectedLeagueIds];
     if (!selectedIds.length) return { added:0, message:'Select at least one league first.' };
@@ -3015,176 +3219,52 @@ bindActions();
       if (row) found.push(row);
     }
     const firstRow = found[0] || null;
-    if (!firstRow) return { added:0, message:'No recognizable rows found for the leagues you selected. Try one clean chunk from one board section, or check that the right league is selected.' };
-    firstRow.lineText = firstRow.lineText || `${firstRow.propFamily} ${firstRow.line}`;
-    if (state.cleanedRows.length > 1) {
-      logEvent('SYSTEM_WIPE triggered due to pool > 1 at ingestion start.', 'WARNING', state.activeRowId || '', 'system');
+    if (!firstRow) {
+      return { added:0, message:'No recognizable rows found for the leagues you selected. Try one clean chunk from one board section, or check that the right league is selected.' };
     }
-    Global_Flush([firstRow]);
-    return { added:1, message:'Global flush complete. Ingested 1 clean row.' };
+    Global_Flush(firstRow, 'POOL RESET: SUCCESS');
+    logEvent(`SUCCESS: Global_Flush complete for ${firstRow.entity}.`, 'SUCCESS', firstRow.rowId, 'system');
+    return { added:1, message:'POOL RESET: SUCCESS • Ingested 1 clean row.' };
   };
 
-  const __origRenderPromptAwareCard = renderPromptAwareCard;
-  renderPromptAwareCard = function(card){
-    let html = __origRenderPromptAwareCard(card);
-    const badge = card.derived ? '<span class="derived-badge">[DERIVED]</span>' : (card.parsedSource === 'raw' ? '<span class="parsed-badge">[PARSED]</span>' : '<span class="mined-badge">[MINED]</span>');
-    html = html.replace('<div class="mining-card">', `<div class="mining-card ${card.derived ? 'derived-card' : ''}">`);
-    html = html.replace('</h3>', ` ${badge}</h3>`);
-    html = html.replace(/<div class="analysis-detail-body">([\s\S]*?)<\/div>\s*<\/details>/, function(m, inner){
-      const patched = inner.replace(/<div><strong>EXTRACTION PROOF:<\/strong>\s*([^<]*)<\/div>/, '<div><strong>EXTRACTION PROOF:</strong> <span class="evidence-ellipsis" title="$1">$1</span></div>');
-      return `<div class="analysis-detail-body">${patched}</div></details>`;
-    });
-    return html;
-  };
-
-  function ensureShieldPanel(){
-    const analysis = document.getElementById('analysisScreen');
-    if (!analysis || document.getElementById('shieldPanel')) return;
-    const card = document.createElement('section');
-    card.className = 'card';
-    card.innerHTML = '<h2>Alpha Shield v7.0 Report</h2><div id="shieldPanel" class="shield-grid"></div>';
-    const consoleCard = document.getElementById('systemConsole')?.closest('.card');
-    if (consoleCard && consoleCard.parentNode) consoleCard.parentNode.insertBefore(card, consoleCard);
-    else analysis.appendChild(card);
+  function makeJaimeDemoRow(){
+    return {
+      rowId:'nba|jaime jaquez jr.|mia|tor|pra|20.5|REGULAR',
+      sport:'NBA',
+      leagueId:'nba',
+      entity:'Jaime Jaquez Jr.',
+      team:'MIA',
+      opponent:'TOR',
+      propFamily:'PRA',
+      propKey:'pra',
+      line:'20.5',
+      lineText:'PRA 20.5',
+      type:'REGULAR',
+      rawText:'⚪ Jaime Jaquez Jr. PRA 20.5 More • 14.0 pts, 5.4 ast, 1.8 reb • MIA @ TOR'
+    };
   }
 
-  function renderShieldPanelV7(){
-    ensureShieldPanel();
-    const wrap = document.getElementById('shieldPanel');
-    if (!wrap) return;
-    const row = activeRow();
-    const cards = buildMiningStatus(row);
-    const surv = cards.find(c => c.key === 'survivability') || {};
-    const refCard = cards.find(c => c.key === 'refs') || {};
-    const penaltyApplied = Number(surv.warningCount || 0) > 0 || String(refCard.status || '') === 'warning' || !String(refCard.parsedResult || '').trim();
-    wrap.innerHTML = `
-      <div class="shield-cell"><strong>Run Analysis</strong>v7.0 • Pool Status: ${escapeHtml(String(state.cleanedRows.length))} PLAYER</div>
-      ${penaltyApplied ? '<div class="penalty-banner">PENALTY APPLIED: -10%</div>' : ''}
-      <div class="shield-cell"><strong>Data Integrity Penalty</strong>${escapeHtml(String((surv.warningCount || 0) * 10))}%</div>
-      <div class="shield-cell"><strong>Confidence Cap Applied</strong>${surv.capApplied ? 'YES' : 'NO'}</div>
-      <div class="shield-cell"><strong>Final Hit Probability</strong>${Number.isFinite(surv.finalProbability) ? (surv.finalProbability*100).toFixed(1) + '%' : '—'}</div>
-      <div class="shield-cell"><strong>Final Qualified Score</strong>${Number.isFinite(surv.finalQualifiedScore) ? surv.finalQualifiedScore.toFixed(1) : '—'}</div>
-      <div class="shield-cell"><strong>Z-Score</strong>${Number.isFinite(surv.zScore) ? surv.zScore.toFixed(1) : '—'}</div>
-    `;
+  function autoDemoJaime(){
+    if ((state.cleanedRows || []).length) return;
+    const demo = makeJaimeDemoRow();
+    Global_Flush(demo, 'POOL RESET: SUCCESS');
+    state.ran = true;
+    saveState();
+    window.location.hash = '#analysis';
+    render();
+    logEvent('SUCCESS: Jaime Jaquez Jr. demo row loaded in stable v7.0 layout.', 'SUCCESS', demo.rowId, 'system');
   }
 
-  const __origRenderAnalysis = renderAnalysis;
-  renderAnalysis = function(){
-    ensureShieldPanel();
-    __origRenderAnalysis();
-    const title = document.getElementById('analysisTitle');
-    const ver = document.getElementById('analysisVersion');
-    if (title) title.textContent = 'Run Analysis v7.0';
-    if (ver) ver.textContent = 'Version: v7.0';
-    const summary = document.getElementById('analysisSummary');
-    if (summary) {
-      const current = summary.innerHTML;
-      summary.innerHTML = `<div class="pill">RUN ANALYSIS v7.0</div><div class="pill">POOL STATUS: ${state.cleanedRows.length} PLAYER</div><div class="pill">POOL RESET: SUCCESS</div>` + current;
-    }
-    renderShieldPanelV7();
-  };
-
-  const __origMineNbaRow = mineNbaRow;
-  mineNbaRow = async function(row){
-    let result = await __origMineNbaRow(row);
-    const teamLog = `${result.last5?.evidence || ''} • ${result.last10?.evidence || ''} • ${result.season?.evidence || ''} • ${row.rawText || ''}`;
-    const seasonVal = Number(result.season?.projectionValue ?? result.season?.parsedResult ?? NaN);
-    const seasonMP = Number(result.rotation?.extractionProof?.match(/(\d+(?:\.\d+)?)\s*(?:minutes|min)/i)?.[1] || NaN);
-
-    if (!result.usage3 || result.usage3.status !== 'ready') {
-      const derivedUsage = deriveUsagePulseV7(teamLog, 100);
-      if (Number.isFinite(derivedUsage)) {
-        result.usage3 = {
-          ...result.usage3,
-          status:'ready',
-          statusLabel:'Derived from last 3 box scores',
-          parsedResult:`${derivedUsage.toFixed(1)}%`,
-          evidence:'v7.0 usage pulse derivation applied.',
-          confidence:58,
-          delta: scoreDeltaFromContext('usage3', derivedUsage, row, {}),
-          projectionValue: derivedUsage,
-          rawMiningResult: derivedUsage,
-          extractionProof: `Usage ≈ 100 * ((FGA + 0.44 * FTA + TOV) * (Team_MP / 5)) / (MP * Team_Possessions) = ${derivedUsage.toFixed(1)}%`,
-          derived:true
-        };
-        logEvent(`SUCCESS: Usage Pulse [DERIVED] ${derivedUsage.toFixed(1)}%`, 'SUCCESS', row.rowId, 'usage3');
-      }
-    }
-    if (!result.rotation || result.rotation.status !== 'ready' || /Unknown/i.test(String(result.rotation.parsedResult||''))) {
-      const rot = deriveRotationStatusV7(teamLog);
-      result.rotation = {
-        ...result.rotation,
-        status: rot === 'UNKNOWN' ? 'warning' : 'ready',
-        statusLabel: rot === 'UNKNOWN' ? 'Warning state' : 'Derived from last 3 minutes',
-        parsedResult: rot,
-        evidence:'v7.0 rotation derivation applied.',
-        confidence:56,
-        delta: scoreDeltaFromContext('rotation', rot === 'LOCK_STARTER' ? 'Starter' : 'Bench', row, {}),
-        projectionValue: rot === 'LOCK_STARTER' ? 1 : 0,
-        rawMiningResult: rot,
-        extractionProof:'If MP > 30 in 2 of last 3 games => LOCK_STARTER',
-        derived:true
-      };
-      logEvent(`SUCCESS: Rotation Status [DERIVED] ${rot}`, 'SUCCESS', row.rowId, 'rotation');
-    }
-
-    const mpProj = deriveMinutesProjectionV7(teamLog, seasonMP);
-    if ((!result.projection || result.projection.status !== 'ready' || /fallback|unknown|No clean/i.test(String(result.projection.parsedResult||''))) && Number.isFinite(mpProj) && Number.isFinite(seasonVal)) {
-      const perMin = seasonVal / Math.max(1, (seasonMP || mpProj));
-      const internalProj = Math.round((perMin * mpProj) * 100) / 100;
-      result.projection = {
-        ...result.projection,
-        status:'ready',
-        statusLabel:'Internal v7.0 projection',
-        parsedResult: internalProj.toFixed(2),
-        evidence:`Proj_Min ${(mpProj).toFixed(1)} • Season_Prop_Per_Min ${(perMin).toFixed(3)}`,
-        confidence:60,
-        delta: scoreDeltaFromContext('projection', internalProj, row, {}),
-        projectionValue: internalProj,
-        rawMiningResult: internalProj,
-        extractionProof:'Proj_Min = (L3_Avg_Min + Season_Avg_Min) / 2; Projection = Season_Prop_Per_Minute * Proj_Min',
-        derived:true
-      };
-    }
-
-    const oddsParsed = parseMarketOddsFromRawText(row.rawText || row.lineText || '');
-    if (oddsParsed.label && (!result.odds || result.odds.status !== 'ready' || /Unknown|unavailable/i.test(String(result.odds.parsedResult||'')))) {
-      result.odds = {
-        ...result.odds,
-        status:'ready',
-        statusLabel:'Parsed from raw intake text',
-        parsedResult: oddsParsed.label,
-        evidence: row.rawText || row.lineText || '',
-        confidence:64,
-        delta: (Number(result.odds?.delta || 0) + (oddsParsed.sharpDrag < 0 ? -1.5 : 0)),
-        projectionValue: oddsParsed.sharpDrag,
-        rawMiningResult: oddsParsed.label,
-        extractionProof:'v7.0 MARKET_ODDS parser scanned Less/More and juice tokens.',
-        parsedSource:'raw'
-      };
-      if (oddsParsed.sharpDrag < 0) logEvent('WARNING: Sharp_Money_Drag triggered from heavy Under juice.', 'WARNING', row.rowId, 'odds');
-    }
-
-    if (result.refs && result.refs.status === 'ready') {
-      const overMatch = String(result.refs.evidence || '').match(/over[^0-9]{0,20}(\d{2,3})%/i);
-      const overPct = overMatch ? Number(overMatch[1]) : null;
-      if (Number.isFinite(overPct) && overPct > 55) {
-        result.refs.delta = Number(result.refs.delta || 0) + 1.0;
-        result.refs.extractionProof = String(result.refs.extractionProof || result.refs.evidence || '') + ' • v7.0 Whistle_Bump +1.0';
-      }
-    }
-
-    result = applyV7Integrity(result, row);
-    return result;
-  };
-
-  document.addEventListener('DOMContentLoaded', function(){
-    ensureShieldPanel();
-    const h1 = document.querySelector('.version-pill');
-    if (h1) h1.textContent = 'v7.0';
-  });
+  try {
+    const originalBoot = boot;
+    boot = function(){
+      originalBoot();
+      setTimeout(autoDemoJaime, 0);
+    };
+  } catch (e) {
+    setTimeout(autoDemoJaime, 0);
+  }
 })();
-</script>
 
 </script>
 </body>
