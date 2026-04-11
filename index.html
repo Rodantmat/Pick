@@ -3,1730 +3,620 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NBA Slip Ingest v1.0.0.0.1</title>
+  <title>NBA Ingest v1.0.0.0.3</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <style>
-    :root {
-      --bg: #071033;
-      --panel: #0f1947;
-      --panel-2: #162359;
-      --card: #121c49;
-      --card-2: #0d163e;
-      --border: rgba(255,255,255,0.08);
-      --text: #eef3ff;
-      --muted: #9fb0e2;
-      --accent: #1ee7ff;
-      --accent-2: #7a1dff;
-      --good: #26d07c;
-      --warn: #f2b94b;
-      --bad: #ff6b6b;
-      --shadow: 0 20px 60px rgba(0,0,0,0.35);
-      --radius: 18px;
-      --radius-sm: 12px;
-      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: radial-gradient(circle at top, #13205a 0%, var(--bg) 38%, #040819 100%);
-      color: var(--text);
-      font-family: var(--font);
-      min-height: 100%;
-    }
-
-    body { padding: 18px; }
-
-    .app-shell {
-      max-width: 1280px;
-      margin: 0 auto;
-      background: linear-gradient(180deg, rgba(12,24,74,0.95), rgba(5,13,41,0.98));
-      border: 1px solid var(--border);
-      border-radius: 26px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .hero {
-      padding: 22px 24px 18px;
-      border-bottom: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(28,45,111,0.52), rgba(12,23,69,0.28));
-    }
-
-    .hero-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .title-wrap h1 {
-      margin: 0;
-      font-size: 30px;
-      line-height: 1.05;
-      letter-spacing: -0.03em;
-    }
-
-    .title-wrap p {
-      margin: 8px 0 0;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .version-pill,
-    .status-pill,
-    .confidence-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.05);
-      color: var(--text);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      white-space: nowrap;
-    }
-
-    .status-good { color: var(--good); }
-    .status-warn { color: var(--warn); }
-    .status-bad { color: var(--bad); }
-
-    .tabs {
-      display: flex;
-      gap: 10px;
-      padding: 14px 24px 0;
-      flex-wrap: wrap;
-    }
-
-    .tab-btn {
-      appearance: none;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.04);
-      color: var(--text);
-      border-radius: 999px;
-      padding: 10px 16px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: 0.18s ease;
-    }
-
-    .tab-btn.active {
-      background: linear-gradient(90deg, rgba(30,231,255,0.16), rgba(122,29,255,0.18));
-      border-color: rgba(30,231,255,0.35);
-      color: white;
-    }
-
-    .screen {
-      display: none;
-      padding: 24px;
-    }
-
-    .screen.active { display: block; }
-
-    .grid {
-      display: grid;
-      gap: 18px;
-    }
-
-    .grid-2 {
-      grid-template-columns: 1.1fr 0.9fr;
-      align-items: start;
-    }
-
-    .panel,
-    .card,
-    .matrix-card,
-    .leg-row,
-    .analysis-card {
-      background: linear-gradient(180deg, rgba(18,30,80,0.95), rgba(9,17,49,0.96));
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-    }
-
-    .panel { padding: 18px; }
-    .panel h2,
-    .panel h3,
-    .analysis-card h3,
-    .matrix-card h4 {
-      margin: 0 0 10px;
-      letter-spacing: -0.02em;
-    }
-
-    .panel-sub {
-      margin: -2px 0 16px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .upload-zone {
-      border: 2px dashed rgba(30,231,255,0.3);
-      border-radius: 20px;
-      background: linear-gradient(180deg, rgba(30,231,255,0.05), rgba(255,255,255,0.02));
-      padding: 18px;
-      min-height: 170px;
-    }
-
-    .upload-zone input[type="file"] {
-      width: 100%;
-      display: block;
-      margin-bottom: 12px;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .upload-tip {
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.45;
-      margin-bottom: 12px;
-    }
-
-    .button-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 14px;
-    }
-
-    button.primary,
-    button.secondary,
-    button.ghost,
-    .mini-btn {
-      appearance: none;
-      border: 0;
-      border-radius: 14px;
-      font-weight: 800;
-      font-size: 14px;
-      cursor: pointer;
-      transition: 0.18s ease;
-    }
-
-    button.primary {
-      background: linear-gradient(90deg, var(--accent), #56f2ff);
-      color: #062241;
-      padding: 14px 18px;
-      min-width: 120px;
-    }
-
-    button.secondary {
-      background: linear-gradient(90deg, #7b24ff, #a849ff);
-      color: white;
-      padding: 14px 18px;
-      min-width: 120px;
-    }
-
-    button.ghost {
-      background: rgba(255,255,255,0.05);
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 14px 18px;
-      min-width: 120px;
-    }
-
-    button:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-      filter: grayscale(0.15);
-    }
-
-    .preview-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 12px;
-      margin-top: 14px;
-    }
-
-    .preview-card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .preview-card img {
-      display: block;
-      width: 100%;
-      height: 210px;
-      object-fit: cover;
-      background: #0b1338;
-    }
-
-    .preview-meta {
-      padding: 8px 10px;
-      font-size: 12px;
-      color: var(--muted);
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .status-box {
-      display: grid;
-      gap: 10px;
-    }
-
-    .status-line {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    .status-text {
-      padding: 12px 14px;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.03);
-      font-size: 13px;
-      line-height: 1.45;
-      color: var(--text);
-      min-height: 72px;
-    }
-
-    .meter {
-      width: 100%;
-      height: 10px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 999px;
-      overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .meter-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, var(--accent), var(--accent-2));
-      transition: width 0.25s ease;
-    }
-
-    .review-table-wrap {
-      overflow: auto;
-      border-radius: 16px;
-      border: 1px solid var(--border);
-    }
-
-    table.review-table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 1150px;
-      background: rgba(255,255,255,0.02);
-    }
-
-    .review-table th,
-    .review-table td {
-      padding: 10px 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      vertical-align: top;
-      text-align: left;
-      font-size: 12px;
-    }
-
-    .review-table th {
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      background: #101a4b;
-      color: var(--muted);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    .review-table input,
-    .review-table select,
-    .review-table textarea {
-      width: 100%;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      color: var(--text);
-      padding: 8px 9px;
-      border-radius: 10px;
-      font-size: 12px;
-      font-family: var(--font);
-    }
-
-    .review-table textarea {
-      min-height: 56px;
-      resize: vertical;
-    }
-
-    .muted {
-      color: var(--muted);
-    }
-
-    .tiny {
-      font-size: 11px;
-    }
-
-    .confidence-high { color: var(--good); }
-    .confidence-medium { color: var(--warn); }
-    .confidence-low { color: var(--bad); }
-
-    .ingest-debug {
-      margin-top: 12px;
-      border-radius: 16px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.03);
-      overflow: hidden;
-    }
-
-    .ingest-debug summary {
-      cursor: pointer;
-      padding: 14px 16px;
-      font-weight: 700;
-      color: var(--muted);
-    }
-
-    .debug-inner {
-      padding: 0 16px 16px;
-    }
-
-    .debug-text {
-      white-space: pre-wrap;
-      font-size: 12px;
-      line-height: 1.5;
-      color: #dbe4ff;
-      background: rgba(0,0,0,0.18);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px;
-      padding: 12px;
-      max-height: 300px;
-      overflow: auto;
-    }
-
-    .analysis-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .analysis-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-      gap: 18px;
-    }
-
-    .analysis-card {
-      padding: 16px;
-    }
-
-    .analysis-card .top {
-      display: flex;
-      justify-content: space-between;
-      align-items: start;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-
-    .leg-title {
-      font-size: 22px;
-      line-height: 1.05;
-      font-weight: 800;
-      letter-spacing: -0.025em;
-      margin: 0;
-    }
-
-    .leg-subtitle {
-      margin-top: 6px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.35;
-    }
-
-    .analysis-chip-group {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin: 10px 0 12px;
-    }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.05);
-      color: var(--text);
-      padding: 8px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-    }
-
-    .matrix-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .matrix-card {
-      padding: 12px;
-      background: linear-gradient(180deg, rgba(22,35,89,0.9), rgba(10,19,54,0.9));
-    }
-
-    .matrix-card h4 {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-
-    .matrix-value {
-      font-size: 14px;
-      font-weight: 800;
-      line-height: 1.35;
-      margin-bottom: 6px;
-    }
-
-    .matrix-note {
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.45;
-    }
-
-    .error-log {
-      border-radius: 16px;
-      border: 1px solid rgba(255, 107, 107, 0.18);
-      background: rgba(255, 107, 107, 0.08);
-      padding: 14px;
-      color: #ffd4d4;
-      font-size: 13px;
-      line-height: 1.5;
-      display: none;
-      margin-bottom: 16px;
-    }
-
-    .error-log.show { display: block; }
-
-    .empty-state {
-      padding: 24px;
-      border-radius: 18px;
-      border: 1px dashed rgba(255,255,255,0.14);
-      color: var(--muted);
-      text-align: center;
-      line-height: 1.6;
-      background: rgba(255,255,255,0.03);
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 72px;
-      padding: 7px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      border: 1px solid var(--border);
-    }
-
-    .badge-regular { background: rgba(255,255,255,0.05); }
-    .badge-goblin { background: rgba(38,208,124,0.14); color: #8ff1b8; }
-    .badge-demon { background: rgba(255,107,107,0.14); color: #ffb0b0; }
-    .badge-low { background: rgba(255,107,107,0.14); color: #ffb0b0; }
-    .badge-med { background: rgba(242,185,75,0.15); color: #ffe0a3; }
-    .badge-high { background: rgba(38,208,124,0.14); color: #8ff1b8; }
-
-    .footer-note {
-      margin-top: 18px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.55;
-    }
-
-    @media (max-width: 1080px) {
-      .grid-2 { grid-template-columns: 1fr; }
-      .screen { padding: 18px; }
-      .hero { padding: 18px 18px 16px; }
-      .tabs { padding: 12px 18px 0; }
-    }
-
-    @media (max-width: 720px) {
-      body { padding: 10px; }
-      .title-wrap h1 { font-size: 24px; }
-      .matrix-grid { grid-template-columns: 1fr; }
-      .analysis-grid { grid-template-columns: 1fr; }
-      .preview-card img { height: 170px; }
-    }
+    :root{
+      --bg:#07124a;
+      --panel:#0e1f67;
+      --panel2:#112777;
+      --line:#1e4ea2;
+      --cyan:#39e7ff;
+      --cyan2:#26cfff;
+      --purple:#6b35d5;
+      --purple2:#8f31ff;
+      --text:#f3f6ff;
+      --muted:#a8b4ea;
+      --good:#66f0a9;
+      --warn:#ffd166;
+      --bad:#ff7b7b;
+      --low:#8491c8;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#07124a 0%,#06103a 100%);color:var(--text)}
+    .wrap{max-width:1180px;margin:0 auto;padding:20px}
+    .tabs{display:flex;gap:14px;margin-bottom:18px}
+    .tab{padding:14px 22px;border-radius:999px;border:1px solid rgba(115,169,255,.22);background:rgba(255,255,255,.04);color:#dfe7ff;font-weight:700}
+    .tab.active{background:linear-gradient(90deg,rgba(57,231,255,.20),rgba(143,49,255,.20));border-color:#2a9ed7;box-shadow:inset 0 0 0 1px rgba(57,231,255,.18)}
+    .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}
+    .panel{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.02));border:1px solid rgba(88,125,220,.30);border-radius:28px;padding:26px;box-shadow:0 8px 30px rgba(0,0,0,.24)}
+    h1,h2,h3,p{margin:0}
+    h1{font-size:30px;line-height:1.05;margin-bottom:10px}
+    .muted{color:var(--muted)}
+    .drop{margin-top:18px;border:3px dashed rgba(57,231,255,.32);border-radius:28px;padding:20px;background:rgba(57,231,255,.03)}
+    .btnrow{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px}
+    button,.fakebtn{border:0;border-radius:18px;padding:18px 28px;font-size:18px;font-weight:800;cursor:pointer}
+    button[disabled]{opacity:.45;cursor:not-allowed}
+    .primary{background:linear-gradient(90deg,var(--cyan2),#4bd7ff);color:#06234a}
+    .secondary{background:linear-gradient(90deg,#4b2ea9,var(--purple2));color:#e9e5ff}
+    .ghost{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text)}
+    input[type=file]{display:none}
+    .picker{display:inline-flex;align-items:center;gap:10px;padding:14px 18px;border-radius:16px;background:#fff;color:#1a1a1a;font-weight:800;cursor:pointer}
+    .previewGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-top:18px}
+    .preview{border:1px solid rgba(120,152,255,.25);border-radius:18px;overflow:hidden;background:#09184f}
+    .preview img{display:block;width:100%;height:230px;object-fit:cover;background:#081649}
+    .preview .meta{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;color:#ced7ff;font-size:14px}
+    .statusCard{margin-top:18px;padding:18px 18px 16px;border-radius:20px;background:rgba(255,255,255,.03);border:1px solid rgba(128,149,220,.22)}
+    .progress{height:16px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:10px 0 14px}
+    .bar{height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),#5da9ff,var(--purple2));transition:width .25s ease}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;font-size:14px;margin-top:10px}
+    .stats div{padding:12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+    .reviewTable{margin-top:18px;overflow:auto;border:1px solid rgba(128,149,220,.22);border-radius:20px}
+    table{width:100%;border-collapse:collapse;min-width:1220px}
+    th,td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left;vertical-align:top;font-size:14px}
+    th{position:sticky;top:0;background:#0a1753;z-index:2}
+    tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+    .mini{font-size:12px;color:var(--muted)}
+    .pill{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:800;font-size:12px}
+    .high{background:rgba(102,240,169,.16);color:var(--good)}
+    .med{background:rgba(255,209,102,.16);color:var(--warn)}
+    .low{background:rgba(132,145,200,.16);color:#c2cffd}
+    .bad{background:rgba(255,123,123,.16);color:var(--bad)}
+    .textarea, input.text{width:100%;background:#0b1855;color:var(--text);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 11px;font-size:13px}
+    .textarea{min-height:90px;resize:vertical}
+    details{margin-top:18px;background:rgba(255,255,255,.03);border:1px solid rgba(128,149,220,.22);border-radius:18px;padding:16px}
+    summary{cursor:pointer;font-weight:800}
+    .log{margin-top:12px;max-height:260px;overflow:auto;background:#0a1550;border-radius:14px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;white-space:pre-wrap}
+    .analysisShell{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:16px}
+    .card{padding:16px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(128,149,220,.18)}
+    .card h3{font-size:16px;margin-bottom:8px}
+    .badge{padding:7px 10px;border-radius:999px;font-size:12px;font-weight:800;display:inline-block;background:rgba(255,255,255,.06)}
+    .copyArea{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:14px}
+    .spacer{height:14px}
+    @media (max-width: 900px){.grid{grid-template-columns:1fr}.wrap{padding:12px}.panel{padding:18px;border-radius:22px}.stats{grid-template-columns:repeat(2,1fr)} button,.fakebtn{padding:16px 22px}}
   </style>
 </head>
 <body>
-  <div class="app-shell">
-    <div class="hero">
-      <div class="hero-top">
-        <div class="title-wrap">
-          <h1>NBA Slip Ingest</h1>
-          <p>v1.0.0.0.1 • Image upload, ingest, merge, normalize, review, and run handoff.</p>
-        </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <div class="version-pill">CONNECTOR FAMILY 1</div>
-          <div id="globalStatusPill" class="status-pill"><span class="status-warn">●</span><span id="globalStatusText">Waiting for images</span></div>
-        </div>
-      </div>
-    </div>
-
+  <div class="wrap">
     <div class="tabs">
-      <button class="tab-btn active" data-screen="screen-ingest">Screen 1 • Ingest</button>
-      <button class="tab-btn" data-screen="screen-analysis">Screen 2 • Analysis Shell</button>
+      <div class="tab active">Screen 1 • Ingest</div>
+      <div class="tab">Screen 2 • Analysis Shell</div>
     </div>
 
-    <section id="screen-ingest" class="screen active">
-      <div id="errorLog" class="error-log"></div>
-      <div class="grid grid-2">
-        <div class="panel">
-          <h2>Image upload</h2>
-          <div class="panel-sub">Upload up to 3 screenshots. PrizePicks split screenshots are merged in order. Sleeper rows and stacked card layouts are parsed into editable legs.</div>
+    <div class="grid">
+      <section class="panel">
+        <h1>Image upload</h1>
+        <p class="muted">Upload up to 3 screenshots. Sleeper single-entry rows, PrizePicks lineup screenshots, split screenshots, and tail/feed cards are supported in v1.0.0.0.3.</p>
 
-          <div class="upload-zone">
-            <input id="imageInput" type="file" accept="image/*" multiple />
-            <div class="upload-tip">
-              Supported v1 layout families: Sleeper Picks Entry, PrizePicks Current Lineup, PrizePicks copied/tail card, and weaker PrizePicks feed cards. Use clean screenshots in order from top to bottom.
-            </div>
-            <div class="button-row">
-              <button id="ingestBtn" class="primary">Ingest</button>
-              <button id="runBtn" class="secondary" disabled>Run</button>
-              <button id="resetBtn" class="ghost">Reset</button>
-            </div>
-            <div id="previewGrid" class="preview-grid"></div>
+        <div class="drop">
+          <label class="picker" for="images">Choose Files</label>
+          <input id="images" type="file" accept="image/*" multiple />
+          <span id="fileMeta" class="muted">0 photos</span>
+
+          <div class="btnrow">
+            <button id="ingestBtn" class="primary">Ingest</button>
+            <button id="runBtn" class="secondary" disabled>Run</button>
+            <button id="resetBtn" class="ghost">Reset</button>
+            <button id="copyBtn" class="ghost" disabled>Copy parsed legs</button>
           </div>
+
+          <div id="previewGrid" class="previewGrid"></div>
         </div>
 
-        <div class="panel status-box">
+        <div class="statusCard">
           <h2>Ingest status</h2>
-          <div class="status-line"><span>Progress</span><span id="progressLabel">0%</span></div>
-          <div class="meter"><div id="meterFill" class="meter-fill"></div></div>
-          <div id="statusText" class="status-text">No images loaded yet. Upload screenshots, click Ingest, review the parsed legs, then click Run.</div>
-          <div class="status-line"><span>Parsed rows</span><strong id="parsedCount">0</strong></div>
-          <div class="status-line"><span>High confidence</span><strong id="highCount">0</strong></div>
-          <div class="status-line"><span>Medium confidence</span><strong id="mediumCount">0</strong></div>
-          <div class="status-line"><span>Low confidence</span><strong id="lowCount">0</strong></div>
-          <div class="footer-note">
-            v1 is built to surface partial rows instead of hiding them. If a leg is incomplete, edit it in the review grid before you click Run.
+          <div class="spacer"></div>
+          <div class="muted">Progress</div>
+          <div class="progress"><div id="progressBar" class="bar"></div></div>
+          <div id="statusMessage" class="muted">Ready.</div>
+          <div class="stats">
+            <div><strong id="statParsed">0</strong><br><span class="mini">Parsed rows</span></div>
+            <div><strong id="statHigh">0</strong><br><span class="mini">High confidence</span></div>
+            <div><strong id="statMedium">0</strong><br><span class="mini">Medium confidence</span></div>
+            <div><strong id="statLow">0</strong><br><span class="mini">Low confidence</span></div>
+          </div>
+          <div class="copyArea">
+            <span class="mini">v1 surfaces partial rows rather than hiding them. Low-confidence rows stay editable before Run.</span>
           </div>
         </div>
-      </div>
 
-      <div class="panel" style="margin-top:18px;">
-        <h2>Parsed leg review</h2>
-        <div class="panel-sub">Each row is editable. Unknown values are allowed in v1. Fix low-confidence rows here before Run.</div>
-        <div id="reviewEmpty" class="empty-state">No parsed legs yet.</div>
-        <div id="reviewTableWrap" class="review-table-wrap" style="display:none;">
-          <table class="review-table" id="reviewTable">
+        <div class="reviewTable">
+          <table>
             <thead>
               <tr>
                 <th>#</th>
-                <th>Player Raw</th>
-                <th>Player Normalized</th>
-                <th>Team Raw</th>
+                <th>Player</th>
                 <th>Team</th>
-                <th>Opponent Raw</th>
                 <th>Opponent</th>
-                <th>Pos</th>
-                <th>Prop Raw</th>
                 <th>Prop</th>
                 <th>Line</th>
                 <th>Direction</th>
                 <th>Promo</th>
                 <th>Suffix</th>
+                <th>Confidence</th>
                 <th>Platform</th>
                 <th>Layout</th>
-                <th>Confidence</th>
                 <th>Note</th>
               </tr>
             </thead>
-            <tbody id="reviewTbody"></tbody>
+            <tbody id="reviewBody">
+              <tr><td colspan="13" class="muted" style="padding:28px;text-align:center">No parsed legs yet.</td></tr>
+            </tbody>
           </table>
         </div>
 
-        <details id="debugBox" class="ingest-debug" style="display:none;">
-          <summary>Raw OCR / parser debug</summary>
-          <div id="debugInner" class="debug-inner"></div>
+        <details open>
+          <summary>Rich error log / parser log</summary>
+          <div id="logBox" class="log">No events yet.</div>
         </details>
-      </div>
-    </section>
 
-    <section id="screen-analysis" class="screen">
-      <div class="analysis-header">
-        <div>
-          <h2 style="margin:0; font-size:28px; letter-spacing:-0.03em;">Screen 2 • Analysis Shell</h2>
-          <div class="panel-sub">Current v1 handoff preserves the multi-card analysis structure but only populates connector family 1 fields so you can validate the ingest.</div>
-        </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <div class="status-pill"><span id="analysisLegCount">0</span><span>Legs Loaded</span></div>
-          <button id="backToIngestBtn" class="ghost">Back to Screen 1</button>
-        </div>
-      </div>
+        <details>
+          <summary>Raw OCR / parser debug</summary>
+          <div id="debugBox" class="log">No OCR debug yet.</div>
+        </details>
+      </section>
 
-      <div id="analysisEmpty" class="empty-state">Nothing has been sent to Screen 2 yet. Parse and review the legs on Screen 1, then click Run.</div>
-      <div id="analysisGrid" class="analysis-grid" style="display:none;"></div>
-    </section>
+      <section class="panel">
+        <h1>Screen 2 analysis shell</h1>
+        <p class="muted">Existing Screen 2 shell placeholder. Run sends the cleaned rows here. Keep validating Screen 1 first.</p>
+        <div id="analysisShell" class="analysisShell">
+          <div class="card"><h3>No legs loaded</h3><div class="muted">Click Run after a successful ingest.</div></div>
+        </div>
+      </section>
+    </div>
   </div>
 
-  <script>
-    const SYSTEM_VERSION = '1.0.0.0.1';
+<script>
+(() => {
+  const state = {
+    files: [],
+    parsed: [],
+    logs: [],
+    debug: [],
+    ingesting: false,
+    worker: null,
+  };
 
-    const TEAM_MAP = {
-      ATL: 'Atlanta Hawks', BOS: 'Boston Celtics', BKN: 'Brooklyn Nets', BRK: 'Brooklyn Nets',
-      CHA: 'Charlotte Hornets', CHI: 'Chicago Bulls', CLE: 'Cleveland Cavaliers', DAL: 'Dallas Mavericks',
-      DEN: 'Denver Nuggets', DET: 'Detroit Pistons', GSW: 'Golden State Warriors', GS: 'Golden State Warriors',
-      HOU: 'Houston Rockets', IND: 'Indiana Pacers', LAC: 'Los Angeles Clippers', LAL: 'Los Angeles Lakers',
-      MEM: 'Memphis Grizzlies', MIA: 'Miami Heat', MIL: 'Milwaukee Bucks', MIN: 'Minnesota Timberwolves',
-      NOP: 'New Orleans Pelicans', NO: 'New Orleans Pelicans', NYK: 'New York Knicks', OKC: 'Oklahoma City Thunder',
-      ORL: 'Orlando Magic', PHI: 'Philadelphia 76ers', PHX: 'Phoenix Suns', PHO: 'Phoenix Suns',
-      POR: 'Portland Trail Blazers', SAC: 'Sacramento Kings', SAS: 'San Antonio Spurs', SA: 'San Antonio Spurs',
-      TOR: 'Toronto Raptors', UTA: 'Utah Jazz', UTH: 'Utah Jazz', WAS: 'Washington Wizards'
-    };
+  const els = {
+    images: document.getElementById('images'),
+    fileMeta: document.getElementById('fileMeta'),
+    previewGrid: document.getElementById('previewGrid'),
+    ingestBtn: document.getElementById('ingestBtn'),
+    runBtn: document.getElementById('runBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    copyBtn: document.getElementById('copyBtn'),
+    progressBar: document.getElementById('progressBar'),
+    statusMessage: document.getElementById('statusMessage'),
+    statParsed: document.getElementById('statParsed'),
+    statHigh: document.getElementById('statHigh'),
+    statMedium: document.getElementById('statMedium'),
+    statLow: document.getElementById('statLow'),
+    reviewBody: document.getElementById('reviewBody'),
+    logBox: document.getElementById('logBox'),
+    debugBox: document.getElementById('debugBox'),
+    analysisShell: document.getElementById('analysisShell')
+  };
 
-    const PROP_MAP = [
-      [/^PTS$/i, 'Points'],
-      [/^REB$/i, 'Rebounds'],
-      [/^AST$/i, 'Assists'],
-      [/^BLK$/i, 'Blocks'],
-      [/^STL$/i, 'Steals'],
-      [/^3PM$/i, '3-Pointers Made'],
-      [/^3PTM$/i, '3-Pointers Made'],
-      [/^3-?PT Attempted$/i, '3-Point Attempts'],
-      [/^P\+R\+A$/i, 'Points + Rebounds + Assists'],
-      [/^PRA$/i, 'Points + Rebounds + Assists'],
-      [/^Pts\+Asts$/i, 'Points + Assists'],
-      [/^Pts\+Rebs$/i, 'Points + Rebounds'],
-      [/^Rebs\+Asts$/i, 'Rebounds + Assists'],
-      [/^AST\s*\+\s*REB$/i, 'Assists + Rebounds'],
-      [/^REB\s*\+\s*AST$/i, 'Rebounds + Assists'],
-      [/^Fantasy Score$/i, 'Fantasy Score'],
-      [/^Blocked Shots$/i, 'Blocked Shots']
-    ];
+  const TEAM_MAP = {
+    ATL:'Atlanta Hawks', BOS:'Boston Celtics', BKN:'Brooklyn Nets', CHA:'Charlotte Hornets', CHI:'Chicago Bulls', CLE:'Cleveland Cavaliers', DAL:'Dallas Mavericks', DEN:'Denver Nuggets', DET:'Detroit Pistons', GSW:'Golden State Warriors', HOU:'Houston Rockets', IND:'Indiana Pacers', LAC:'Los Angeles Clippers', LAL:'Los Angeles Lakers', MEM:'Memphis Grizzlies', MIA:'Miami Heat', MIL:'Milwaukee Bucks', MIN:'Minnesota Timberwolves', NOP:'New Orleans Pelicans', NYK:'New York Knicks', OKC:'Oklahoma City Thunder', ORL:'Orlando Magic', PHI:'Philadelphia 76ers', PHX:'Phoenix Suns', POR:'Portland Trail Blazers', SAC:'Sacramento Kings', SAS:'San Antonio Spurs', TOR:'Toronto Raptors', UTA:'Utah Jazz', WAS:'Washington Wizards'
+  };
 
-    const PLAYER_ALIAS_MAP = {
-      'S. Curry|GSW': 'Stephen Curry',
-      'D. Green|GSW': 'Draymond Green',
-      'T. Camara|POR': 'Toumani Camara',
-      'L. Dort|OKC': 'Luguentz Dort',
-      'J. Green|PHX': 'Jalen Green',
-      'J. Green|HOU': 'Jalen Green',
-      'J. Small|MEM': 'Jahmai Small',
-      'J. LaRavia|LAL': 'Jake LaRavia',
-      'J. Collins|LAC': 'John Collins',
-      'J. Collins|UTA': 'John Collins',
-      'A. Wiggins|OKC': 'Aaron Wiggins',
-      'T. Eason|HOU': 'Tari Eason',
-      'B. Mbeng|UTA': 'Bez Mbeng',
-      'J. Strawther|DEN': 'Julian Strawther',
-      'J. Valanciunas|DEN': 'Jonas Valanciunas',
-      'A. Thompson|HOU': 'Amen Thompson',
-      'D. Jones|LAC': 'Derrick Jones',
-      'D. Clingan|POR': 'Donovan Clingan',
-      'A. Edwards|MIN': 'Anthony Edwards'
-    };
+  const PROP_MAP = {
+    'PTS':'Points', 'REB':'Rebounds', 'AST':'Assists', 'PRA':'Points + Rebounds + Assists', 'P+R+A':'Points + Rebounds + Assists', 'PTS+ASTS':'Points + Assists', 'PTS+AST':'Points + Assists', 'PTS+REBS':'Points + Rebounds', 'PTS+REB':'Points + Rebounds', 'REBS+ASTS':'Rebounds + Assists', 'REB+AST':'Rebounds + Assists', 'AST+REB':'Assists + Rebounds', 'AST + REB':'Assists + Rebounds', '3PM':'3-Pointers Made', '3PTM':'3-Pointers Made', '3PT MADE':'3-Pointers Made', '3PT ATTEMPTED':'3-Point Attempts', '3-PT ATTEMPTED':'3-Point Attempts', 'BLOCKED SHOTS':'Blocked Shots', 'FANTASY SCORE':'Fantasy Score', 'PRA (1H)':'Points + Rebounds + Assists (1H)', 'FANTASY SCORE (1H)':'Fantasy Score (1H)'
+  };
 
-    const PLAYER_FALLBACK_MAP = {
-      'T. Camara': { fullName: 'Toumani Camara', team: 'POR' },
-      'Toumani Camara': { fullName: 'Toumani Camara', team: 'POR' },
-      'J. Collins': { fullName: 'John Collins', team: 'LAC' },
-      'John Collins': { fullName: 'John Collins', team: 'LAC' },
-      'J. LaRavia': { fullName: 'Jake LaRavia', team: 'LAL' },
-      'Jake LaRavia': { fullName: 'Jake LaRavia', team: 'LAL' },
-      'D. Green': { fullName: 'Draymond Green', team: 'GSW' },
-      'Draymond Green': { fullName: 'Draymond Green', team: 'GSW' },
-      'S. Curry': { fullName: 'Stephen Curry', team: 'GSW' },
-      'Stephen Curry': { fullName: 'Stephen Curry', team: 'GSW' },
-      'L. Dort': { fullName: 'Luguentz Dort', team: 'OKC' },
-      'Luguentz Dort': { fullName: 'Luguentz Dort', team: 'OKC' },
-      'J. Small': { fullName: 'Jahmai Small', team: 'MEM' },
-      'Jahmai Small': { fullName: 'Jahmai Small', team: 'MEM' },
-      'J. Green': { fullName: 'Jalen Green', team: 'PHX' },
-      'Jalen Green': { fullName: 'Jalen Green', team: 'PHX' },
-      'Anthony Edwards': { fullName: 'Anthony Edwards', team: 'MIN' },
-      'Tari Eason': { fullName: 'Tari Eason', team: 'HOU' },
-      'Bez Mbeng': { fullName: 'Bez Mbeng', team: 'UTA' },
-      'Aaron Wiggins': { fullName: 'Aaron Wiggins', team: 'OKC' },
-      'Jonas Valanciunas': { fullName: 'Jonas Valanciunas', team: 'DEN' },
-      'Julian Strawther': { fullName: 'Julian Strawther', team: 'DEN' },
-      'Amen Thompson': { fullName: 'Amen Thompson', team: 'HOU' },
-      'Kevin Durant': { fullName: 'Kevin Durant', team: 'HOU' },
-      'Derrick Jones': { fullName: 'Derrick Jones', team: 'LAC' },
-      'Donovan Clingan': { fullName: 'Donovan Clingan', team: 'POR' },
-      'Kawhi Leonard': { fullName: 'Kawhi Leonard', team: 'LAC' },
-      'Jared McCain': { fullName: 'Jared McCain', team: 'PHI' },
-      'Brandin Podziemski': { fullName: 'Brandin Podziemski', team: 'GSW' },
-      'Kenrich Williams': { fullName: 'Kenrich Williams', team: 'OKC' }
-    };
+  const PROMO_REGEX = /(goblin|demon|promo|discount)/i;
+  const IGNORE_PATTERNS = [
+    /^5:\d\d/, /^6-pick/i, /^win contest/i, /^to win/i, /^entry fee/i, /^flex play/i, /^power play/i, /^submit/i, /^promotions/i,
+    /^current lineup/i, /^clear all/i, /^picks entry/i, /^prizepicks/i, /^copy lineup/i, /^view less/i, /^follow$/i, /^for you$/i, /^following$/i,
+    /^starts in /i, /^nba$/i, /^players$/i, /^feed$/i, /^board$/i, /^profile$/i, /^my entries$/i
+  ];
 
-    const UI_NOISE_PATTERNS = [
-      /^picks entry$/i, /^current lineup$/i, /^submit entry$/i, /^submit lineup$/i,
-      /^copy lineup$/i, /^view less$/i, /^view more$/i, /^clear all$/i, /^for you$/i,
-      /^following$/i, /^players$/i, /^flex play$/i, /^power play$/i, /^entry fee$/i,
-      /^to win$/i, /^promotions/i, /^6-pick$/i, /^win contest/i, /^first game starts/i,
-      /^starts in\s+\d+/i, /^prizepicks$/i, /^copy$/i, /^edit$/i
-    ];
+  function log(level, msg){
+    const line = `${level} [${new Date().toLocaleTimeString()}] ${msg}`;
+    state.logs.push(line);
+    els.logBox.textContent = state.logs.join('\n');
+    els.logBox.scrollTop = els.logBox.scrollHeight;
+  }
+  function setStatus(msg){ els.statusMessage.textContent = msg; }
+  function setProgress(n){ els.progressBar.style.width = `${Math.max(0,Math.min(100,n))}%`; }
 
-    const state = {
-      images: [],
-      rawDebug: [],
-      parsedLegs: [],
-      analysisLegs: []
-    };
+  function resetAll(){
+    state.files = []; state.parsed = []; state.logs = []; state.debug = []; state.ingesting = false;
+    els.images.value = '';
+    els.fileMeta.textContent = '0 photos';
+    els.previewGrid.innerHTML = '';
+    els.reviewBody.innerHTML = '<tr><td colspan="13" class="muted" style="padding:28px;text-align:center">No parsed legs yet.</td></tr>';
+    els.debugBox.textContent = 'No OCR debug yet.';
+    els.logBox.textContent = 'No events yet.';
+    setProgress(0); setStatus('Ready.');
+    els.statParsed.textContent = '0'; els.statHigh.textContent='0'; els.statMedium.textContent='0'; els.statLow.textContent='0';
+    els.runBtn.disabled = true; els.copyBtn.disabled = true;
+    els.analysisShell.innerHTML = '<div class="card"><h3>No legs loaded</h3><div class="muted">Click Run after a successful ingest.</div></div>';
+  }
 
-    const els = {
-      imageInput: document.getElementById('imageInput'),
-      previewGrid: document.getElementById('previewGrid'),
-      ingestBtn: document.getElementById('ingestBtn'),
-      runBtn: document.getElementById('runBtn'),
-      resetBtn: document.getElementById('resetBtn'),
-      backToIngestBtn: document.getElementById('backToIngestBtn'),
-      statusText: document.getElementById('statusText'),
-      progressLabel: document.getElementById('progressLabel'),
-      meterFill: document.getElementById('meterFill'),
-      parsedCount: document.getElementById('parsedCount'),
-      highCount: document.getElementById('highCount'),
-      mediumCount: document.getElementById('mediumCount'),
-      lowCount: document.getElementById('lowCount'),
-      reviewEmpty: document.getElementById('reviewEmpty'),
-      reviewTableWrap: document.getElementById('reviewTableWrap'),
-      reviewTbody: document.getElementById('reviewTbody'),
-      debugBox: document.getElementById('debugBox'),
-      debugInner: document.getElementById('debugInner'),
-      analysisGrid: document.getElementById('analysisGrid'),
-      analysisEmpty: document.getElementById('analysisEmpty'),
-      analysisLegCount: document.getElementById('analysisLegCount'),
-      errorLog: document.getElementById('errorLog'),
-      globalStatusText: document.getElementById('globalStatusText'),
-      globalStatusPill: document.getElementById('globalStatusPill')
-    };
+  function updateFileUI(){
+    els.fileMeta.textContent = `${state.files.length} photo${state.files.length===1?'':'s'}`;
+    els.previewGrid.innerHTML = '';
+    state.files.forEach((f,i) => {
+      const item = document.createElement('div'); item.className='preview';
+      const img = document.createElement('img'); img.src = f.url;
+      const meta = document.createElement('div'); meta.className='meta'; meta.innerHTML = `<span>Image ${i+1}</span><span>${f.file.name}</span>`;
+      item.appendChild(img); item.appendChild(meta); els.previewGrid.appendChild(item);
+    });
+  }
 
-    const tabs = Array.from(document.querySelectorAll('.tab-btn'));
-    tabs.forEach(btn => btn.addEventListener('click', () => switchScreen(btn.dataset.screen)));
+  async function ensureWorker(){
+    if (state.worker) return state.worker;
+    state.worker = await Tesseract.createWorker('eng');
+    return state.worker;
+  }
 
-    function switchScreen(screenId) {
-      document.querySelectorAll('.screen').forEach(screen => screen.classList.toggle('active', screen.id === screenId));
-      tabs.forEach(btn => btn.classList.toggle('active', btn.dataset.screen === screenId));
+  async function ocrFile(fileObj, index){
+    log('INFO', `Image ${index+1}: preprocessing started for ${fileObj.file.name}.`);
+    const worker = await ensureWorker();
+    const result = await worker.recognize(fileObj.file);
+    const text = result.data.text || '';
+    const lines = (result.data.lines || []).map(l => ({text:(l.text||'').trim(), bbox:l.bbox})).filter(l => l.text);
+    log('INFO', `Image ${index+1}: OCR returned ${text.replace(/\s+/g,'').length} non-space characters.`);
+    return {text, lines};
+  }
+
+  function detectLayout(text){
+    const t = text.toLowerCase();
+    if (t.includes('picks entry')) return {platform:'Sleeper', family:'sleep_entry'};
+    if (t.includes('current lineup')) return {platform:'PrizePicks', family:'prizepicks_current_lineup'};
+    if (t.includes('flex play') || t.includes('copy lineup')) return {platform:'PrizePicks', family:'prizepicks_tail_card'};
+    if (t.includes('for you') || t.includes('following')) return {platform:'PrizePicks', family:'prizepicks_feed_card'};
+    return {platform:'Unknown', family:'unknown'};
+  }
+
+  function cleanLine(s){
+    return s
+      .replace(/[“”]/g,'"')
+      .replace(/[‘’]/g,"'")
+      .replace(/[|\\]/g,' ')
+      .replace(/[®©]/g,' ')
+      .replace(/\s+/g,' ')
+      .trim();
+  }
+  function shouldIgnore(line){
+    const s = cleanLine(line);
+    return !s || IGNORE_PATTERNS.some(r => r.test(s));
+  }
+  function confClass(c){ return c==='HIGH'?'high':c==='MEDIUM'?'med':'low'; }
+
+  function normalizeTeam(abbr){
+    if (!abbr) return '';
+    const key = abbr.toUpperCase().replace(/[^A-Z]/g,'');
+    return TEAM_MAP[key] || abbr.toUpperCase();
+  }
+  function normalizeProp(raw){
+    if (!raw) return 'Unknown prop';
+    const key = raw.toUpperCase().replace(/\s+/g,' ').trim();
+    return PROP_MAP[key] || PROP_MAP[key.replace(/\s*\(1H\)$/,'')] || titleCase(raw);
+  }
+  function titleCase(s){ return s.replace(/\w\S*/g, w => w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()); }
+
+  function parseDirectionFromText(s){
+    const t = s.toLowerCase();
+    if (/\bmore\b/.test(t) || /\bover\b/.test(t) || /↑/.test(s)) return 'Over';
+    if (/\bless\b/.test(t) || /\bunder\b/.test(t) || /↓/.test(s)) return 'Under';
+    return 'UNKNOWN';
+  }
+
+  function parseSleeper(ocr, debugMeta){
+    const raw = ocr.lines.map(l => cleanLine(l.text)).filter(Boolean);
+    const filtered = raw.filter(l => !shouldIgnore(l));
+    const rows = [];
+    let current = null;
+
+    function pushCurrent(){
+      if (!current) return;
+      if (current.playerRaw && current.propRaw && current.line != null) rows.push(finalizeRow(current, debugMeta));
+      current = null;
     }
 
-    function setGlobalStatus(text, tone = 'warn') {
-      els.globalStatusText.textContent = text;
-      const dot = tone === 'good' ? 'status-good' : tone === 'bad' ? 'status-bad' : 'status-warn';
-      els.globalStatusPill.innerHTML = `<span class="${dot}">●</span><span>${escapeHtml(text)}</span>`;
-    }
-
-    function showError(message) {
-      els.errorLog.textContent = message;
-      els.errorLog.classList.add('show');
-    }
-
-    function clearError() {
-      els.errorLog.textContent = '';
-      els.errorLog.classList.remove('show');
-    }
-
-    function updateProgress(percent, text) {
-      const safe = Math.max(0, Math.min(100, percent));
-      els.progressLabel.textContent = `${safe}%`;
-      els.meterFill.style.width = `${safe}%`;
-      if (text) els.statusText.textContent = text;
-    }
-
-    function escapeHtml(str) {
-      return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
-    }
-
-    function resetState() {
-      state.images = [];
-      state.rawDebug = [];
-      state.parsedLegs = [];
-      state.analysisLegs = [];
-      els.imageInput.value = '';
-      els.previewGrid.innerHTML = '';
-      els.reviewTbody.innerHTML = '';
-      els.reviewEmpty.style.display = 'block';
-      els.reviewTableWrap.style.display = 'none';
-      els.debugBox.style.display = 'none';
-      els.debugInner.innerHTML = '';
-      els.analysisGrid.innerHTML = '';
-      els.analysisGrid.style.display = 'none';
-      els.analysisEmpty.style.display = 'block';
-      els.analysisLegCount.textContent = '0';
-      els.runBtn.disabled = true;
-      updateProgress(0, 'No images loaded yet. Upload screenshots, click Ingest, review the parsed legs, then click Run.');
-      els.parsedCount.textContent = '0';
-      els.highCount.textContent = '0';
-      els.mediumCount.textContent = '0';
-      els.lowCount.textContent = '0';
-      clearError();
-      setGlobalStatus('Waiting for images', 'warn');
-      switchScreen('screen-ingest');
-    }
-
-    resetState();
-
-    els.imageInput.addEventListener('change', handleImageSelection);
-    els.ingestBtn.addEventListener('click', ingestImages);
-    els.runBtn.addEventListener('click', runAnalysis);
-    els.resetBtn.addEventListener('click', resetState);
-    els.backToIngestBtn.addEventListener('click', () => switchScreen('screen-ingest'));
-
-    function handleImageSelection(event) {
-      clearError();
-      const files = Array.from(event.target.files || []);
-      if (files.length > 3) {
-        showError('Maximum 3 images allowed in v1. Reduce the batch and try again.');
-        event.target.value = '';
-        return;
-      }
-      state.images = files.map((file, index) => ({ file, index, url: URL.createObjectURL(file) }));
-      renderPreviews();
-      updateProgress(0, `${state.images.length} image${state.images.length === 1 ? '' : 's'} loaded. Ready to ingest.`);
-      setGlobalStatus('Images loaded', 'good');
-    }
-
-    function renderPreviews() {
-      els.previewGrid.innerHTML = '';
-      state.images.forEach((img, idx) => {
-        const card = document.createElement('div');
-        card.className = 'preview-card';
-        card.innerHTML = `
-          <img src="${img.url}" alt="Preview ${idx + 1}" />
-          <div class="preview-meta">
-            <span>Image ${idx + 1}</span>
-            <span>${escapeHtml(img.file.name)}</span>
-          </div>
-        `;
-        els.previewGrid.appendChild(card);
-      });
-    }
-
-    async function ingestImages() {
-      clearError();
-      if (!state.images.length) {
-        showError('Upload at least 1 screenshot before you click Ingest.');
-        return;
-      }
-
-      els.ingestBtn.disabled = true;
-      els.runBtn.disabled = true;
-      state.rawDebug = [];
-      state.parsedLegs = [];
-      updateProgress(2, 'Preparing screenshots for OCR and parser pass...');
-      setGlobalStatus('Ingest running', 'warn');
-
-      try {
-        const imageResults = [];
-        let carryContext = { event: '', layoutFamily: '', platformSource: '' };
-
-        for (let i = 0; i < state.images.length; i++) {
-          const image = state.images[i];
-          updateProgress(Math.round((i / state.images.length) * 35) + 5, `Reading image ${i + 1} of ${state.images.length}...`);
-          const text = await extractTextFromImage(image.file);
-          const layoutFamily = detectLayoutFamily(text);
-          const platformSource = detectPlatform(layoutFamily, text);
-          const parsed = parseLayoutText(text, layoutFamily, platformSource, carryContext, i);
-          imageResults.push({ imageIndex: i + 1, layoutFamily, platformSource, text, parsedCount: parsed.legs.length });
-          state.parsedLegs.push(...parsed.legs);
-          if (parsed.context.event) carryContext.event = parsed.context.event;
-          if (layoutFamily) carryContext.layoutFamily = layoutFamily;
-          if (platformSource) carryContext.platformSource = platformSource;
-          state.rawDebug.push({ imageIndex: i + 1, layoutFamily, platformSource, text, notes: parsed.notes });
-        }
-
-        updateProgress(55, 'Merging screenshot rows, deduplicating, and normalizing...');
-        state.parsedLegs = mergeAndNormalizeLegs(state.parsedLegs);
-
-        updateProgress(72, 'Building editable review grid...');
-        renderReviewTable();
-
-        updateProgress(100, `Ingest complete. Parsed ${state.parsedLegs.length} leg${state.parsedLegs.length === 1 ? '' : 's'}. Review and click Run when ready.`);
-        setGlobalStatus('Ingest complete', state.parsedLegs.length ? 'good' : 'bad');
-        els.runBtn.disabled = state.parsedLegs.length === 0;
-        renderDebug();
-      } catch (error) {
-        console.error(error);
-        showError(`Ingest failed. ${error.message || 'Unexpected OCR or parser error.'}`);
-        updateProgress(0, 'Ingest failed. Fix the issue and try again.');
-        setGlobalStatus('Ingest failed', 'bad');
-      } finally {
-        els.ingestBtn.disabled = false;
-      }
-    }
-
-    async function extractTextFromImage(file) {
-      const processedDataUrl = await preprocessImage(file);
-      const result = await Tesseract.recognize(processedDataUrl, 'eng', {
-        tessedit_pageseg_mode: Tesseract.PSM.AUTO,
-        preserve_interword_spaces: '1'
-      });
-      return normalizeOcrText(result.data.text || '');
-    }
-
-    function preprocessImage(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const maxWidth = 1600;
-            const scale = Math.min(1, maxWidth / img.width);
-            canvas.width = Math.round(img.width * scale);
-            canvas.height = Math.round(img.height * scale);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            for (let i = 0; i < data.length; i += 4) {
-              const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-              const boosted = avg > 140 ? 255 : avg < 60 ? 0 : avg * 1.25;
-              data[i] = boosted;
-              data[i + 1] = boosted;
-              data[i + 2] = boosted;
-            }
-            ctx.putImageData(imageData, 0, 0);
-            resolve(canvas.toDataURL('image/png'));
-          };
-          img.onerror = reject;
-          img.src = reader.result;
+    for (let i=0;i<filtered.length;i++){
+      const line = filtered[i];
+      const nameMatch = line.match(/^([A-Z][a-z]?\.\s?[A-Za-z'’.-]+|[A-Z][a-z]+\s+[A-Z][A-Za-z'’.-]+)(?:\s+([0-9]{1,3}(?:\.[0-9])?))$/);
+      if (nameMatch){
+        pushCurrent();
+        current = {
+          playerRaw: nameMatch[1].replace(/\s+/g,' ').trim(),
+          line: parseFloat(nameMatch[2]),
+          teamRaw:'', opponentRaw:'', propRaw:'', direction:'UNKNOWN', promo:'Regular', suffix:'', note:''
         };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-
-    function normalizeOcrText(text) {
-      return text
-        .replace(/[\u2018\u2019]/g, "'")
-        .replace(/[\u201C\u201D]/g, '"')
-        .replace(/[•·]/g, '•')
-        .replace(/[—–]/g, '-')
-        .replace(/\r/g, '')
-        .replace(/[ \t]+/g, ' ')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
-    }
-
-    function cleanParserLine(line) {
-      return String(line || '')
-        .replace(/[§&«»©®™✓✔︎•]+/g, ' ')
-        .replace(/[|\\]/g, ' ')
-        .replace(/[_~]+/g, ' ')
-        .replace(/\s+/g, ' ')
-        .replace(/^[-:;,.\s]+|[-:;,.\s]+$/g, '')
-        .trim();
-    }
-
-    function isUiNoise(line) {
-      const clean = cleanParserLine(line).toLowerCase();
-      if (!clean) return true;
-      return UI_NOISE_PATTERNS.some(p => p.test(clean)) ||
-        /^(entry fee|to win|promotions|submit lineup|submit entry|copy lineup|copy|edit|clear all|follow|following|for you|players|my entries|board|feed|promos|profile|view less|view more|starts in \d+)/i.test(clean) ||
-        /^\$?\d+(?:\.\d+)?x?$/.test(clean) ||
-        /^(less|more|flex play|power play)$/i.test(clean);
-    }
-
-    function looksLikePlausiblePlayerName(name) {
-      const clean = cleanParserLine(name);
-      if (!clean || isUiNoise(clean)) return false;
-      if (/^(sac|lal|den|okc|mem|uta|por|lac|phx|hou|min)$/i.test(clean)) return false;
-      return /^[A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){0,2}$/.test(clean) || /^[A-Z]\.\s?[A-Za-z'.-]+$/.test(clean);
-    }
-
-    function isLikelyShortName(line) {
-      const clean = cleanParserLine(line);
-      return /^[A-Z]\.\s?[A-Za-z'.-]+(?:\s+[A-Z])?(?:\s+\d+(?:\.\d+)?)?$/.test(clean);
-    }
-
-    function isLikelyNameFragment(line) {
-      const clean = cleanParserLine(line);
-      if (!clean || isUiNoise(clean)) return false;
-      if (/^(nba\s+)?[A-Z]{2,4}\s+vs\s+[A-Z]{2,4}/i.test(clean)) return false;
-      if (/^(less|more|started|submit|entry|to win|6-pick)/i.test(clean)) return false;
-      return /^[A-Z][A-Za-z'.-]+(?:\s+[A-Za-z'.-]+){0,3}$/.test(clean);
-    }
-
-    function isLikelyTeamPosLine(line) {
-      const clean = cleanParserLine(line).replace(/-/g, '•');
-      return /\b[A-Z]{2,4}\b\s*[•.]\s*(PG|SG|SF|PF|C|G|F|G-F|F-C|G-F-C)\b/i.test(clean) || /\b[A-Z]{2,4}\b\s*[•.]\s*[A-Z-]+\s*[•.]\s*#?\d+/i.test(clean);
-    }
-
-    function smartNormalizeLine(line, propRaw = '') {
-      let raw = String(line || '').replace(/[^\d.]/g, '');
-      if (!raw) return '';
-      if (raw.includes('.')) return raw;
-      const n = Number(raw);
-      const prop = normalizeProp(propRaw || '').toLowerCase();
-      if (!Number.isFinite(n)) return '';
-      const maybeDecimal = (val) => (val / 10).toFixed(1);
-      if (/3-pointers made|assists|rebounds|blocked shots/.test(prop) && n >= 20) return maybeDecimal(n);
-      if (/points \+ rebounds \+ assists|points \+ rebounds|assists \+ rebounds|points \+ assists|pra/.test(prop) && n >= 100) return maybeDecimal(n);
-      if (/points/.test(prop) && n >= 80) return maybeDecimal(n);
-      if (/fantasy/.test(prop) && n >= 100) return maybeDecimal(n);
-      return raw;
-    }
-
-    function isHardStopPrizePicksLine(line) {
-      const clean = cleanParserLine(line).toLowerCase();
-      return /^(6-pick|entry fee|to win|promotions|flex play|power play|submit lineup|win contest|current lineup|clear all)$/i.test(clean);
-    }
-
-    function cleanNameFragment(fragment) {
-      return cleanParserLine(fragment).replace(/^[A-Za-z]{1,2}\s+(?=[A-Z][a-z])/, '').trim();
-    }
-
-
-    function detectLayoutFamily(text) {
-      const t = text.toLowerCase();
-      if (t.includes('picks entry')) return 'sleep_entry';
-      if (t.includes('prizepicks') && t.includes('current lineup')) return 'prizepicks_current_lineup';
-      if (t.includes('copy lineup') || (t.includes('flex play') && t.includes('first game starts'))) return 'prizepicks_tail_card';
-      if (t.includes('for you') && t.includes('copy lineup')) return 'prizepicks_feed_card';
-      if (t.includes('prizepicks')) return 'prizepicks_generic';
-      return 'unknown';
-    }
-
-    function detectPlatform(layoutFamily, text) {
-      if (layoutFamily.startsWith('sleep')) return 'Sleeper';
-      if (layoutFamily.startsWith('prizepicks')) return 'PrizePicks';
-      if (text.toLowerCase().includes('prizepicks')) return 'PrizePicks';
-      return 'Unknown';
-    }
-
-    function parseLayoutText(text, layoutFamily, platformSource, carryContext, imageIndex) {
-      const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
-      const notes = [];
-      switch (layoutFamily) {
-        case 'sleep_entry':
-          return parseSleeperEntry(lines, platformSource, carryContext, imageIndex, notes);
-        case 'prizepicks_current_lineup':
-          return parsePrizePicksCurrentLineup(lines, platformSource, carryContext, imageIndex, notes);
-        case 'prizepicks_tail_card':
-          return parsePrizePicksTailCard(lines, platformSource, carryContext, imageIndex, notes);
-        case 'prizepicks_feed_card':
-          return parsePrizePicksFeedCard(lines, platformSource, carryContext, imageIndex, notes);
-        default:
-          return parseGeneric(lines, platformSource, carryContext, imageIndex, notes);
+        continue;
       }
+      if (!current) continue;
+      if (!current.opponentRaw){
+        const m = line.match(/\b(vs|@)\s*([A-Z]{2,3})\b/i);
+        if (m) current.opponentRaw = m[2].toUpperCase();
+      }
+      if (!current.teamRaw){
+        const tm = line.match(/\b([A-Z]{2,3})\s*[•.]\s*[A-Z-]+\b/);
+        if (tm) current.teamRaw = tm[1].toUpperCase();
+      }
+      if (current.direction === 'UNKNOWN') current.direction = parseDirectionFromText(line);
+      if (!current.propRaw){
+        const prop = line.match(/(PTS|REB|AST|P\+R\+A|AST\s*\+\s*REB|3PM|3PTM|FANTASY SCORE(?:\s*\(1H\))?|PRA(?:\s*\(1H\))?)/i);
+        if (prop) current.propRaw = prop[1].toUpperCase().replace(/\s+/g,' ').trim();
+      }
+      if (!current.teamRaw){
+        const badge = line.match(/\b(ATL|BOS|BKN|CHA|CHI|CLE|DAL|DEN|DET|GSW|HOU|IND|LAC|LAL|MEM|MIA|MIL|MIN|NOP|NYK|OKC|ORL|PHI|PHX|POR|SAC|SAS|TOR|UTA|WAS)\b/);
+        if (badge && !current.opponentRaw.includes(badge[1])) current.teamRaw = badge[1];
+      }
+      if (/\(1H\)/i.test(line) && !current.suffix) current.suffix = '1H';
+    }
+    pushCurrent();
+    return rows;
+  }
+
+  function parsePrizePicksCurrent(ocr, debugMeta){
+    const raw = ocr.lines.map(l => cleanLine(l.text)).filter(Boolean);
+    const lines = raw.filter(l => !shouldIgnore(l));
+    const rows = [];
+    let currentEvent = '';
+    let currentTeams = {home:'', away:''};
+    let current = null;
+
+    function flush(){
+      if (!current) return;
+      if (current.playerRaw && current.propRaw && current.line != null) rows.push(finalizeRow(current, debugMeta));
+      current = null;
     }
 
-    function parseSleeperEntry(lines, platformSource, carryContext, imageIndex, notes) {
-      const legs = [];
-      let currentEvent = carryContext.event || '';
-      const cleanedLines = lines.map(cleanParserLine).filter(Boolean).filter(line => !isUiNoise(line));
-      for (let i = 0; i < cleanedLines.length; i++) {
-        const line = cleanedLines[i];
-        const eventMatch = line.match(/(?:NBA\s+)?([A-Z]{2,4}\s+vs\s+[A-Z]{2,4})/i);
-        if (eventMatch) {
-          currentEvent = eventMatch[1].trim();
-          continue;
+    for (let i=0;i<lines.length;i++){
+      const line = lines[i];
+      const event = line.match(/\b([A-Z]{2,3})\s+vs\s+([A-Z]{2,3})\b/);
+      if (event){
+        currentEvent = `${event[1]} vs ${event[2]}`;
+        currentTeams = {home:event[1], away:event[2]};
+        flush();
+        continue;
+      }
+      if (/^starts in/i.test(line)) continue;
+
+      // detect player line, including multiline names
+      const next = lines[i+1] || '';
+      const next2 = lines[i+2] || '';
+      let playerName = '';
+      let consumed = 0;
+      if (/^[A-Z][a-z]+\s+[A-Z][A-Za-z'’-]+$/.test(line)) { playerName = line; consumed = 0; }
+      else if (/^[A-Z][a-z]+$/.test(line) && /^[A-Z][A-Za-z'’-]+$/.test(next)) { playerName = `${line} ${next}`; consumed = 1; }
+      else if (/^[A-Z][a-z]+$/.test(line) && /^[A-Z][a-z]+$/.test(next) && /^[A-Z][A-Za-z'’-]+$/.test(next2)) { playerName = `${line} ${next} ${next2}`; consumed = 2; }
+
+      if (playerName){
+        flush();
+        current = {playerRaw:playerName, teamRaw:'', opponentRaw:'', propRaw:'', line:null, direction:'UNKNOWN', promo:'Regular', suffix:'', note:'', eventRaw:currentEvent};
+        // scan forward a few lines
+        const window = [];
+        for (let j=i+1;j<=Math.min(i+6, lines.length-1);j++) window.push(lines[j]);
+        const joined = window.join(' | ');
+        const tm = joined.match(/\b(ATL|BOS|BKN|CHA|CHI|CLE|DAL|DEN|DET|GSW|HOU|IND|LAC|LAL|MEM|MIA|MIL|MIN|NOP|NYK|OKC|ORL|PHI|PHX|POR|SAC|SAS|TOR|UTA|WAS)\b/);
+        if (tm) current.teamRaw = tm[1];
+        if (current.teamRaw){
+          current.opponentRaw = [currentTeams.home,currentTeams.away].find(t => t && t !== current.teamRaw) || '';
         }
-        let playerRaw = '';
-        let lineValue = '';
-        const nameLineMatch = line.match(/^([A-Z]\.\s?[A-Za-z'\-]+)\s+(\d+(?:\.\d+)?)$/);
-        if (nameLineMatch) {
-          playerRaw = cleanParserLine(nameLineMatch[1]);
-          lineValue = nameLineMatch[2];
-        } else if (isLikelyShortName(line)) {
-          playerRaw = cleanParserLine(line).replace(/\s+\d+(?:\.\d+)?$/, '').trim();
-        } else {
-          continue;
+        current.direction = parseDirectionFromText(joined);
+        const propMatch = joined.match(/(\d+(?:\.\d+)?)\s*(Pts\+Asts|Rebounds\+Asts|Points|Rebounds|Assists|PRA|3PTM|3PM|Fantasy Score|Blocked Shots)/i);
+        if (propMatch){
+          current.line = parseFloat(propMatch[1]);
+          current.propRaw = propMatch[2].toUpperCase().replace(/\s+/g,' ');
         }
-        if (!looksLikePlausiblePlayerName(playerRaw)) continue;
-        const chunkLines = cleanedLines.slice(i + 1, i + 4);
-        const chunk = chunkLines.join(' ');
-        const parsed = parsePropBundleFromChunk(`${lineValue} ${chunk}`.trim(), 'sleep_entry');
-        lineValue = smartNormalizeLine(lineValue || parsed.line, parsed.propRaw);
-        if (!parsed.propRaw || !lineValue) continue;
-        let teamRaw = '';
-        let position = '';
-        let opponentRaw = '';
-        for (const cl of chunkLines) {
-          if (!opponentRaw) opponentRaw = extractOpponentFromSleeperOpponent(cl);
-          if (!teamRaw) teamRaw = extractTeamFromSleeperTeamPos(cl);
-          if (!position) position = extractPositionFromTeamPos(cl);
-        }
-        const leg = makeLeg({
-          playerRaw,
-          teamRaw,
-          opponentRaw,
-          position,
-          propRaw: parsed.propRaw,
-          line: lineValue,
-          direction: parsed.direction || inferArrowDirectionFromText(chunk),
-          promoType: inferPromoTypeFromText(chunk),
-          suffix: parsed.suffix,
-          platformSource,
-          layoutFamily: 'sleep_entry',
-          sourceImageIndex: imageIndex,
-          eventRaw: currentEvent,
-          rawExtractionNote: 'Sleeper row parse'
-        });
-        if (looksLikeValidLeg(leg, 'sleep_entry')) legs.push(enrichMissingTeamFromPlayer(leg));
+        if (/less/i.test(joined) && /more/i.test(joined) && current.direction==='UNKNOWN') current.direction = /↓\s*less|less/i.test(joined) ? 'Under' : 'Over';
+        if (/goblin|😈|👺/i.test(joined)) current.promo = 'Demon';
+        if (/😇|👹|👺|🐱|green goblin/i.test(joined)) current.promo = /👺|demon/i.test(joined) ? 'Demon' : 'Goblin';
+        i += consumed;
       }
-      notes.push(`Sleeper parse created ${legs.length} row(s).`);
-      return { legs, context: { event: currentEvent }, notes };
     }
+    flush();
+    return rows;
+  }
 
-    function parsePrizePicksCurrentLineup(lines, platformSource, carryContext, imageIndex, notes) {
-      const legs = [];
-      let currentEvent = extractFirstEventFromLines(lines, carryContext.event || '');
-      const cleanedLines = lines.map(cleanParserLine).filter(Boolean).filter(line => !isUiNoise(line));
-      for (let i = 0; i < cleanedLines.length; i++) {
-        const line = cleanedLines[i];
-        if (isHardStopPrizePicksLine(line)) break;
-        const eventMatch = line.match(/(?:NBA\s+)?([A-Z]{2,4}\s+vs\s+[A-Z]{2,4})/i);
-        if (eventMatch) {
-          currentEvent = eventMatch[1].trim();
-          continue;
-        }
-        if (!isLikelyTeamPosLine(line)) continue;
-        const teamPosLine = line;
-        const prev1 = cleanedLines[i - 1] || '';
-        const prev2 = cleanedLines[i - 2] || '';
-        const nameParts = [prev2, prev1].filter(p => isLikelyNameFragment(p));
-        const playerRaw = combinePrizePicksName(nameParts);
-        if (!looksLikePlausiblePlayerName(playerRaw)) continue;
-        const propLine = cleanedLines[i + 1] || '';
-        const nearby = cleanedLines.slice(i, i + 3).join(' ');
-        const parsedLine = parsePrizePicksPropLine(propLine || nearby);
-        const direction = inferPrizePicksDirection(nearby, propLine);
-        const lineVal = smartNormalizeLine(parsedLine.line, parsedLine.propRaw);
-        if (!parsedLine.propRaw || !lineVal) continue;
-        const teamRaw = extractTeamFromPrizePicksTeamPos(teamPosLine);
-        const leg = makeLeg({
-          playerRaw,
-          teamRaw,
-          opponentRaw: extractOpponentFromEvent(currentEvent, teamRaw),
-          position: extractPositionFromPrizePicksTeamPos(teamPosLine),
-          propRaw: parsedLine.propRaw,
-          line: lineVal,
-          direction,
-          promoType: inferPromoTypeFromText(propLine || nearby),
-          suffix: parsedLine.suffix,
-          platformSource,
-          layoutFamily: 'prizepicks_current_lineup',
-          sourceImageIndex: imageIndex,
-          eventRaw: currentEvent,
-          rawExtractionNote: 'PrizePicks current lineup parse'
-        });
-        if (looksLikeValidLeg(leg, 'prizepicks_current_lineup')) legs.push(enrichMissingTeamFromPlayer(leg));
+  function parsePrizePicksTail(ocr, debugMeta){
+    const raw = ocr.lines.map(l => cleanLine(l.text)).filter(Boolean);
+    const lines = raw.filter(l => !shouldIgnore(l));
+    const rows = [];
+    for (let i=0;i<lines.length;i++){
+      const line = lines[i];
+      const next = lines[i+1] || '';
+      const next2 = lines[i+2] || '';
+      let player = '';
+      if (/^[A-Z][a-z]+\s+[A-Z][A-Za-z'’-]+$/.test(line)) player = line;
+      else if (/^[A-Z][a-z]+$/.test(line) && /^[A-Z][A-Za-z'’-]+$/.test(next)) { player = `${line} ${next}`; i += 1; }
+      if (!player) continue;
+      const bundle = `${next} | ${next2} | ${lines[i+3]||''}`;
+      const m = bundle.match(/(↓|↑)\s*(\d+(?:\.\d+)?)\s*(Pts\+Rebs\+Asts|Rebs\+Asts|3-PT Attempted|Fantasy Score|Blocked Shots|Rebounds|Points|Assists|PRA)/i);
+      if (!m) continue;
+      rows.push(finalizeRow({
+        playerRaw: player,
+        teamRaw:'', opponentRaw:'', propRaw:m[3], line:parseFloat(m[2]), direction:m[1]==='↑'?'Over':'Under', promo:'Regular', suffix:'', note:'Feed/tail card partial context'
+      }, debugMeta));
+    }
+    return rows;
+  }
+
+  function finalizeRow(raw, meta){
+    const playerRaw = (raw.playerRaw||'').trim();
+    const teamRaw = (raw.teamRaw||'').toUpperCase();
+    const opponentRaw = (raw.opponentRaw||'').toUpperCase();
+    const propNorm = normalizeProp(raw.propRaw||'Unknown prop');
+    const teamNorm = normalizeTeam(teamRaw);
+    const oppNorm = normalizeTeam(opponentRaw);
+    const fullName = resolvePlayer(playerRaw, teamRaw, opponentRaw);
+    const confidence = scoreConfidence({playerRaw,teamRaw,opponentRaw,propNorm,line:raw.line,direction:raw.direction,fullName});
+    return {
+      playerRaw,
+      playerNormalized: fullName,
+      teamRaw, teamNormalized: teamNorm,
+      opponentRaw, opponentNormalized: oppNorm,
+      propRaw: raw.propRaw || 'Unknown prop',
+      propNormalized: propNorm,
+      line: raw.line,
+      direction: raw.direction || 'UNKNOWN',
+      promo: raw.promo || 'Regular',
+      suffix: raw.suffix || '',
+      platform: meta.platform,
+      layout: meta.family,
+      confidence,
+      note: raw.note || '',
+    };
+  }
+
+  function scoreConfidence(r){
+    let s = 0;
+    if (r.playerRaw) s += 2;
+    if (r.fullName && r.fullName !== r.playerRaw) s += 1;
+    if (r.teamRaw) s += 1;
+    if (r.opponentRaw) s += 1;
+    if (r.propNorm && r.propNorm !== 'Unknown prop') s += 2;
+    if (typeof r.line === 'number' && !isNaN(r.line)) s += 2;
+    if (r.direction && r.direction !== 'UNKNOWN') s += 1;
+    return s >= 8 ? 'HIGH' : s >= 5 ? 'MEDIUM' : 'LOW';
+  }
+
+  function resolvePlayer(playerRaw, teamRaw, oppRaw){
+    const key = playerRaw.replace(/\s+/g,' ').trim();
+    const aliases = {
+      'T. Camara':'Toumani Camara', 'J. Collins':'John Collins', 'J. LaRavia':'Jake LaRavia', 'D.Green':'Draymond Green', 'D. Green':'Draymond Green', 'S.Curry':'Stephen Curry', 'S. Curry':'Stephen Curry', 'L. Dort':'Luguentz Dort', 'J. Small':'Jaime Small?','J. Green':'Jalen Green',
+      'Anthony Edwards':'Anthony Edwards','Tari Eason':'Tari Eason','Bez Mbeng':'Bez Mbeng','Aaron Wiggins':'Aaron Wiggins','Jonas Valanciunas':'Jonas Valančiūnas','Julian Strawther':'Julian Strawther',
+      'Amen Thompson':'Amen Thompson','Kevin Durant':'Kevin Durant','Derrick Jones':'Derrick Jones Jr.','Donovan Clingan':'Donovan Clingan','Toumani Camara':'Toumani Camara','Jared McCain':'Jared McCain','Kenrich Williams':'Kenrich Williams','Kawhi Leonard':'Kawhi Leonard','Brandin Podziemski':'Brandin Podziemski'
+    };
+    return aliases[key] || key;
+  }
+
+  function dedupeRows(rows){
+    const map = new Map();
+    rows.forEach(r => {
+      const key = [r.playerNormalized || r.playerRaw, r.teamRaw, r.opponentRaw, r.propNormalized, r.line, r.direction].join('|');
+      const existing = map.get(key);
+      if (!existing || confidenceRank(r.confidence) > confidenceRank(existing.confidence)) map.set(key, r);
+    });
+    return Array.from(map.values());
+  }
+  function confidenceRank(c){ return c==='HIGH'?3:c==='MEDIUM'?2:1; }
+
+  function renderRows(){
+    if (!state.parsed.length){
+      els.reviewBody.innerHTML = '<tr><td colspan="13" class="muted" style="padding:28px;text-align:center">No parsed legs yet.</td></tr>';
+      els.runBtn.disabled = true; els.copyBtn.disabled = true;
+      return;
+    }
+    els.reviewBody.innerHTML = '';
+    state.parsed.forEach((row, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${idx+1}</td>
+        <td><input class="text" value="${escapeHtml(row.playerNormalized || row.playerRaw)}" data-field="playerNormalized" data-idx="${idx}"><div class="mini">raw: ${escapeHtml(row.playerRaw)}</div></td>
+        <td><input class="text" value="${escapeHtml(row.teamNormalized)}" data-field="teamNormalized" data-idx="${idx}"><div class="mini">raw: ${escapeHtml(row.teamRaw||'')}</div></td>
+        <td><input class="text" value="${escapeHtml(row.opponentNormalized)}" data-field="opponentNormalized" data-idx="${idx}"><div class="mini">raw: ${escapeHtml(row.opponentRaw||'')}</div></td>
+        <td><input class="text" value="${escapeHtml(row.propNormalized)}" data-field="propNormalized" data-idx="${idx}"><div class="mini">raw: ${escapeHtml(row.propRaw)}</div></td>
+        <td><input class="text" value="${escapeHtml(String(row.line ?? ''))}" data-field="line" data-idx="${idx}"></td>
+        <td><input class="text" value="${escapeHtml(row.direction)}" data-field="direction" data-idx="${idx}"></td>
+        <td><input class="text" value="${escapeHtml(row.promo||'Regular')}" data-field="promo" data-idx="${idx}"></td>
+        <td><input class="text" value="${escapeHtml(row.suffix||'')}" data-field="suffix" data-idx="${idx}"></td>
+        <td><span class="pill ${confClass(row.confidence)}">${row.confidence}</span></td>
+        <td>${escapeHtml(row.platform)}</td>
+        <td>${escapeHtml(row.layout)}</td>
+        <td><input class="text" value="${escapeHtml(row.note || '')}" data-field="note" data-idx="${idx}"></td>
+      `;
+      els.reviewBody.appendChild(tr);
+    });
+    els.runBtn.disabled = false; els.copyBtn.disabled = false;
+  }
+
+  function renderStats(){
+    els.statParsed.textContent = state.parsed.length;
+    els.statHigh.textContent = state.parsed.filter(r => r.confidence==='HIGH').length;
+    els.statMedium.textContent = state.parsed.filter(r => r.confidence==='MEDIUM').length;
+    els.statLow.textContent = state.parsed.filter(r => r.confidence==='LOW').length;
+  }
+
+  function renderAnalysisShell(){
+    if (!state.parsed.length){
+      els.analysisShell.innerHTML = '<div class="card"><h3>No legs loaded</h3><div class="muted">Click Run after a successful ingest.</div></div>'; return;
+    }
+    els.analysisShell.innerHTML = '';
+    state.parsed.forEach((r,i) => {
+      const div = document.createElement('div'); div.className='card';
+      div.innerHTML = `<h3>${escapeHtml(r.playerNormalized || r.playerRaw)}</h3>
+        <div class="muted">${escapeHtml(r.teamNormalized || r.teamRaw)} vs ${escapeHtml(r.opponentNormalized || r.opponentRaw)}</div>
+        <div class="spacer"></div>
+        <div class="badge">${escapeHtml(r.propNormalized)} • ${escapeHtml(String(r.line))} • ${escapeHtml(r.direction)}</div>
+        <div class="spacer"></div>
+        <div class="mini">Promo: ${escapeHtml(r.promo||'Regular')} ${r.suffix ? '• ' + escapeHtml(r.suffix) : ''}</div>
+        <div class="mini">Confidence: ${escapeHtml(r.confidence)}</div>`;
+      els.analysisShell.appendChild(div);
+    });
+  }
+
+  function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  function copyParsed(){
+    const payload = state.parsed.map((r,i) => `${i+1}. ${r.playerNormalized || r.playerRaw} | ${r.teamNormalized || r.teamRaw} | ${r.opponentNormalized || r.opponentRaw} | ${r.propNormalized} | ${r.line} | ${r.direction} | ${r.promo || 'Regular'}${r.suffix ? ' | ' + r.suffix : ''}`).join('\n');
+    navigator.clipboard.writeText(payload).then(() => log('INFO', 'Parsed legs copied to clipboard.')).catch(() => log('ERROR', 'Clipboard copy failed.'));
+  }
+
+  async function ingest(){
+    if (state.ingesting) return;
+    if (!state.files.length){ setStatus('No images selected.'); log('ERROR','No images selected.'); return; }
+    state.ingesting = true; state.parsed = []; state.debug = []; renderRows(); renderStats(); setProgress(0);
+    try {
+      log('INFO', `Starting ingest for ${state.files.length} image${state.files.length===1?'':'s'}.`);
+      const allRows = [];
+      for (let i=0;i<state.files.length;i++){
+        setProgress((i / state.files.length) * 70);
+        const ocr = await ocrFile(state.files[i], i);
+        const layout = detectLayout(ocr.text);
+        log('INFO', `Image ${i+1}: detected layout ${layout.family} on ${layout.platform}.`);
+        let rows = [];
+        if (layout.family === 'sleep_entry') rows = parseSleeper(ocr, layout);
+        else if (layout.family === 'prizepicks_current_lineup') rows = parsePrizePicksCurrent(ocr, layout);
+        else if (layout.family === 'prizepicks_tail_card' || layout.family === 'prizepicks_feed_card') rows = parsePrizePicksTail(ocr, layout);
+        else rows = [];
+        log('INFO', `Image ${i+1}: parser found ${rows.length} leg(s).`);
+        allRows.push(...rows);
+        state.debug.push(`Image ${i+1} | ${layout.platform} | ${layout.family}\n${ocr.text.slice(0,2400)}\nNotes: Parser created ${rows.length} row(s).`);
       }
-      notes.push(`PrizePicks current lineup parse created ${legs.length} row(s).`);
-      return { legs, context: { event: currentEvent }, notes };
-    }
+      setProgress(85);
+      state.parsed = dedupeRows(allRows).filter(r => r.playerRaw && r.propNormalized && typeof r.line === 'number' && !isNaN(r.line));
+      log('INFO', `Merge/normalize complete. ${state.parsed.length} final legs kept.`);
+      els.debugBox.textContent = state.debug.join('\n\n-----------------------------\n\n') || 'No OCR debug yet.';
+      renderRows(); renderStats(); setProgress(100);
+      setStatus(`Ingest complete. Parsed ${state.parsed.length} legs. Review and click Run when ready.`);
+      log('INFO', `Ingest complete with ${state.parsed.length} parsed legs.`);
+    } catch (err){
+      console.error(err);
+      setProgress(0); setStatus('Ingest failed. Fix the issue and try again.');
+      log('ERROR', `Ingest failed: ${err.message || err}`);
+    } finally { state.ingesting = false; }
+  }
 
-    function parsePrizePicksTailCard(lines, platformSource, carryContext, imageIndex, notes) {
-      const legs = [];
-      let currentEvent = extractFirstEventFromLines(lines, carryContext.event || '');
-      const cleanedLines = lines.map(cleanParserLine).filter(Boolean).filter(line => !isUiNoise(line));
-      for (let i = 0; i < cleanedLines.length; i++) {
-        const line = cleanedLines[i];
-        const eventMatch = line.match(/(?:NBA\s+)?([A-Z]{2,4}\s+vs\s+[A-Z]{2,4})/i);
-        if (eventMatch) {
-          currentEvent = eventMatch[1].trim();
-          continue;
-        }
-        if (!isLikelyFullName(line)) continue;
-        const teamPosLine = cleanedLines[i + 1] || '';
-        const chunk = cleanedLines.slice(i + 1, i + 5).join(' ');
-        const parsed = parsePropBundleFromChunk(chunk, 'tail');
-        if (!parsed.line && !parsed.propRaw) continue;
-        const leg = makeLeg({
-          playerRaw: line,
-          teamRaw: extractTeamFromPrizePicksTeamPos(teamPosLine),
-          opponentRaw: extractOpponentFromEvent(currentEvent, extractTeamFromPrizePicksTeamPos(teamPosLine)),
-          position: extractPositionFromPrizePicksTeamPos(teamPosLine),
-          propRaw: parsed.propRaw,
-          line: smartNormalizeLine(parsed.line, parsed.propRaw),
-          direction: parsed.direction || 'MORE',
-          promoType: inferPromoTypeFromText(chunk),
-          suffix: parsed.suffix,
-          platformSource,
-          layoutFamily: 'prizepicks_tail_card',
-          sourceImageIndex: imageIndex,
-          eventRaw: currentEvent,
-          rawExtractionNote: 'PrizePicks tail card parse'
-        });
-        legs.push(enrichMissingTeamFromPlayer(leg));
-      }
-      notes.push(`PrizePicks tail card parse created ${legs.length} row(s).`);
-      return { legs, context: { event: currentEvent }, notes };
-    }
+  els.images.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []).slice(0,3);
+    state.files.forEach(f => URL.revokeObjectURL(f.url));
+    state.files = files.map(file => ({file, url: URL.createObjectURL(file)}));
+    updateFileUI();
+    log('INFO', `${state.files.length} image(s) loaded.`);
+  });
 
-    function parsePrizePicksFeedCard(lines, platformSource, carryContext, imageIndex, notes) {
-      const legs = [];
-      const cleanedLines = lines.map(cleanParserLine).filter(Boolean).filter(line => !isUiNoise(line));
-      for (let i = 0; i < cleanedLines.length; i++) {
-        const line = cleanedLines[i];
-        if (!isLikelyFullName(line)) continue;
-        const chunk = cleanedLines.slice(i + 1, i + 5).join(' ');
-        const parsed = parsePropBundleFromChunk(chunk, 'feed');
-        if (!parsed.line && !parsed.propRaw) continue;
-        const leg = makeLeg({
-          playerRaw: line,
-          teamRaw: '',
-          opponentRaw: '',
-          position: '',
-          propRaw: parsed.propRaw,
-          line: smartNormalizeLine(parsed.line, parsed.propRaw),
-          direction: parsed.direction || inferArrowDirectionFromText(chunk),
-          promoType: inferPromoTypeFromText(chunk),
-          suffix: parsed.suffix,
-          platformSource,
-          layoutFamily: 'prizepicks_feed_card',
-          sourceImageIndex: imageIndex,
-          eventRaw: '',
-          rawExtractionNote: 'PrizePicks feed card partial parse'
-        });
-        legs.push(enrichMissingTeamFromPlayer(leg));
-      }
-      notes.push(`PrizePicks feed card parse created ${legs.length} row(s).`);
-      return { legs, context: { event: '' }, notes };
-    }
+  els.ingestBtn.addEventListener('click', ingest);
+  els.resetBtn.addEventListener('click', resetAll);
+  els.copyBtn.addEventListener('click', copyParsed);
+  els.runBtn.addEventListener('click', renderAnalysisShell);
 
-    function parseGeneric(lines, platformSource, carryContext, imageIndex, notes) {
-      const legs = [];
-      let currentEvent = carryContext.event || '';
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const eventMatch = line.match(/([A-Z]{2,4}\s+vs\s+[A-Z]{2,4})/i);
-        if (eventMatch) currentEvent = eventMatch[1].trim();
-        if (isLikelyFullName(line) && (i + 1) < lines.length) {
-          const chunk = lines.slice(i + 1, i + 4).join(' ');
-          const parsed = parsePropBundleFromChunk(chunk, 'generic');
-          if (!parsed.line && !parsed.propRaw) continue;
-          legs.push(makeLeg({
-            playerRaw: line,
-            teamRaw: '',
-            opponentRaw: '',
-            position: '',
-            propRaw: parsed.propRaw,
-            line: parsed.line,
-            direction: parsed.direction || inferArrowDirectionFromText(chunk),
-            promoType: inferPromoTypeFromText(chunk),
-            suffix: parsed.suffix,
-            platformSource,
-            layoutFamily: 'unknown',
-            sourceImageIndex: imageIndex,
-            eventRaw: currentEvent,
-            rawExtractionNote: 'Generic fallback parse'
-          }));
-        }
-      }
-      notes.push(`Generic parse created ${legs.length} row(s).`);
-      return { legs, context: { event: currentEvent }, notes };
-    }
+  document.addEventListener('input', (e) => {
+    const idx = e.target.dataset.idx; const field = e.target.dataset.field;
+    if (idx == null || !field || !state.parsed[idx]) return;
+    const val = e.target.value;
+    state.parsed[idx][field] = field === 'line' ? parseFloat(val) : val;
+  });
 
-    function isLikelyFullName(line) {
-      const clean = cleanParserLine(line);
-      if (!clean || isUiNoise(clean)) return false;
-      if (/^(Flex Play|Power Play|Current Lineup|Submit Lineup|Copy lineup|View less|View more|To Win|Entry fee)$/i.test(clean)) return false;
-      return /^[A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-\.]+){1,3}$/.test(clean);
-    }
-
-    function combinePrizePicksName(parts) {
-      const cleanParts = parts.map(cleanNameFragment).filter(Boolean).filter(p => !isUiNoise(p));
-      if (!cleanParts.length) return '';
-      if (cleanParts.length === 1) return cleanParts[0];
-      if (cleanParts.length === 2) {
-        const a = cleanParts[0];
-        const b = cleanParts[1];
-        const bTokens = b.split(' ');
-        if (bTokens.length === 1 && b.length <= 3) return a;
-        return `${a.split(' ')[0]} ${bTokens[bTokens.length - 1]}`.trim();
-      }
-      const first = cleanParts[0].split(' ')[0];
-      const lastTokens = cleanParts[cleanParts.length - 1].split(' ');
-      return `${first} ${lastTokens[lastTokens.length - 1]}`.trim();
-    }
-
-    function parsePropBundleFromChunk(chunk, family) {
-      const compact = chunk.replace(/\s+/g, ' ').trim();
-      const direction = inferArrowDirectionFromText(compact);
-      let promoType = inferPromoTypeFromText(compact);
-      const marketSuffixMatch = compact.match(/\((1H|2H|Q\d|Fantasy|FS|1Q)\)/i);
-      const suffix = marketSuffixMatch ? marketSuffixMatch[1].toUpperCase() : inferSuffixFromChunk(compact);
-      const patterns = [
-        /(\d+(?:\.\d+)?)\s*(Pts\+Rebs\+Asts|Pts\+Asts|Pts\+Rebs|Rebs\+Asts|Fantasy Score|Blocked Shots|3-PT Attempted|3PM|3PTM|PRA|PTS|REB|AST|AST\s*\+\s*REB|REB\s*\+\s*AST)(?:\s*\(([^)]+)\))?/i,
-        /(\d+(?:\.\d+)?)\s*(Points|Rebounds|Assists|Fantasy Score|Blocked Shots|3PTM|3PM|PRA)/i,
-        /(?:Less|More)?\s*[↑↓]?\s*(\d+(?:\.\d+)?)\s*(Points|Rebounds|Assists|Fantasy Score|Blocked Shots|3PTM|3PM|PRA|Pts\+Rebs\+Asts|Pts\+Rebs|Pts\+Asts|Rebs\+Asts)/i,
-        /[↑↓]\s*(\d+(?:\.\d+)?)\s*([A-Za-z+\-() ]{2,30})/i
-      ];
-      for (const pattern of patterns) {
-        const m = compact.match(pattern);
-        if (m) {
-          const line = m[1];
-          const propRaw = m[2] ? m[2].replace(/\s+/g, ' ').trim() : '';
-          return { line, propRaw, direction, promoType, suffix };
-        }
-      }
-      return { line: '', propRaw: '', direction, promoType, suffix };
-    }
-
-    function parsePrizePicksPropLine(line) {
-      const compact = String(line || '').replace(/[😈👹👺😇😼🟢🟣]/g, '').replace(/\s+/g, ' ').trim();
-      const m = compact.match(/(\d+(?:\.\d+)?)\s*(Pts\+Asts|Pts\+Rebs\+Asts|Pts\+Rebs|Rebs\+Asts|Rebounds\+Assists|Points|Rebounds|Assists|Fantasy Score|Blocked Shots|3PTM|3PM|PRA|3-PT Attempted|3-Point Attempts)/i);
-      if (!m) return { line: '', propRaw: compact, suffix: inferSuffixFromChunk(compact) };
-      return { line: m[1], propRaw: m[2].trim(), suffix: inferSuffixFromChunk(compact) };
-    }
-
-    function inferArrowDirectionFromText(text) {
-      if (!text) return 'UNKNOWN';
-      if (/\bMore\b/i.test(text)) return 'MORE';
-      if (/\bLess\b/i.test(text)) return 'LESS';
-      if (/↑/.test(text)) return 'MORE';
-      if (/↓/.test(text)) return 'LESS';
-      return 'UNKNOWN';
-    }
-
-    function inferPromoTypeFromText(text) {
-      if (!text) return 'Regular';
-      if (/[😈👹👺]/.test(text) || /demon/i.test(text)) return 'Demon';
-      if (/[😇😼🟢]/.test(text) || /goblin/i.test(text)) return 'Goblin';
-      return 'Regular';
-    }
-
-    function inferPrizePicksDirection(nearby, propLine = '') {
-      const text = `${nearby || ''} ${propLine || ''}`;
-      if (/\bMore\b/i.test(text) && !/\bLess\b/i.test(text)) return 'MORE';
-      if (/\bLess\b/i.test(text) && !/\bMore\b/i.test(text)) return 'LESS';
-      const compact = text.replace(/\s+/g, ' ');
-      if (/Less[^\n]{0,15}More/i.test(compact)) return 'LESS';
-      if (/More[^\n]{0,15}Less/i.test(compact)) return 'MORE';
-      return inferArrowDirectionFromText(text);
-    }
-
-    function inferSuffixFromChunk(text) {
-      if (!text) return '';
-      const clean = text.toUpperCase();
-      const suffixes = ['1H', '2H', '1Q', '2Q', '3Q', '4Q'];
-      for (const s of suffixes) if (clean.includes(`(${s})`) || clean.endsWith(` ${s}`)) return s;
-      if (/FANTASY SCORE\s*\(1H\)/i.test(text)) return '1H';
-      return '';
-    }
-
-    function extractTeamFromSleeperTeamPos(line) {
-      const m = line.match(/\b([A-Z]{2,4})\b/);
-      return m ? m[1] : '';
-    }
-
-    function extractPositionFromTeamPos(line) {
-      const m = line.match(/\b(PG|SG|SF|PF|C|G|F|G-F|F-C|G-F-C)\b/i);
-      return m ? m[1].toUpperCase() : '';
-    }
-
-    function extractOpponentFromSleeperOpponent(line) {
-      const m = line.match(/(?:@|vs)\s*([A-Z]{2,4})\b/i);
-      return m ? m[1] : '';
-    }
-
-    function extractTeamFromPrizePicksTeamPos(line) {
-      const clean = cleanParserLine(line).replace(/-/g, '•');
-      const m = clean.match(/([A-Z]{2,4})/);
-      return m ? m[1].toUpperCase() : '';
-    }
-
-    function extractPositionFromPrizePicksTeamPos(line) {
-      const m = line.match(/•\s*([A-Z\-]+)\s*•/i);
-      return m ? m[1].toUpperCase() : extractPositionFromTeamPos(line);
-    }
-
-    function extractOpponentFromEvent(eventRaw, teamRaw) {
-      if (!eventRaw) return '';
-      const m = eventRaw.match(/([A-Z]{2,4})\s+vs\s+([A-Z]{2,4})/i);
-      if (!m) return '';
-      const a = m[1].toUpperCase();
-      const b = m[2].toUpperCase();
-      if (teamRaw === a) return b;
-      if (teamRaw === b) return a;
-      return `${a} / ${b}`;
-    }
-
-    function looksLikeValidLeg(leg, layoutFamily) {
-      const player = cleanParserLine(leg.playerRaw || '');
-      if (!looksLikePlausiblePlayerName(player)) return false;
-      if (!leg.propRaw || /unknown prop/i.test(leg.propRaw)) return false;
-      if (!leg.line) return false;
-      if (['prizepicks_current_lineup','sleep_entry','prizepicks_tail_card'].includes(layoutFamily) && (!leg.teamRaw && !leg.teamNormalized)) return false;
-      return true;
-    }
-
-    function makeLeg(data) {
-      const teamNormalized = normalizeTeam(data.teamRaw);
-      const opponentNormalized = normalizeTeam(data.opponentRaw);
-      const propNormalized = normalizeProp(data.propRaw);
-      const playerNormalized = normalizePlayer(data.playerRaw, data.teamRaw, data.opponentRaw, data.position);
-      const confidence = scoreConfidence({
-        playerRaw: data.playerRaw,
-        playerNormalized,
-        teamRaw: data.teamRaw,
-        opponentRaw: data.opponentRaw,
-        propNormalized,
-        line: data.line,
-        direction: data.direction,
-        layoutFamily: data.layoutFamily
-      });
-      const leg = {
-        id: crypto.randomUUID(),
-        playerRaw: data.playerRaw || '',
-        playerNormalized,
-        teamRaw: data.teamRaw || '',
-        teamNormalized,
-        opponentRaw: data.opponentRaw || '',
-        opponentNormalized,
-        position: data.position || '',
-        propRaw: data.propRaw || '',
-        propNormalized,
-        line: data.line || '',
-        direction: data.direction || 'UNKNOWN',
-        promoType: data.promoType || 'Regular',
-        suffix: data.suffix || '',
-        platformSource: data.platformSource || 'Unknown',
-        layoutFamily: data.layoutFamily || 'unknown',
-        sourceImageIndex: data.sourceImageIndex || 0,
-        eventRaw: data.eventRaw || '',
-        parseConfidence: confidence,
-        rawExtractionNote: data.rawExtractionNote || ''
-      };
-      return enrichMissingTeamFromPlayer(leg);
-    }
-
-    function normalizeTeam(teamRaw) {
-      if (!teamRaw) return '';
-      const key = String(teamRaw).trim().toUpperCase();
-      return TEAM_MAP[key] || teamRaw;
-    }
-
-    function normalizeProp(propRaw) {
-      if (!propRaw) return '';
-      const trimmed = String(propRaw).replace(/\s+/g, ' ').trim();
-      for (const [regex, normalized] of PROP_MAP) {
-        if (regex.test(trimmed)) return normalized;
-      }
-      return trimmed;
-    }
-
-    function normalizePlayer(playerRaw, teamRaw, opponentRaw, position) {
-      if (!playerRaw) return '';
-      const clean = cleanParserLine(playerRaw).replace(/\s+[A-Z]$/, '').trim();
-      if (isLikelyFullName(clean)) return clean;
-      const teamKey = (teamRaw || '').toUpperCase();
-      const aliasKey = `${clean}|${teamKey}`;
-      if (PLAYER_ALIAS_MAP[aliasKey]) return PLAYER_ALIAS_MAP[aliasKey];
-      if (PLAYER_FALLBACK_MAP[clean]) return PLAYER_FALLBACK_MAP[clean].fullName;
-      return clean;
-    }
-
-    function scoreConfidence(leg) {
-      let score = 0;
-      if (leg.playerRaw) score += 1;
-      if (leg.playerNormalized && leg.playerNormalized !== leg.playerRaw) score += 1;
-      if (leg.teamRaw) score += 1;
-      if (leg.opponentRaw) score += 1;
-      if (leg.propNormalized) score += 1;
-      if (leg.line) score += 1;
-      if (leg.direction && leg.direction !== 'UNKNOWN') score += 1;
-      if (leg.layoutFamily !== 'unknown') score += 1;
-      if (leg.layoutFamily === 'prizepicks_feed_card' && (!leg.teamRaw || !leg.opponentRaw)) score -= 2;
-      if (score >= 7) return 'HIGH';
-      if (score >= 5) return 'MEDIUM';
-      return 'LOW';
-    }
-
-    function mergeAndNormalizeLegs(rawLegs) {
-      const merged = [];
-      const seen = new Map();
-      for (const leg of rawLegs) {
-        if (!looksLikeValidLeg(leg, leg.layoutFamily)) continue;
-        const key = [leg.playerNormalized || leg.playerRaw, leg.teamNormalized || leg.teamRaw, leg.propNormalized || leg.propRaw, leg.line, leg.direction, leg.suffix, leg.platformSource].join('|').toLowerCase();
-        if (!seen.has(key)) {
-          seen.set(key, leg);
-          merged.push(leg);
-          continue;
-        }
-        const existing = seen.get(key);
-        ['teamRaw','teamNormalized','opponentRaw','opponentNormalized','position','eventRaw','rawExtractionNote'].forEach(field => {
-          if (!existing[field] && leg[field]) existing[field] = leg[field];
-        });
-        if (existing.parseConfidence === 'LOW' && leg.parseConfidence !== 'LOW') existing.parseConfidence = leg.parseConfidence;
-      }
-      return merged.map((leg, idx) => ({ ...leg, rowNumber: idx + 1 }));
-    }
-
-    function renderReviewTable() {
-      els.reviewTbody.innerHTML = '';
-      const legs = state.parsedLegs;
-      if (!legs.length) {
-        els.reviewEmpty.style.display = 'block';
-        els.reviewTableWrap.style.display = 'none';
-        els.runBtn.disabled = true;
-        return;
-      }
-      els.reviewEmpty.style.display = 'none';
-      els.reviewTableWrap.style.display = 'block';
-      const counts = { HIGH: 0, MEDIUM: 0, LOW: 0 };
-
-      legs.forEach((leg, index) => {
-        counts[leg.parseConfidence] = (counts[leg.parseConfidence] || 0) + 1;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${index + 1}</td>
-          <td><input data-field="playerRaw" data-id="${leg.id}" value="${escapeHtml(leg.playerRaw)}" /></td>
-          <td><input data-field="playerNormalized" data-id="${leg.id}" value="${escapeHtml(leg.playerNormalized)}" /></td>
-          <td><input data-field="teamRaw" data-id="${leg.id}" value="${escapeHtml(leg.teamRaw)}" /></td>
-          <td><input data-field="teamNormalized" data-id="${leg.id}" value="${escapeHtml(leg.teamNormalized)}" /></td>
-          <td><input data-field="opponentRaw" data-id="${leg.id}" value="${escapeHtml(leg.opponentRaw)}" /></td>
-          <td><input data-field="opponentNormalized" data-id="${leg.id}" value="${escapeHtml(leg.opponentNormalized)}" /></td>
-          <td><input data-field="position" data-id="${leg.id}" value="${escapeHtml(leg.position)}" /></td>
-          <td><input data-field="propRaw" data-id="${leg.id}" value="${escapeHtml(leg.propRaw)}" /></td>
-          <td><input data-field="propNormalized" data-id="${leg.id}" value="${escapeHtml(leg.propNormalized)}" /></td>
-          <td><input data-field="line" data-id="${leg.id}" value="${escapeHtml(leg.line)}" /></td>
-          <td>
-            <select data-field="direction" data-id="${leg.id}">
-              <option ${leg.direction === 'MORE' ? 'selected' : ''}>MORE</option>
-              <option ${leg.direction === 'LESS' ? 'selected' : ''}>LESS</option>
-              <option ${leg.direction === 'UNKNOWN' ? 'selected' : ''}>UNKNOWN</option>
-            </select>
-          </td>
-          <td>
-            <select data-field="promoType" data-id="${leg.id}">
-              <option ${leg.promoType === 'Regular' ? 'selected' : ''}>Regular</option>
-              <option ${leg.promoType === 'Goblin' ? 'selected' : ''}>Goblin</option>
-              <option ${leg.promoType === 'Demon' ? 'selected' : ''}>Demon</option>
-            </select>
-          </td>
-          <td><input data-field="suffix" data-id="${leg.id}" value="${escapeHtml(leg.suffix)}" /></td>
-          <td><input data-field="platformSource" data-id="${leg.id}" value="${escapeHtml(leg.platformSource)}" /></td>
-          <td><input data-field="layoutFamily" data-id="${leg.id}" value="${escapeHtml(leg.layoutFamily)}" /></td>
-          <td>
-            <div class="badge ${leg.parseConfidence === 'HIGH' ? 'badge-high' : leg.parseConfidence === 'MEDIUM' ? 'badge-med' : 'badge-low'}">${leg.parseConfidence}</div>
-          </td>
-          <td><textarea data-field="rawExtractionNote" data-id="${leg.id}">${escapeHtml(leg.rawExtractionNote)}</textarea></td>
-        `;
-        els.reviewTbody.appendChild(tr);
-      });
-
-      els.reviewTbody.querySelectorAll('input, select, textarea').forEach(el => {
-        el.addEventListener('change', handleReviewEdit);
-      });
-
-      els.parsedCount.textContent = String(legs.length);
-      els.highCount.textContent = String(counts.HIGH || 0);
-      els.mediumCount.textContent = String(counts.MEDIUM || 0);
-      els.lowCount.textContent = String(counts.LOW || 0);
-    }
-
-    function handleReviewEdit(event) {
-      const id = event.target.dataset.id;
-      const field = event.target.dataset.field;
-      const leg = state.parsedLegs.find(item => item.id === id);
-      if (!leg) return;
-      leg[field] = event.target.value;
-      if (field === 'playerRaw' && !leg.playerNormalized) leg.playerNormalized = normalizePlayer(leg.playerRaw, leg.teamRaw, leg.opponentRaw, leg.position);
-      if (field === 'teamRaw' && !leg.teamNormalized) leg.teamNormalized = normalizeTeam(leg.teamRaw);
-      if (field === 'opponentRaw' && !leg.opponentNormalized) leg.opponentNormalized = normalizeTeam(leg.opponentRaw);
-      if (field === 'propRaw' && !leg.propNormalized) leg.propNormalized = normalizeProp(leg.propRaw);
-    }
-
-    function renderDebug() {
-      if (!state.rawDebug.length) {
-        els.debugBox.style.display = 'none';
-        return;
-      }
-      els.debugBox.style.display = 'block';
-      els.debugInner.innerHTML = state.rawDebug.map(entry => `
-        <div style="margin-bottom:16px;">
-          <div class="status-line" style="margin-bottom:8px;"><strong>Image ${entry.imageIndex}</strong><span>${escapeHtml(entry.platformSource)} • ${escapeHtml(entry.layoutFamily)}</span></div>
-          <div class="debug-text">${escapeHtml(entry.text)}</div>
-          <div class="tiny muted" style="margin-top:8px;">${escapeHtml((entry.notes || []).join(' | '))}</div>
-        </div>
-      `).join('');
-    }
-
-    function runAnalysis() {
-      clearError();
-      if (!state.parsedLegs.length) {
-        showError('No parsed legs available. Ingest screenshots first.');
-        return;
-      }
-      state.analysisLegs = state.parsedLegs.map(leg => ({ ...leg }));
-      renderAnalysisShell();
-      switchScreen('screen-analysis');
-      setGlobalStatus('Screen 2 ready', 'good');
-    }
-
-    function renderAnalysisShell() {
-      if (!state.analysisLegs.length) {
-        els.analysisEmpty.style.display = 'block';
-        els.analysisGrid.style.display = 'none';
-        els.analysisGrid.innerHTML = '';
-        els.analysisLegCount.textContent = '0';
-        return;
-      }
-      els.analysisEmpty.style.display = 'none';
-      els.analysisGrid.style.display = 'grid';
-      els.analysisLegCount.textContent = String(state.analysisLegs.length);
-      els.analysisGrid.innerHTML = '';
-
-      state.analysisLegs.forEach((leg, idx) => {
-        const card = document.createElement('div');
-        card.className = 'analysis-card';
-        const confidenceClass = leg.parseConfidence === 'HIGH' ? 'badge-high' : leg.parseConfidence === 'MEDIUM' ? 'badge-med' : 'badge-low';
-        const promoClass = leg.promoType === 'Demon' ? 'badge-demon' : leg.promoType === 'Goblin' ? 'badge-goblin' : 'badge-regular';
-        card.innerHTML = `
-          <div class="top">
-            <div>
-              <h3 class="leg-title">${escapeHtml(leg.playerNormalized || leg.playerRaw || `Leg ${idx + 1}`)}</h3>
-              <div class="leg-subtitle">${escapeHtml(leg.teamNormalized || leg.teamRaw || 'Unknown team')} ${leg.opponentNormalized || leg.opponentRaw ? 'vs ' + escapeHtml(leg.opponentNormalized || leg.opponentRaw) : ''}<br>${escapeHtml(leg.propNormalized || leg.propRaw || 'Unknown prop')} • ${escapeHtml(leg.direction)} ${escapeHtml(leg.line || '?')}${leg.suffix ? ` • ${escapeHtml(leg.suffix)}` : ''}</div>
-            </div>
-            <div class="status-pill"><span class="status-good">●</span><span>READY</span></div>
-          </div>
-
-          <div class="analysis-chip-group">
-            <div class="chip ${promoClass}">${escapeHtml(leg.promoType || 'Regular')}</div>
-            <div class="chip ${confidenceClass}">${escapeHtml(leg.parseConfidence)}</div>
-            <div class="chip">${escapeHtml(leg.platformSource)}</div>
-            <div class="chip">${escapeHtml(leg.layoutFamily)}</div>
-          </div>
-
-          <div class="matrix-grid">
-            <div class="matrix-card">
-              <h4>Connector family 1</h4>
-              <div class="matrix-value">Image intake passed</div>
-              <div class="matrix-note">Upload → OCR → layout detect → merge → normalize → review → run handoff completed.</div>
-            </div>
-            <div class="matrix-card">
-              <h4>Identity shell</h4>
-              <div class="matrix-value">${escapeHtml(leg.playerNormalized || leg.playerRaw || 'Unknown')}</div>
-              <div class="matrix-note">Team: ${escapeHtml(leg.teamNormalized || leg.teamRaw || 'Unknown')} • Opponent: ${escapeHtml(leg.opponentNormalized || leg.opponentRaw || 'Unknown')}</div>
-            </div>
-            <div class="matrix-card">
-              <h4>Market shell</h4>
-              <div class="matrix-value">${escapeHtml(leg.propNormalized || leg.propRaw || 'Unknown')} ${escapeHtml(leg.direction)} ${escapeHtml(leg.line || '?')}</div>
-              <div class="matrix-note">Suffix: ${escapeHtml(leg.suffix || 'None')} • Variant: ${escapeHtml(leg.promoType || 'Regular')}</div>
-            </div>
-            <div class="matrix-card">
-              <h4>Parser note</h4>
-              <div class="matrix-value">${escapeHtml(leg.rawExtractionNote || 'No parser note')}</div>
-              <div class="matrix-note">This screen preserves the multi-card analysis structure while v1 only loads connector family 1 fields.</div>
-            </div>
-          </div>
-        `;
-        els.analysisGrid.appendChild(card);
-      });
-    }
-  </script>
+  resetAll();
+})();
+</script>
 </body>
 </html>
