@@ -497,27 +497,91 @@ const NBA_ENDPOINTS = {
   TEAM_ADVANCED: 'https://stats.nba.com/stats/leaguedashteamstats?DateFrom=&DateTo=&LastNGames={lastN}&LeagueID=00&Location=&Month=0&OpponentTeamID=0&Outcome=&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerExperience=&PlayerPosition=&PlusMinus=N&Rank=N&Season={season}&SeasonType=Regular+Season&MeasureType=Advanced'
 };
 
-async function safeFetchJson(url, timeout = 12000, headers = {}) {
+const NBA_TRANSPORT_CONFIG = {
+  proxyEnabled: false,
+  proxyBase: window.PICKCALC_NBA_PROXY_BASE || localStorage.getItem('PICKCALC_NBA_PROXY_BASE') || '',
+  timeoutMs: 10000,
+  defaultHeaders: {
+    'Accept': 'application/json',
+    'x-nba-stats-origin': 'stats',
+    'x-nba-stats-token': 'true'
+  }
+};
+
+function buildTransportUrl(url, useProxy) {
+  if (!useProxy || !NBA_TRANSPORT_CONFIG.proxyBase) return url;
+  if (NBA_TRANSPORT_CONFIG.proxyBase.includes('{url}')) {
+    return NBA_TRANSPORT_CONFIG.proxyBase.replace('{url}', encodeURIComponent(url));
+  }
+  const sep = NBA_TRANSPORT_CONFIG.proxyBase.endsWith('/') ? '' : '/';
+  return `${NBA_TRANSPORT_CONFIG.proxyBase}${sep}${url}`;
+}
+
+async function patchedFetchJson(url, timeoutOrOptions = undefined, maybeHeaders = {}) {
+  const options = typeof timeoutOrOptions === 'object' && timeoutOrOptions !== null
+    ? { ...timeoutOrOptions }
+    : { timeout: Number(timeoutOrOptions || NBA_TRANSPORT_CONFIG.timeoutMs), headers: maybeHeaders || {} };
+
+  const useProxy = options.useProxy ?? NBA_TRANSPORT_CONFIG.proxyEnabled;
+  const timeout = Number(options.timeout || NBA_TRANSPORT_CONFIG.timeoutMs);
+  const headers = Object.assign({}, NBA_TRANSPORT_CONFIG.defaultHeaders, options.headers || {});
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
+  const targetUrl = buildTransportUrl(url, useProxy);
+  const debug = {
+    url: targetUrl,
+    originalUrl: url,
+    proxied: Boolean(useProxy),
+    status: null,
+    error: null,
+    rawSnippet: null
+  };
+
   try {
-    const response = await fetch(url, {
+    const response = await fetch(targetUrl, {
       method: 'GET',
       signal: controller.signal,
-      headers: Object.assign({
-        'Accept': 'application/json, text/plain, */*',
-        'Content-Type': 'application/json',
-        'x-nba-stats-origin': 'stats',
-        'x-nba-stats-token': 'true'
-      }, headers)
+      headers
     });
+    debug.status = response.status;
+    const text = await response.text();
     clearTimeout(timer);
-    if (!response.ok) return null;
-    return await response.json();
+
+    if (!response.ok) {
+      debug.rawSnippet = String(text || '').slice(0, 140);
+      throw new Error(`HTTP_${response.status}`);
+    }
+
+    try {
+      const data = JSON.parse(text);
+      return { data, debug, ok: true };
+    } catch (err) {
+      debug.rawSnippet = String(text || '').slice(0, 140);
+      throw new Error('JSON_PARSE_ERROR');
+    }
   } catch (err) {
     clearTimeout(timer);
-    return null;
+    debug.error = err?.name === 'AbortError' ? 'TIMEOUT' : String(err?.message || err);
+    return { data: null, debug, ok: false };
   }
+}
+
+const TransportDiagnostics = {
+  async testNBA(useProxy = NBA_TRANSPORT_CONFIG.proxyEnabled) {
+    const testUrl = 'https://stats.nba.com/stats/commonallplayers?IsOnlyCurrentSeason=1&LeagueID=00&Season=2025-26';
+    const result = await patchedFetchJson(testUrl, { useProxy });
+    console.log('[NBA Transport Test]', result.ok, result.debug);
+    return result.ok;
+  }
+};
+
+async function safeFetchJson(url, timeout = 12000, headers = {}) {
+  const result = await patchedFetchJson(url, timeout, headers);
+  if (!result.ok) {
+    if (typeof logTransportDebug === 'function') logTransportDebug(result.debug);
+    else console.warn('[Transport Debug]', result.debug);
+  }
+  return result.data;
 }
 
 function nbaRowsToObjects(resultSet, setName = '') {
@@ -826,10 +890,14 @@ const CON_07_Helpers = {
     const matches = events.filter(event => {
       const h = normalizeTeamAbbr(event.home_team);
       const a = normalizeTeamAbbr(event.away_team);
-      if (!(h === homeAbbr && a === awayAbbr)) return false;
+      if (h !== homeAbbr || a !== awayAbbr) return false;
       if (!targetIso) return true;
       return this.toIsoDay(event.commence_time) === targetIso;
     });
+    if (matches.length > 1) {
+      console.warn('[CON-07] Ambiguous match: multiple games for same teams/date.');
+      return null;
+    }
     return matches.length === 1 ? matches[0] : null;
   },
   getBestBookmaker(event, requiredMarkets = []) {
@@ -1020,6 +1088,28 @@ const CON_08_Pace = {
     }
   }
 };
+
+
+function patchCON07Matcher() {
+  if (typeof CON_07_Helpers === 'undefined') return;
+  CON_07_Helpers.findEvent = function(events, homeAbbr, awayAbbr, targetDate) {
+    if (!events || !Array.isArray(events)) return null;
+    const targetIso = typeof this.toIsoDay === 'function' ? this.toIsoDay(targetDate) : null;
+    const matches = events.filter(event => {
+      const h = normalizeTeamAbbr(event.home_team);
+      const a = normalizeTeamAbbr(event.away_team);
+      if (h !== homeAbbr || a !== awayAbbr) return false;
+      if (!targetIso) return true;
+      const eventIso = typeof this.toIsoDay === 'function' ? this.toIsoDay(event.commence_time) : null;
+      return eventIso === targetIso;
+    });
+    if (matches.length > 1) {
+      console.warn('[CON-07] Ambiguous match: multiple games for same teams/date.');
+      return null;
+    }
+    return matches.length === 1 ? matches[0] : null;
+  };
+}
 
 function getPhase1Season() {
   return '2025-26';
@@ -2966,6 +3056,7 @@ function bindActions() {
   window.addEventListener('hashchange', applyScreen);
 }
 
+patchCON07Matcher();
 render();
 bindActions();
 </script>
