@@ -2481,9 +2481,35 @@ async function ensureNbaMining(row) {
     render();
   };
 
+  const phase1Status = { propFamily: null };
+
+  const markCardsWarning = (cardKeys, phase, label, detail, method, sourceWinner, confidence = 42) => {
+    cardKeys.forEach(keyName => {
+      if (!cards[keyName]) return;
+      patchCardFromConnector(cards[keyName], row, {
+        status:'warning',
+        phase,
+        statusLabel:label,
+        parsedResult:'[UNAVAILABLE]',
+        evidence:detail,
+        extractionProof:detail,
+        extractionMethod:method,
+        sourceWinner:sourceWinner,
+        sourcesLabel:cards[keyName].sourcesLabel,
+        confidence,
+        derived:false,
+        numericValue:null,
+        sourceUrl:'',
+        hardData:false
+      });
+    });
+  };
+
   try {
-    const propFamily = normalizePhase1PropFamily(row.propFamily || row.prop || '');
-    if (!propFamily) throw new Error(`Unsupported Phase 1 prop family: ${row.propFamily || row.prop || 'UNKNOWN'}`);
+    phase1Status.propFamily = normalizePhase1PropFamily(row.propFamily || row.prop || '');
+    if (!phase1Status.propFamily) {
+      throw new Error(`Unsupported Phase 1 prop family: ${row.propFamily || row.prop || 'UNKNOWN'}`);
+    }
 
     const individualCard = cards.individualDefender;
     patchCardFromConnector(individualCard, row, {
@@ -2491,75 +2517,121 @@ async function ensureNbaMining(row) {
     });
     sync();
 
-    connectorData.identity = await CON_01_Identity.resolve({
-      playerName: row.entity,
-      teamInput: row.team,
-      opponentInput: row.opponent,
-      season: getPhase1Season()
-    });
-
-    if (!connectorData.identity.ok) throw new Error(connectorData.identity.error || 'Identity resolution failed');
-
-    patchCardFromConnector(individualCard, row, {
-      status:'ready',
-      phase:'CON-01 LOCKED',
-      statusLabel:'IDENTITY VERIFIED',
-      parsedResult:`${connectorData.identity.full_name} • ${connectorData.identity.team_abbr}${connectorData.identity.opponent_abbr ? ` vs/@ ${connectorData.identity.opponent_abbr}` : ''}`,
-      evidence:`Player ID ${connectorData.identity.player_id} • Team ${connectorData.identity.team_full}${connectorData.identity.opponent_full ? ` • Opponent ${connectorData.identity.opponent_full}` : ''}`,
-      extractionProof:'Player/team/opponent normalized through Phase 1 identity connector.',
-      extractionMethod:'NBA Identity Connector',
-      sourceWinner:'CON-01 / NBA API',
-      sourcesLabel:'CON-01 • NBA Players',
-      confidence: connectorConfidenceScore(connectorData.identity.confidence),
-      derived:false,
-      numericValue:null,
-      sourceUrl:'',
-      hardData:true
-    });
-    logEvent('CON-01 identity verified.', 'SUCCESS', row.rowId, 'individualDefender');
-    sync();
-
-    ['seasonBaseline','careerBaseline','recentForm','stabilityWindow','extendedForm','headToHead','matchupPhysicality'].forEach(keyName => {
-      patchCardFromConnector(cards[keyName], row, {
-        status:'loading', phase:'CON-02', statusLabel:'Historical connector probing', parsedResult:'PROBING...', evidence:'Season, career, windows, and splits loading.', extractionProof:'CON-02 armed.', extractionMethod:'NBA Historical Connector', sourceWinner:'', confidence:22, sourceUrl:'', hardData:false
+    try {
+      connectorData.identity = await CON_01_Identity.resolve({
+        playerName: row.entity,
+        teamInput: row.team,
+        opponentInput: row.opponent,
+        season: getPhase1Season()
       });
-    });
-    sync();
+    } catch (err) {
+      connectorData.identity = { ok:false, error:String(err && err.message || err), team_abbr: normalizeTeamAbbr(row.team), opponent_abbr: normalizeTeamAbbr(row.opponent) };
+    }
 
-    connectorData.historical = await CON_02_Historical.fetch({
-      playerId: connectorData.identity.player_id,
-      opponentInput: connectorData.identity.opponent_abbr || row.opponent,
-      propFamily,
-      season: getPhase1Season()
-    });
+    if (!connectorData.identity?.ok) {
+      patchCardFromConnector(individualCard, row, {
+        status:'warning',
+        phase:'CON-01 FAIL',
+        statusLabel:'IDENTITY UNAVAILABLE',
+        parsedResult:'[UNAVAILABLE]',
+        evidence:connectorData.identity?.error || 'Identity resolution failed.',
+        extractionProof:'Identity connector failed. Downstream historical connector will be skipped, but game-level connectors will continue.',
+        extractionMethod:'NBA Identity Connector',
+        sourceWinner:'CON-01 / NBA API',
+        sourcesLabel:'CON-01 • NBA Players',
+        confidence:connectorConfidenceScore(connectorData.identity?.confidence),
+        derived:false,
+        numericValue:null,
+        sourceUrl:'',
+        hardData:false
+      });
+      logEvent(`CON-01 failed: ${connectorData.identity?.error || 'identity unavailable'}`, 'WARNING', row.rowId, 'individualDefender');
+      markCardsWarning(
+        ['seasonBaseline','careerBaseline','recentForm','stabilityWindow','extendedForm','headToHead','matchupPhysicality'],
+        'CON-02 SKIPPED',
+        'HISTORICAL UNAVAILABLE',
+        'Historical connector skipped because identity did not lock cleanly.',
+        'NBA Historical Connector',
+        'CON-02 / NBA API',
+        38
+      );
+      connectorData.historical = { ok:false, error:'Skipped because CON-01 identity did not lock.' };
+    } else {
+      patchCardFromConnector(individualCard, row, {
+        status:'ready',
+        phase:'CON-01 LOCKED',
+        statusLabel:'IDENTITY VERIFIED',
+        parsedResult:`${connectorData.identity.full_name} • ${connectorData.identity.team_abbr}${connectorData.identity.opponent_abbr ? ` vs/@ ${connectorData.identity.opponent_abbr}` : ''}`,
+        evidence:`Player ID ${connectorData.identity.player_id} • Team ${connectorData.identity.team_full}${connectorData.identity.opponent_full ? ` • Opponent ${connectorData.identity.opponent_full}` : ''}`,
+        extractionProof:'Player/team/opponent normalized through Phase 1 identity connector.',
+        extractionMethod:'NBA Identity Connector',
+        sourceWinner:'CON-01 / NBA API',
+        sourcesLabel:'CON-01 • NBA Players',
+        confidence: connectorConfidenceScore(connectorData.identity.confidence),
+        derived:false,
+        numericValue:null,
+        sourceUrl:'',
+        hardData:true
+      });
+      logEvent('CON-01 identity verified.', 'SUCCESS', row.rowId, 'individualDefender');
 
-    if (!connectorData.historical.ok) throw new Error(connectorData.historical.error || 'Historical connector failed');
+      ['seasonBaseline','careerBaseline','recentForm','stabilityWindow','extendedForm','headToHead','matchupPhysicality'].forEach(keyName => {
+        patchCardFromConnector(cards[keyName], row, {
+          status:'loading', phase:'CON-02', statusLabel:'Historical connector probing', parsedResult:'PROBING...', evidence:'Season, career, windows, and splits loading.', extractionProof:'CON-02 armed.', extractionMethod:'NBA Historical Connector', sourceWinner:'', confidence:22, sourceUrl:'', hardData:false
+        });
+      });
+      sync();
 
-    patchCardFromConnector(cards.seasonBaseline, row, {
-      status:'ready', phase:'CON-02 LOCKED', statusLabel:'SEASON BASELINE', parsedResult:String(connectorData.historical.season_baseline ?? '[UNKNOWN]'), evidence:`Total games ${connectorData.historical.sample_counts.total_games}`, extractionProof:'Season average computed from current-season game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.season_baseline, sourceUrl:'', hardData:true
-    });
-    patchCardFromConnector(cards.careerBaseline, row, {
-      status: connectorData.historical.career_baseline == null ? 'warning' : 'ready', phase:'CON-02 LOCKED', statusLabel: connectorData.historical.career_baseline == null ? 'CAREER PARTIAL' : 'CAREER BASELINE', parsedResult: connectorData.historical.career_baseline == null ? '[UNKNOWN]' : String(connectorData.historical.career_baseline), evidence:'Career totals regular season row when available.', extractionProof:'Career baseline selected from career stats payload.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Career Stats', confidence: connectorData.historical.career_baseline == null ? 48 : connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.career_baseline, sourceUrl:'', hardData: connectorData.historical.career_baseline != null
-    });
-    patchCardFromConnector(cards.recentForm, row, {
-      status:'ready', phase:'CON-02 LOCKED', statusLabel:'LAST 5', parsedResult:String(connectorData.historical.last5 ?? '[UNKNOWN]'), evidence:`Sample count ${Math.min(5, connectorData.historical.sample_counts.total_games)}`, extractionProof:'Rolling active-game window from game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.last5, sourceUrl:'', hardData:true
-    });
-    patchCardFromConnector(cards.stabilityWindow, row, {
-      status:'ready', phase:'CON-02 LOCKED', statusLabel:'LAST 10', parsedResult:String(connectorData.historical.last10 ?? '[UNKNOWN]'), evidence:`Sample count ${Math.min(10, connectorData.historical.sample_counts.total_games)}`, extractionProof:'Rolling active-game window from game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.last10, sourceUrl:'', hardData:true
-    });
-    patchCardFromConnector(cards.extendedForm, row, {
-      status:'ready', phase:'CON-02 LOCKED', statusLabel:'LAST 20', parsedResult:String(connectorData.historical.last20 ?? '[UNKNOWN]'), evidence:`Sample count ${Math.min(20, connectorData.historical.sample_counts.total_games)}`, extractionProof:'Rolling active-game window from game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.last20, sourceUrl:'', hardData:true
-    });
-    patchCardFromConnector(cards.headToHead, row, {
-      status: connectorData.historical.head_to_head == null ? 'warning' : 'ready', phase:'CON-02 LOCKED', statusLabel: connectorData.historical.head_to_head == null ? 'H2H UNAVAILABLE' : 'HEAD-TO-HEAD', parsedResult: connectorData.historical.head_to_head == null ? '[UNKNOWN]' : String(connectorData.historical.head_to_head), evidence:`H2H sample ${connectorData.historical.sample_counts.h2h_games}`, extractionProof:'Opponent-matched subset from current-season game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorData.historical.head_to_head == null ? 50 : connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.head_to_head, sourceUrl:'', hardData: connectorData.historical.head_to_head != null
-    });
-    patchCardFromConnector(cards.matchupPhysicality, row, {
-      status:'ready', phase:'CON-02 SPLITS', statusLabel:'SPLITS LOCKED', parsedResult:`HOME ${connectorData.historical.home_split ?? '—'} • AWAY ${connectorData.historical.away_split ?? '—'}`,
-      evidence:`WIN ${connectorData.historical.win_split ?? '—'} (${connectorData.historical.sample_counts.win_games}) • LOSS ${connectorData.historical.loss_split ?? '—'} (${connectorData.historical.sample_counts.loss_games})`,
-      extractionProof:'Home/away and win/loss splits derived from the same game-log set.',
-      extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • Splits from Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue:null, sourceUrl:'', hardData:true
-    });
-    logEvent('CON-02 historical baselines locked.', 'SUCCESS', row.rowId, 'seasonBaseline');
+      try {
+        connectorData.historical = await CON_02_Historical.fetch({
+          playerId: connectorData.identity.player_id,
+          opponentInput: connectorData.identity.opponent_abbr || row.opponent,
+          propFamily: phase1Status.propFamily,
+          season: getPhase1Season()
+        });
+      } catch (err) {
+        connectorData.historical = { ok:false, error:String(err && err.message || err), sample_counts:{ total_games:0, h2h_games:0, home_games:0, away_games:0, win_games:0, loss_games:0 } };
+      }
+
+      if (!connectorData.historical?.ok) {
+        markCardsWarning(
+          ['seasonBaseline','careerBaseline','recentForm','stabilityWindow','extendedForm','headToHead','matchupPhysicality'],
+          'CON-02 FAIL',
+          'HISTORICAL UNAVAILABLE',
+          connectorData.historical?.error || 'Historical connector failed after identity lock.',
+          'NBA Historical Connector',
+          'CON-02 / NBA API',
+          42
+        );
+        logEvent(`CON-02 failed: ${connectorData.historical?.error || 'historical unavailable'}`, 'WARNING', row.rowId, 'seasonBaseline');
+      } else {
+        patchCardFromConnector(cards.seasonBaseline, row, {
+          status:'ready', phase:'CON-02 LOCKED', statusLabel:'SEASON BASELINE', parsedResult:String(connectorData.historical.season_baseline ?? '[UNKNOWN]'), evidence:`Total games ${connectorData.historical.sample_counts.total_games}`, extractionProof:'Season average computed from current-season game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.season_baseline, sourceUrl:'', hardData:true
+        });
+        patchCardFromConnector(cards.careerBaseline, row, {
+          status: connectorData.historical.career_baseline == null ? 'warning' : 'ready', phase:'CON-02 LOCKED', statusLabel: connectorData.historical.career_baseline == null ? 'CAREER PARTIAL' : 'CAREER BASELINE', parsedResult: connectorData.historical.career_baseline == null ? '[UNKNOWN]' : String(connectorData.historical.career_baseline), evidence:'Career totals regular season row when available.', extractionProof:'Career baseline selected from career stats payload.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Career Stats', confidence: connectorData.historical.career_baseline == null ? 48 : connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.career_baseline, sourceUrl:'', hardData: connectorData.historical.career_baseline != null
+        });
+        patchCardFromConnector(cards.recentForm, row, {
+          status:'ready', phase:'CON-02 LOCKED', statusLabel:'LAST 5', parsedResult:String(connectorData.historical.last5 ?? '[UNKNOWN]'), evidence:`Sample count ${Math.min(5, connectorData.historical.sample_counts.total_games)}`, extractionProof:'Rolling active-game window from game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.last5, sourceUrl:'', hardData:true
+        });
+        patchCardFromConnector(cards.stabilityWindow, row, {
+          status:'ready', phase:'CON-02 LOCKED', statusLabel:'LAST 10', parsedResult:String(connectorData.historical.last10 ?? '[UNKNOWN]'), evidence:`Sample count ${Math.min(10, connectorData.historical.sample_counts.total_games)}`, extractionProof:'Rolling active-game window from game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.last10, sourceUrl:'', hardData:true
+        });
+        patchCardFromConnector(cards.extendedForm, row, {
+          status:'ready', phase:'CON-02 LOCKED', statusLabel:'LAST 20', parsedResult:String(connectorData.historical.last20 ?? '[UNKNOWN]'), evidence:`Sample count ${Math.min(20, connectorData.historical.sample_counts.total_games)}`, extractionProof:'Rolling active-game window from game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.last20, sourceUrl:'', hardData:true
+        });
+        patchCardFromConnector(cards.headToHead, row, {
+          status: connectorData.historical.head_to_head == null ? 'warning' : 'ready', phase:'CON-02 LOCKED', statusLabel: connectorData.historical.head_to_head == null ? 'H2H UNAVAILABLE' : 'HEAD-TO-HEAD', parsedResult: connectorData.historical.head_to_head == null ? '[UNKNOWN]' : String(connectorData.historical.head_to_head), evidence:`H2H sample ${connectorData.historical.sample_counts.h2h_games}`, extractionProof:'Opponent-matched subset from current-season game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorData.historical.head_to_head == null ? 50 : connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.head_to_head, sourceUrl:'', hardData: connectorData.historical.head_to_head != null
+        });
+        patchCardFromConnector(cards.matchupPhysicality, row, {
+          status:'ready', phase:'CON-02 SPLITS', statusLabel:'SPLITS LOCKED', parsedResult:`HOME ${connectorData.historical.home_split ?? '—'} • AWAY ${connectorData.historical.away_split ?? '—'}`,
+          evidence:`WIN ${connectorData.historical.win_split ?? '—'} (${connectorData.historical.sample_counts.win_games}) • LOSS ${connectorData.historical.loss_split ?? '—'} (${connectorData.historical.sample_counts.loss_games})`,
+          extractionProof:'Home/away and win/loss splits derived from the same game-log set.',
+          extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • Splits from Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue:null, sourceUrl:'', hardData:true
+        });
+        logEvent('CON-02 historical baselines locked.', 'SUCCESS', row.rowId, 'seasonBaseline');
+      }
+    }
     sync();
 
     ['rotationUsage','altitudeTravel'].forEach(keyName => {
@@ -2569,57 +2641,61 @@ async function ensureNbaMining(row) {
     });
     sync();
 
-    const inferredSides = inferGameSidesForRow(row, connectorData.identity);
-    connectorData.market = await CON_07_Market.fetch({
-      homeTeamInput: inferredSides.home,
-      awayTeamInput: inferredSides.away,
-      teamInput: connectorData.identity.team_abbr,
-      targetDate: null,
-      apiKey: getOddsApiKey()
-    });
-    if (!connectorData.market.ok && inferredSides.home && inferredSides.away) {
+    const inferredSides = inferGameSidesForRow(row, connectorData.identity || { team_abbr: row.team, opponent_abbr: row.opponent });
+    try {
       connectorData.market = await CON_07_Market.fetch({
-        homeTeamInput: inferredSides.away,
-        awayTeamInput: inferredSides.home,
-        teamInput: connectorData.identity.team_abbr,
+        homeTeamInput: inferredSides.home,
+        awayTeamInput: inferredSides.away,
+        teamInput: connectorData.identity?.team_abbr || row.team,
         targetDate: null,
         apiKey: getOddsApiKey()
       });
+      if (!connectorData.market.ok && inferredSides.home && inferredSides.away) {
+        connectorData.market = await CON_07_Market.fetch({
+          homeTeamInput: inferredSides.away,
+          awayTeamInput: inferredSides.home,
+          teamInput: connectorData.identity?.team_abbr || row.team,
+          targetDate: null,
+          apiKey: getOddsApiKey()
+        });
+      }
+    } catch (err) {
+      connectorData.market = { ok:false, error:String(err && err.message || err), market_line_family:{} };
     }
 
     patchCardFromConnector(cards.rotationUsage, row, {
-      status: connectorData.market.ok ? 'ready' : 'warning',
+      status: connectorData.market?.ok ? 'ready' : 'warning',
       phase:'CON-07 LOCKED',
-      statusLabel: connectorData.market.ok ? 'MARKET PULSE' : 'MARKET PARTIAL',
-      parsedResult:`Spread ${connectorData.market.spread ?? '—'} • Total ${connectorData.market.game_total ?? '—'}`,
-      evidence:`Book ${connectorData.market.market_line_family?.book || '—'} • Home price ${connectorData.market.spread_price_home ?? '—'} • Away price ${connectorData.market.spread_price_away ?? '—'}`,
-      extractionProof: connectorData.market.error || 'Spread and total extracted from matched market event.',
+      statusLabel: connectorData.market?.ok ? 'MARKET PULSE' : 'MARKET PARTIAL',
+      parsedResult:`Spread ${connectorData.market?.spread ?? '—'} • Total ${connectorData.market?.game_total ?? '—'}`,
+      evidence:`Book ${connectorData.market?.market_line_family?.book || '—'} • Home price ${connectorData.market?.spread_price_home ?? '—'} • Away price ${connectorData.market?.spread_price_away ?? '—'}`,
+      extractionProof: connectorData.market?.error || 'Spread and total extracted from matched market event.',
       extractionMethod:'Odds Aggregator Connector',
       sourceWinner:'CON-07 / Odds Aggregator',
       sourcesLabel:'CON-07 • Spread • Total • Market Family',
-      confidence: connectorConfidenceScore(connectorData.market.confidence),
+      confidence: connectorConfidenceScore(connectorData.market?.confidence),
       derived:false,
-      numericValue: connectorData.market.spread,
+      numericValue: connectorData.market?.spread,
       sourceUrl:'',
-      hardData: connectorData.market.ok
+      hardData:Boolean(connectorData.market?.ok)
     });
     patchCardFromConnector(cards.altitudeTravel, row, {
-      status: connectorData.market.team_implied_total == null ? 'warning' : 'ready',
+      status: connectorData.market?.team_implied_total == null ? 'warning' : 'ready',
       phase:'CON-07 DERIVED',
-      statusLabel: connectorData.market.team_implied_total == null ? 'IMPLIED TOTALS MISSING' : 'IMPLIED TOTALS',
-      parsedResult:`TEAM ${connectorData.market.team_implied_total ?? '—'} • OPP ${connectorData.market.opponent_implied_total ?? '—'}`,
-      evidence:`Over ${connectorData.market.over_price ?? '—'} • Under ${connectorData.market.under_price ?? '—'}${connectorData.market.stale ? ' • STALE' : ''}`,
+      statusLabel: connectorData.market?.team_implied_total == null ? 'IMPLIED TOTALS MISSING' : 'IMPLIED TOTALS',
+      parsedResult:`TEAM ${connectorData.market?.team_implied_total ?? '—'} • OPP ${connectorData.market?.opponent_implied_total ?? '—'}`,
+      evidence:`Over ${connectorData.market?.over_price ?? '—'} • Under ${connectorData.market?.under_price ?? '—'}${connectorData.market?.stale ? ' • STALE' : ''}`,
       extractionProof:'Implied totals derived from spread and total when both are present.',
       extractionMethod:'Market Connector',
       sourceWinner:'CON-07 / Odds Aggregator',
       sourcesLabel:'CON-07 • Implied Totals',
-      confidence: connectorConfidenceScore(connectorData.market.confidence),
-      derived: connectorData.market.team_implied_total != null,
-      numericValue: connectorData.market.team_implied_total,
+      confidence: connectorConfidenceScore(connectorData.market?.confidence),
+      derived: connectorData.market?.team_implied_total != null,
+      numericValue: connectorData.market?.team_implied_total,
       sourceUrl:'',
-      hardData: connectorData.market.team_implied_total != null
+      hardData: connectorData.market?.team_implied_total != null
     });
-    logEvent(connectorData.market.ok ? 'CON-07 market pulse locked.' : `CON-07 partial: ${connectorData.market.error || 'market unavailable'}`, connectorData.market.ok ? 'SUCCESS' : 'WARNING', row.rowId, 'rotationUsage');
+    logEvent(connectorData.market?.ok ? 'CON-07 market pulse locked.' : `CON-07 partial: ${connectorData.market?.error || 'market unavailable'}`, connectorData.market?.ok ? 'SUCCESS' : 'WARNING', row.rowId, 'rotationUsage');
     sync();
 
     patchCardFromConnector(cards.clutchPerformance, row, {
@@ -2627,29 +2703,33 @@ async function ensureNbaMining(row) {
     });
     sync();
 
-    connectorData.pace = await CON_08_Pace.fetch({
-      teamInput: connectorData.identity.team_abbr,
-      opponentInput: connectorData.identity.opponent_abbr || row.opponent,
-      season: getPhase1Season()
-    });
+    try {
+      connectorData.pace = await CON_08_Pace.fetch({
+        teamInput: connectorData.identity?.team_abbr || row.team,
+        opponentInput: connectorData.identity?.opponent_abbr || row.opponent,
+        season: getPhase1Season()
+      });
+    } catch (err) {
+      connectorData.pace = { ok:false, error:String(err && err.message || err) };
+    }
 
     patchCardFromConnector(cards.clutchPerformance, row, {
-      status: connectorData.pace.ok ? 'ready' : 'warning',
+      status: connectorData.pace?.ok ? 'ready' : 'warning',
       phase:'CON-08 LOCKED',
-      statusLabel: connectorData.pace.ok ? 'PACE ENVIRONMENT' : 'PACE PARTIAL',
-      parsedResult:`PACE ${connectorData.pace.pace || '—'} • OPP RECENT ${connectorData.pace.opponent_recent_pace || '—'}`,
-      evidence:`PACE DELTA ${connectorData.pace.pace_delta || 0}`,
-      extractionProof: connectorData.pace.error || 'Season pace and opponent recent pace resolved.',
+      statusLabel: connectorData.pace?.ok ? 'PACE ENVIRONMENT' : 'PACE PARTIAL',
+      parsedResult:`PACE ${connectorData.pace?.pace || '—'} • OPP RECENT ${connectorData.pace?.opponent_recent_pace || '—'}`,
+      evidence:`PACE DELTA ${connectorData.pace?.pace_delta || 0}`,
+      extractionProof: connectorData.pace?.error || 'Season pace and opponent recent pace resolved.',
       extractionMethod:'Pace Connector',
       sourceWinner:'CON-08 / NBA Advanced Team Stats',
       sourcesLabel:'CON-08 • Pace • Pace Delta • Opp Recent Pace',
-      confidence: connectorConfidenceScore(connectorData.pace.confidence),
-      derived: connectorData.pace.confidence === 'MEDIUM',
-      numericValue: connectorData.pace.pace_delta,
+      confidence: connectorConfidenceScore(connectorData.pace?.confidence),
+      derived: connectorData.pace?.confidence === 'MEDIUM',
+      numericValue: connectorData.pace?.pace_delta,
       sourceUrl:'',
-      hardData: connectorData.pace.ok
+      hardData:Boolean(connectorData.pace?.ok)
     });
-    logEvent(connectorData.pace.ok ? 'CON-08 pace environment locked.' : `CON-08 partial: ${connectorData.pace.error || 'pace unavailable'}`, connectorData.pace.ok ? 'SUCCESS' : 'WARNING', row.rowId, 'clutchPerformance');
+    logEvent(connectorData.pace?.ok ? 'CON-08 pace environment locked.' : `CON-08 partial: ${connectorData.pace?.error || 'pace unavailable'}`, connectorData.pace?.ok ? 'SUCCESS' : 'WARNING', row.rowId, 'clutchPerformance');
 
     markPhasePending(cards.motivation, 'PHASE 2 PENDING', 'Motivation / incentives connector not included in Phase 1 deployment.');
     markPhasePending(cards.officialRef, 'PHASE 4 PENDING', 'Referee crew and foul environment connectors not included in Phase 1 deployment.');
@@ -2659,8 +2739,18 @@ async function ensureNbaMining(row) {
     hideOverlay();
     render();
   } catch (err) {
-    logEvent(String(err && err.message || err), 'ERROR', row.rowId, 'system');
-    cards.survivabilityShield = buildPhase1Shield(cards.survivabilityShield, row, connectorData, cards);
+    const reason = String(err && err.message || err);
+    logEvent(reason, 'ERROR', row.rowId, 'system');
+    markCardsWarning(
+      ['recentForm','stabilityWindow','extendedForm','seasonBaseline','careerBaseline','headToHead','matchupPhysicality','rotationUsage','clutchPerformance','altitudeTravel','motivation','officialRef'],
+      'PHASE 1 ABORTED',
+      'CONNECTOR SWEEP FAILED',
+      reason,
+      'Connector Sequence',
+      'PHASE 1 CONNECTORS',
+      32
+    );
+    buildPhase1Shield(cards.survivabilityShield, row, connectorData, cards);
     runtimeMiningCache[key] = { status:'done', cards, connectorData };
     hideOverlay();
     render();
