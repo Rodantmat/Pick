@@ -360,6 +360,78 @@
       resize: vertical;
     }
 
+    .review-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .review-line-card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.03);
+      padding: 14px;
+    }
+
+    .review-line-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .review-line-text {
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .copy-wrap {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .copy-status {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .ingest-log-box {
+      margin-top: 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.03);
+      padding: 14px;
+    }
+
+    .ingest-log-box h3 {
+      margin: 0 0 10px;
+    }
+
+    .ingest-log-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .ingest-log-item {
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      padding: 10px 12px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .log-info { color: var(--accent); font-weight: 800; }
+    .log-warn { color: var(--warn); font-weight: 800; }
+    .log-error { color: var(--bad); font-weight: 800; }
+
+
     .muted {
       color: var(--muted);
     }
@@ -625,40 +697,26 @@
 
       <div class="panel" style="margin-top:18px;">
         <h2>Parsed leg review</h2>
-        <div class="panel-sub">Each row is editable. Unknown values are allowed in v1. Fix low-confidence rows here before Run.</div>
+        <div class="panel-sub">Single-line review view for fast inspection. This is built for copy/paste debugging, not wide-grid editing.</div>
         <div id="reviewEmpty" class="empty-state">No parsed legs yet.</div>
-        <div id="reviewTableWrap" class="review-table-wrap" style="display:none;">
-          <table class="review-table" id="reviewTable">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Player Raw</th>
-                <th>Player Normalized</th>
-                <th>Team Raw</th>
-                <th>Team</th>
-                <th>Opponent Raw</th>
-                <th>Opponent</th>
-                <th>Pos</th>
-                <th>Prop Raw</th>
-                <th>Prop</th>
-                <th>Line</th>
-                <th>Direction</th>
-                <th>Promo</th>
-                <th>Suffix</th>
-                <th>Platform</th>
-                <th>Layout</th>
-                <th>Confidence</th>
-                <th>Note</th>
-              </tr>
-            </thead>
-            <tbody id="reviewTbody"></tbody>
-          </table>
+        <div id="reviewTableWrap" style="display:none;">
+          <div id="reviewTbody" class="review-list"></div>
+        </div>
+
+        <div id="ingestLogBox" class="ingest-log-box" style="display:none;">
+          <h3>Ingest log</h3>
+          <div id="ingestLogList" class="ingest-log-list"></div>
         </div>
 
         <details id="debugBox" class="ingest-debug" style="display:none;">
           <summary>Raw OCR / parser debug</summary>
           <div id="debugInner" class="debug-inner"></div>
         </details>
+
+        <div class="copy-wrap">
+          <button id="copyBtn" class="ghost">Copy full ingest output</button>
+        </div>
+        <div id="copyStatus" class="copy-status"></div>
       </div>
     </section>
 
@@ -732,7 +790,8 @@
       images: [],
       rawDebug: [],
       parsedLegs: [],
-      analysisLegs: []
+      analysisLegs: [],
+      ingestLog: []
     };
 
     const els = {
@@ -754,6 +813,10 @@
       reviewTbody: document.getElementById('reviewTbody'),
       debugBox: document.getElementById('debugBox'),
       debugInner: document.getElementById('debugInner'),
+      ingestLogBox: document.getElementById('ingestLogBox'),
+      ingestLogList: document.getElementById('ingestLogList'),
+      copyBtn: document.getElementById('copyBtn'),
+      copyStatus: document.getElementById('copyStatus'),
       analysisGrid: document.getElementById('analysisGrid'),
       analysisEmpty: document.getElementById('analysisEmpty'),
       analysisLegCount: document.getElementById('analysisLegCount'),
@@ -786,6 +849,74 @@
       els.errorLog.classList.remove('show');
     }
 
+    function logIngest(level, message) {
+      const timestamp = new Date().toLocaleTimeString();
+      state.ingestLog.push({ level, message, timestamp });
+      renderIngestLog();
+    }
+
+    function renderIngestLog() {
+      if (!state.ingestLog.length) {
+        els.ingestLogBox.style.display = 'none';
+        els.ingestLogList.innerHTML = '';
+        return;
+      }
+      els.ingestLogBox.style.display = 'block';
+      els.ingestLogList.innerHTML = state.ingestLog.map(entry => `
+        <div class="ingest-log-item"><span class="log-${entry.level.toLowerCase()}">${escapeHtml(entry.level)}</span> <span class="muted">[${escapeHtml(entry.timestamp)}]</span> ${escapeHtml(entry.message)}</div>
+      `).join('');
+    }
+
+    function formatLegSummary(leg, index) {
+      return `${index + 1}. ${leg.playerNormalized || leg.playerRaw || 'Unknown player'} | ${leg.teamRaw || '?'}${leg.opponentRaw ? ` vs ${leg.opponentRaw}` : ''} | ${leg.propNormalized || leg.propRaw || 'Unknown prop'} | ${leg.direction || 'UNKNOWN'} ${leg.line || '?'}${leg.suffix ? ` | ${leg.suffix}` : ''} | ${leg.promoType || 'Regular'} | ${leg.platformSource || 'Unknown'} | ${leg.layoutFamily || 'unknown'} | ${leg.parseConfidence}`;
+    }
+
+    function buildCopyPayload() {
+      const parts = [];
+      parts.push(`STATUS: ${els.statusText.textContent}`);
+      parts.push(`PARSED ROWS: ${state.parsedLegs.length}`);
+      if (els.errorLog.textContent.trim()) {
+        parts.push('');
+        parts.push('ERROR LOG');
+        parts.push(els.errorLog.textContent.trim());
+      }
+      if (state.ingestLog.length) {
+        parts.push('');
+        parts.push('INGEST LOG');
+        state.ingestLog.forEach(entry => parts.push(`${entry.level} [${entry.timestamp}] ${entry.message}`));
+      }
+      parts.push('');
+      parts.push('PARSED LEGS');
+      if (!state.parsedLegs.length) {
+        parts.push('None');
+      } else {
+        state.parsedLegs.forEach((leg, index) => parts.push(formatLegSummary(leg, index)));
+      }
+      parts.push('');
+      parts.push('RAW OCR / PARSER DEBUG');
+      if (!state.rawDebug.length) {
+        parts.push('None');
+      } else {
+        state.rawDebug.forEach(entry => {
+          parts.push(`Image ${entry.imageIndex} | ${entry.platformSource} | ${entry.layoutFamily}`);
+          parts.push((entry.text || '').trim());
+          if (entry.notes && entry.notes.length) parts.push(`Notes: ${entry.notes.join(' | ')}`);
+          parts.push('');
+        });
+      }
+      return parts.join('\n');
+    }
+
+    async function copyFullIngestOutput() {
+      const payload = buildCopyPayload();
+      try {
+        await navigator.clipboard.writeText(payload);
+        els.copyStatus.textContent = 'Copied full ingest output.';
+      } catch (error) {
+        els.copyStatus.textContent = 'Copy failed. Long-press and copy manually.';
+      }
+    }
+
     function updateProgress(percent, text) {
       const safe = Math.max(0, Math.min(100, percent));
       els.progressLabel.textContent = `${safe}%`;
@@ -802,6 +933,7 @@
       state.rawDebug = [];
       state.parsedLegs = [];
       state.analysisLegs = [];
+      state.ingestLog = [];
       els.imageInput.value = '';
       els.previewGrid.innerHTML = '';
       els.reviewTbody.innerHTML = '';
@@ -809,6 +941,9 @@
       els.reviewTableWrap.style.display = 'none';
       els.debugBox.style.display = 'none';
       els.debugInner.innerHTML = '';
+      els.ingestLogBox.style.display = 'none';
+      els.ingestLogList.innerHTML = '';
+      els.copyStatus.textContent = '';
       els.analysisGrid.innerHTML = '';
       els.analysisGrid.style.display = 'none';
       els.analysisEmpty.style.display = 'block';
@@ -831,6 +966,7 @@
     els.runBtn.addEventListener('click', runAnalysis);
     els.resetBtn.addEventListener('click', resetState);
     els.backToIngestBtn.addEventListener('click', () => switchScreen('screen-ingest'));
+    els.copyBtn.addEventListener('click', copyFullIngestOutput);
 
     function handleImageSelection(event) {
       clearError();
@@ -862,8 +998,10 @@
       });
     }
 
+
     async function ingestImages() {
       clearError();
+      els.copyStatus.textContent = '';
       if (!state.images.length) {
         showError('Upload at least 1 screenshot before you click Ingest.');
         return;
@@ -873,22 +1011,26 @@
       els.runBtn.disabled = true;
       state.rawDebug = [];
       state.parsedLegs = [];
+      state.ingestLog = [];
+      logIngest('INFO', `Starting ingest for ${state.images.length} image${state.images.length === 1 ? '' : 's'}.`);
       updateProgress(2, 'Preparing screenshots for OCR and parser pass...');
       setGlobalStatus('Ingest running', 'warn');
 
       try {
-        const imageResults = [];
         let carryContext = { event: '', layoutFamily: '', platformSource: '' };
 
         for (let i = 0; i < state.images.length; i++) {
           const image = state.images[i];
+          logIngest('INFO', `Image ${i + 1}: preprocessing started for ${image.file.name}.`);
           updateProgress(Math.round((i / state.images.length) * 35) + 5, `Reading image ${i + 1} of ${state.images.length}...`);
           const text = await extractTextFromImage(image.file);
+          logIngest('INFO', `Image ${i + 1}: OCR returned ${text.replace(/\s+/g, '').length} non-space characters.`);
           const layoutFamily = detectLayoutFamily(text);
           const platformSource = detectPlatform(layoutFamily, text);
+          logIngest('INFO', `Image ${i + 1}: detected layout ${layoutFamily} on ${platformSource}.`);
           const parsed = parseLayoutText(text, layoutFamily, platformSource, carryContext, i);
-          imageResults.push({ imageIndex: i + 1, layoutFamily, platformSource, text, parsedCount: parsed.legs.length });
           state.parsedLegs.push(...parsed.legs);
+          logIngest(parsed.legs.length ? 'INFO' : 'WARN', `Image ${i + 1}: parser found ${parsed.legs.length} leg${parsed.legs.length === 1 ? '' : 's'}.`);
           if (parsed.context.event) carryContext.event = parsed.context.event;
           if (layoutFamily) carryContext.layoutFamily = layoutFamily;
           if (platformSource) carryContext.platformSource = platformSource;
@@ -897,17 +1039,31 @@
 
         updateProgress(55, 'Merging screenshot rows, deduplicating, and normalizing...');
         state.parsedLegs = mergeAndNormalizeLegs(state.parsedLegs);
+        logIngest('INFO', `Merge/normalize complete. ${state.parsedLegs.length} final leg${state.parsedLegs.length === 1 ? '' : 's'} kept.`);
 
-        updateProgress(72, 'Building editable review grid...');
+        updateProgress(72, 'Building quick review list...');
         renderReviewTable();
+        renderDebug();
+
+        if (!state.parsedLegs.length) {
+          const failMessage = 'Ingest finished with 0 parsed legs. Treating result as failed instead of complete.';
+          logIngest('ERROR', failMessage);
+          showError(failMessage);
+          updateProgress(100, 'Ingest failed. Parsed 0 legs. Check the ingest log and raw OCR debug below.');
+          setGlobalStatus('Ingest failed', 'bad');
+          els.runBtn.disabled = true;
+          return;
+        }
 
         updateProgress(100, `Ingest complete. Parsed ${state.parsedLegs.length} leg${state.parsedLegs.length === 1 ? '' : 's'}. Review and click Run when ready.`);
-        setGlobalStatus('Ingest complete', state.parsedLegs.length ? 'good' : 'bad');
-        els.runBtn.disabled = state.parsedLegs.length === 0;
-        renderDebug();
+        setGlobalStatus('Ingest complete', 'good');
+        els.runBtn.disabled = false;
+        logIngest('INFO', `Ingest complete with ${state.parsedLegs.length} parsed leg${state.parsedLegs.length === 1 ? '' : 's'}.`);
       } catch (error) {
         console.error(error);
-        showError(`Ingest failed. ${error.message || 'Unexpected OCR or parser error.'}`);
+        const msg = error && error.message ? error.message : 'Unexpected OCR or parser error.';
+        logIngest('ERROR', msg);
+        showError(`Ingest failed. ${msg}`);
         updateProgress(0, 'Ingest failed. Fix the issue and try again.');
         setGlobalStatus('Ingest failed', 'bad');
       } finally {
@@ -1003,89 +1159,102 @@
       }
     }
 
+
     function parseSleeperEntry(lines, platformSource, carryContext, imageIndex, notes) {
       const legs = [];
       let currentEvent = carryContext.event || '';
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (/^[A-Z]{2,4}\s+vs\s+[A-Z]{2,4}$/i.test(line.replace(/^NBA\s+/i, '').trim())) {
-          currentEvent = line.replace(/^NBA\s+/i, '').trim();
-          continue;
-        }
-        if (/^[A-Z]\.?\s?[A-Za-z'\-]+(?:\s[A-Za-z'\-]+)?$/.test(line) && (i + 2) < lines.length) {
-          const playerRaw = line;
-          const opponentLine = lines[i + 1];
-          const teamPosLine = lines[i + 2];
-          const maybePropWindow = lines.slice(i + 1, i + 7).join(' ');
-          const linePropDir = parsePropBundleFromChunk(maybePropWindow, 'sleep_entry');
-          if (!linePropDir.line && !linePropDir.propRaw) continue;
-          const teamRaw = extractTeamFromSleeperTeamPos(teamPosLine);
-          const position = extractPositionFromTeamPos(teamPosLine);
-          const opponentRaw = extractOpponentFromSleeperOpponent(opponentLine);
-          const direction = linePropDir.direction || 'UNKNOWN';
-          const promoType = inferPromoTypeFromText(maybePropWindow);
-          const suffix = linePropDir.suffix;
-          legs.push(makeLeg({
-            playerRaw,
-            teamRaw,
-            opponentRaw,
-            position,
-            propRaw: linePropDir.propRaw,
-            line: linePropDir.line,
-            direction,
-            promoType,
-            suffix,
-            platformSource,
-            layoutFamily: 'sleep_entry',
-            sourceImageIndex: imageIndex,
-            eventRaw: currentEvent,
-            rawExtractionNote: 'Sleeper row parse'
-          }));
-        }
-      }
-      notes.push(`Sleeper parse created ${legs.length} row(s).`);
-      return { legs, context: { event: currentEvent }, notes };
-    }
+      const cleanLines = lines.map(line => cleanupPlayerText(line));
 
-    function parsePrizePicksCurrentLineup(lines, platformSource, carryContext, imageIndex, notes) {
-      const legs = [];
-      let currentEvent = carryContext.event || '';
-      let pendingMoreLess = null;
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+      for (let i = 0; i < cleanLines.length; i++) {
+        const line = cleanLines[i];
         const eventMatch = line.match(/(?:NBA\s+)?([A-Z]{2,4}\s+vs\s+[A-Z]{2,4})/i);
         if (eventMatch) {
           currentEvent = eventMatch[1].trim();
           continue;
         }
-        if (/\b(Less|More)\b/i.test(line)) {
-          pendingMoreLess = line;
+
+        const startMatch = line.match(/([A-Z]\.?\s*[A-Za-z'\-]+(?:\s+[A-Za-z'\-]+)?)\s+(\d+(?:\.\d+)?)/i);
+        if (!startMatch) continue;
+
+        const playerRaw = startMatch[1].replace(/\s+/g, ' ').trim();
+        const lineValue = startMatch[2];
+        const chunk = cleanLines.slice(i, i + 3).join(' ');
+        const propMatch = chunk.match(/(P\+R\+A|PRA|PTS|REB|AST\s*\+\s*REB|REB\s*\+\s*AST|3PM|3PTM)/i);
+        const opponentMatch = chunk.match(/(?:@|vs)\s*([A-Z]{2,4})/i);
+        const posMatch = chunk.match(/(PG|SG|SF|PF|C|G|F)/i);
+        const direction = /(Ov|Over|More)/i.test(chunk) ? 'MORE' : /(Un|Under|Less)/i.test(chunk) ? 'LESS' : 'UNKNOWN';
+        const teamGuess = inferTeamFromPlayer(playerRaw);
+
+        legs.push(makeLeg({
+          playerRaw,
+          teamRaw: teamGuess,
+          opponentRaw: opponentMatch ? opponentMatch[1].toUpperCase() : extractOpponentFromEvent(currentEvent, teamGuess),
+          position: posMatch ? posMatch[1].toUpperCase() : '',
+          propRaw: propMatch ? propMatch[1].replace(/\s+/g, ' ').trim() : '',
+          line: lineValue,
+          direction,
+          promoType: inferPromoTypeFromText(chunk),
+          suffix: inferSuffixFromChunk(chunk),
+          platformSource,
+          layoutFamily: 'sleep_entry',
+          sourceImageIndex: imageIndex,
+          eventRaw: currentEvent,
+          rawExtractionNote: 'Sleeper compressed-row parse'
+        }));
+      }
+
+      notes.push(`Sleeper parse created ${legs.length} row(s).`);
+      return { legs, context: { event: currentEvent }, notes };
+    }
+
+
+    function parsePrizePicksCurrentLineup(lines, platformSource, carryContext, imageIndex, notes) {
+      const legs = [];
+      let currentEvent = carryContext.event || '';
+      const cleanLines = lines.map(line => cleanupPlayerText(line)).filter(Boolean);
+
+      for (let i = 0; i < cleanLines.length; i++) {
+        const line = cleanLines[i];
+        const eventMatch = line.match(/(?:NBA\s+)?([A-Z]{2,4}\s+vs\s+[A-Z]{2,4})/i);
+        if (eventMatch) {
+          currentEvent = eventMatch[1].trim();
           continue;
         }
-        if (isLikelyFullName(line) && (i + 2) < lines.length) {
-          const playerRaw = line;
-          const teamPosLine = lines[i + 1];
-          const propLine = lines[i + 2];
-          const direction = inferPrizePicksDirection(pendingMoreLess, lines.slice(i, i + 5).join(' '));
-          const parsedLine = parsePrizePicksPropLine(propLine);
-          legs.push(makeLeg({
-            playerRaw,
-            teamRaw: extractTeamFromPrizePicksTeamPos(teamPosLine),
-            opponentRaw: extractOpponentFromEvent(currentEvent, extractTeamFromPrizePicksTeamPos(teamPosLine)),
-            position: extractPositionFromPrizePicksTeamPos(teamPosLine),
-            propRaw: parsedLine.propRaw,
-            line: parsedLine.line,
-            direction,
-            promoType: inferPromoTypeFromText(propLine),
-            suffix: parsedLine.suffix,
-            platformSource,
-            layoutFamily: 'prizepicks_current_lineup',
-            sourceImageIndex: imageIndex,
-            eventRaw: currentEvent,
-            rawExtractionNote: 'PrizePicks current lineup parse'
-          }));
-          pendingMoreLess = null;
+        if (!isLikelyFullName(line)) continue;
+
+        let playerRaw = line;
+        if (i + 1 < cleanLines.length && looksLikeNameContinuation(cleanLines[i + 1])) {
+          playerRaw = `${playerRaw} ${cleanLines[i + 1]}`.replace(/\s+/g, ' ').trim();
+          i += 1;
         }
+
+        const window = cleanLines.slice(i + 1, i + 4).join(' ');
+        const teamMatch = window.match(/([A-Z]{2,4})\s*-\s*(PG|SG|SF|PF|C|G|F)/i) || window.match(/([A-Z]{2,4})\.(PG|SG|SF|PF|C|G|F)/i);
+        const teamRaw = teamMatch ? teamMatch[1].toUpperCase() : inferTeamFromPlayer(playerRaw);
+        const position = teamMatch ? teamMatch[2].toUpperCase() : '';
+        const direction = inferPrizePicksDirection(window, cleanLines.slice(i, i + 5).join(' '));
+        const lineMatch = window.match(/(\d+(?:\.\d+)?)/);
+        const propMatch = window.match(/(Pts\+Asts|Pts\+Rebs|Pts\+Rebs\+Asts|Rebs\+Asts|Rebounds|Assists|Points|3PM|3PTM|pra|PRA)/i);
+        const oppFromEvent = extractOpponentFromEvent(currentEvent, teamRaw);
+
+        if (!lineMatch && !propMatch) continue;
+
+        legs.push(makeLeg({
+          playerRaw,
+          teamRaw,
+          opponentRaw: oppFromEvent,
+          position,
+          propRaw: propMatch ? propMatch[1].replace(/\s+/g, ' ').trim() : '',
+          line: lineMatch ? lineMatch[1] : '',
+          direction,
+          promoType: inferPromoTypeFromText(window),
+          suffix: inferSuffixFromChunk(window),
+          platformSource,
+          layoutFamily: 'prizepicks_current_lineup',
+          sourceImageIndex: imageIndex,
+          eventRaw: currentEvent,
+          rawExtractionNote: 'PrizePicks current lineup compressed parse'
+        }));
       }
       notes.push(`PrizePicks current lineup parse created ${legs.length} row(s).`);
       return { legs, context: { event: currentEvent }, notes };
@@ -1193,8 +1362,26 @@
       return { legs, context: { event: currentEvent }, notes };
     }
 
+    function cleanupPlayerText(line) {
+      return String(line || '')
+        .replace(/^[^A-Za-z]+/, '')
+        .replace(/[&§@«»®™#{}|\\]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
     function isLikelyFullName(line) {
-      return /^(?:[A-Z][a-zA-Z'\-]+|[A-Z]\.)\s+(?:[A-Z][a-zA-Z'\-\.]+){1,3}$/.test(line) && !/^(Current Lineup|Flex Play|Power Play|Win contest|Submit Lineup|Copy lineup|View less|View more)$/i.test(line);
+      const clean = cleanupPlayerText(line);
+      if (!clean || /^(Current Lineup|Flex Play|Power Play|Win contest|Submit Lineup|Copy lineup|View less|View more)$/i.test(clean)) return false;
+      if (/\d/.test(clean)) return false;
+      if (/^[A-Z]\.?\s*[A-Za-z'\-]+(?:\s+[A-Za-z'\-]+){0,2}$/i.test(clean)) return true;
+      return /^[A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-\.]+){1,3}$/.test(clean);
+    }
+
+    function looksLikeNameContinuation(line) {
+      const clean = cleanupPlayerText(line);
+      if (!clean || /\d/.test(clean)) return false;
+      return /^[A-Z][a-zA-Z'\-]+$/.test(clean) || /^[A-Z][a-zA-Z'\-]+\s+[A-Z][a-zA-Z'\-]+$/.test(clean);
     }
 
     function parsePropBundleFromChunk(chunk, family) {
@@ -1227,14 +1414,13 @@
       return { line: m[1], propRaw: m[2].trim(), suffix: inferSuffixFromChunk(compact) };
     }
 
-    function inferPrizePicksDirection(pendingMoreLess, chunk) {
-      const pending = String(pendingMoreLess || '').trim();
-      const source = `${pending} ${String(chunk || '')}`.trim();
-      if (/More/i.test(pending)) return 'MORE';
-      if (/Less/i.test(pending)) return 'LESS';
-      if (/Higher/i.test(source)) return 'MORE';
-      if (/Lower/i.test(source)) return 'LESS';
-      return inferArrowDirectionFromText(source);
+    function inferPrizePicksDirection(primaryText, fallbackText) {
+      const joined = `${primaryText || ''} ${fallbackText || ''}`;
+      if (/Less/i.test(joined)) return 'LESS';
+      if (/More/i.test(joined)) return 'MORE';
+      if (/↓/.test(joined)) return 'LESS';
+      if (/↑/.test(joined)) return 'MORE';
+      return 'UNKNOWN';
     }
 
     function inferArrowDirectionFromText(text) {
@@ -1298,6 +1484,22 @@
       return `${a} / ${b}`;
     }
 
+
+    function inferTeamFromPlayer(playerRaw) {
+      const clean = cleanupPlayerText(playerRaw);
+      const aliasEntries = Object.entries(PLAYER_ALIAS_MAP);
+      for (const [key, value] of aliasEntries) {
+        const [abbr, team] = key.split('|');
+        if (abbr.toLowerCase() === clean.toLowerCase() || value.toLowerCase() === clean.toLowerCase()) return team || '';
+      }
+      const fallback = {
+        'Aaron Wiggins': 'OKC', 'A. Wiggins': 'OKC', 'Anthony Edwards': 'MIN', 'Julian Strawther': 'DEN', 'Jonas Valanciunas': 'DEN', 'Bez Mbeng': 'UTA',
+        'Toumani Camara': 'POR', 'T. Camara': 'POR', 'John Collins': 'UTA', 'J. Collins': 'UTA', 'Jake LaRavia': 'LAL', 'J. LaRavia': 'LAL',
+        'Draymond Green': 'GSW', 'D. Green': 'GSW', 'Stephen Curry': 'GSW', 'S. Curry': 'GSW', 'Luguentz Dort': 'OKC', 'L. Dort': 'OKC'
+      };
+      return fallback[clean] || '';
+    }
+
     function makeLeg(data) {
       const teamNormalized = normalizeTeam(data.teamRaw);
       const opponentNormalized = normalizeTeam(data.opponentRaw);
@@ -1354,11 +1556,13 @@
 
     function normalizePlayer(playerRaw, teamRaw, opponentRaw, position) {
       if (!playerRaw) return '';
-      const clean = playerRaw.replace(/\s+/g, ' ').trim();
-      if (isLikelyFullName(clean)) return clean;
+      const clean = cleanupPlayerText(playerRaw).replace(/\bs\.curry\b/i, 'S. Curry').replace(/\bd\.green\b/i, 'D. Green');
+      if (isLikelyFullName(clean) && clean.split(' ').length >= 2 && !/^[A-Z]\./.test(clean)) return clean;
       const teamKey = (teamRaw || '').toUpperCase();
       const aliasKey = `${clean}|${teamKey}`;
       if (PLAYER_ALIAS_MAP[aliasKey]) return PLAYER_ALIAS_MAP[aliasKey];
+      const rawMatch = Object.entries(PLAYER_ALIAS_MAP).find(([key]) => key.split('|')[0].toLowerCase() === clean.toLowerCase());
+      if (rawMatch) return rawMatch[1];
       return clean;
     }
 
@@ -1398,6 +1602,7 @@
       return merged.map((leg, idx) => ({ ...leg, rowNumber: idx + 1 }));
     }
 
+
     function renderReviewTable() {
       els.reviewTbody.innerHTML = '';
       const legs = state.parsedLegs;
@@ -1405,6 +1610,10 @@
         els.reviewEmpty.style.display = 'block';
         els.reviewTableWrap.style.display = 'none';
         els.runBtn.disabled = true;
+        els.parsedCount.textContent = '0';
+        els.highCount.textContent = '0';
+        els.mediumCount.textContent = '0';
+        els.lowCount.textContent = '0';
         return;
       }
       els.reviewEmpty.style.display = 'none';
@@ -1413,64 +1622,26 @@
 
       legs.forEach((leg, index) => {
         counts[leg.parseConfidence] = (counts[leg.parseConfidence] || 0) + 1;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${index + 1}</td>
-          <td><input data-field="playerRaw" data-id="${leg.id}" value="${escapeHtml(leg.playerRaw)}" /></td>
-          <td><input data-field="playerNormalized" data-id="${leg.id}" value="${escapeHtml(leg.playerNormalized)}" /></td>
-          <td><input data-field="teamRaw" data-id="${leg.id}" value="${escapeHtml(leg.teamRaw)}" /></td>
-          <td><input data-field="teamNormalized" data-id="${leg.id}" value="${escapeHtml(leg.teamNormalized)}" /></td>
-          <td><input data-field="opponentRaw" data-id="${leg.id}" value="${escapeHtml(leg.opponentRaw)}" /></td>
-          <td><input data-field="opponentNormalized" data-id="${leg.id}" value="${escapeHtml(leg.opponentNormalized)}" /></td>
-          <td><input data-field="position" data-id="${leg.id}" value="${escapeHtml(leg.position)}" /></td>
-          <td><input data-field="propRaw" data-id="${leg.id}" value="${escapeHtml(leg.propRaw)}" /></td>
-          <td><input data-field="propNormalized" data-id="${leg.id}" value="${escapeHtml(leg.propNormalized)}" /></td>
-          <td><input data-field="line" data-id="${leg.id}" value="${escapeHtml(leg.line)}" /></td>
-          <td>
-            <select data-field="direction" data-id="${leg.id}">
-              <option ${leg.direction === 'MORE' ? 'selected' : ''}>MORE</option>
-              <option ${leg.direction === 'LESS' ? 'selected' : ''}>LESS</option>
-              <option ${leg.direction === 'UNKNOWN' ? 'selected' : ''}>UNKNOWN</option>
-            </select>
-          </td>
-          <td>
-            <select data-field="promoType" data-id="${leg.id}">
-              <option ${leg.promoType === 'Regular' ? 'selected' : ''}>Regular</option>
-              <option ${leg.promoType === 'Goblin' ? 'selected' : ''}>Goblin</option>
-              <option ${leg.promoType === 'Demon' ? 'selected' : ''}>Demon</option>
-            </select>
-          </td>
-          <td><input data-field="suffix" data-id="${leg.id}" value="${escapeHtml(leg.suffix)}" /></td>
-          <td><input data-field="platformSource" data-id="${leg.id}" value="${escapeHtml(leg.platformSource)}" /></td>
-          <td><input data-field="layoutFamily" data-id="${leg.id}" value="${escapeHtml(leg.layoutFamily)}" /></td>
-          <td>
-            <div class="badge ${leg.parseConfidence === 'HIGH' ? 'badge-high' : leg.parseConfidence === 'MEDIUM' ? 'badge-med' : 'badge-low'}">${leg.parseConfidence}</div>
-          </td>
-          <td><textarea data-field="rawExtractionNote" data-id="${leg.id}">${escapeHtml(leg.rawExtractionNote)}</textarea></td>
+        const row = document.createElement('div');
+        row.className = 'review-line-card';
+        row.innerHTML = `
+          <div class="review-line-top">
+            <div><strong>Leg ${index + 1}</strong></div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <div class="badge ${leg.parseConfidence === 'HIGH' ? 'badge-high' : leg.parseConfidence === 'MEDIUM' ? 'badge-med' : 'badge-low'}">${leg.parseConfidence}</div>
+              <div class="badge ${leg.promoType === 'Demon' ? 'badge-demon' : leg.promoType === 'Goblin' ? 'badge-goblin' : 'badge-regular'}">${escapeHtml(leg.promoType || 'Regular')}</div>
+            </div>
+          </div>
+          <div class="review-line-text">${escapeHtml(formatLegSummary(leg, index))}</div>
+          <div class="tiny muted" style="margin-top:8px;">Raw note: ${escapeHtml(leg.rawExtractionNote || 'None')}</div>
         `;
-        els.reviewTbody.appendChild(tr);
-      });
-
-      els.reviewTbody.querySelectorAll('input, select, textarea').forEach(el => {
-        el.addEventListener('change', handleReviewEdit);
+        els.reviewTbody.appendChild(row);
       });
 
       els.parsedCount.textContent = String(legs.length);
       els.highCount.textContent = String(counts.HIGH || 0);
       els.mediumCount.textContent = String(counts.MEDIUM || 0);
       els.lowCount.textContent = String(counts.LOW || 0);
-    }
-
-    function handleReviewEdit(event) {
-      const id = event.target.dataset.id;
-      const field = event.target.dataset.field;
-      const leg = state.parsedLegs.find(item => item.id === id);
-      if (!leg) return;
-      leg[field] = event.target.value;
-      if (field === 'playerRaw' && !leg.playerNormalized) leg.playerNormalized = normalizePlayer(leg.playerRaw, leg.teamRaw, leg.opponentRaw, leg.position);
-      if (field === 'teamRaw' && !leg.teamNormalized) leg.teamNormalized = normalizeTeam(leg.teamRaw);
-      if (field === 'opponentRaw' && !leg.opponentNormalized) leg.opponentNormalized = normalizeTeam(leg.opponentRaw);
-      if (field === 'propRaw' && !leg.propNormalized) leg.propNormalized = normalizeProp(leg.propRaw);
     }
 
     function renderDebug() {
