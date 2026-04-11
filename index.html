@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NBA Slip Ingest v1.0.0.0.0</title>
+  <title>NBA Slip Ingest v1.0.0.0.7</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <style>
     :root {
@@ -573,7 +573,7 @@
       <div class="hero-top">
         <div class="title-wrap">
           <h1>NBA Slip Ingest</h1>
-          <p>v1.0.0.0.0 • Image upload, ingest, merge, normalize, review, and run handoff.</p>
+          <p>v1.0.0.0.7 • Image upload, ingest, merge, normalize, review, and run handoff.</p>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <div class="version-pill">CONNECTOR FAMILY 1</div>
@@ -603,6 +603,7 @@
               <button id="ingestBtn" class="primary">Ingest</button>
               <button id="runBtn" class="secondary" disabled>Run</button>
               <button id="resetBtn" class="ghost">Reset</button>
+              <button id="copyOutputBtn" class="ghost">Copy output</button>
             </div>
             <div id="previewGrid" class="preview-grid"></div>
           </div>
@@ -654,6 +655,11 @@
             <tbody id="reviewTbody"></tbody>
           </table>
         </div>
+
+        <details id="parserLogBox" class="ingest-debug" style="display:none;">
+          <summary>Rich error log / parser log</summary>
+          <div class="debug-inner"><div id="parserLogInner" class="debug-text"></div></div>
+        </details>
 
         <details id="debugBox" class="ingest-debug" style="display:none;">
           <summary>Raw OCR / parser debug</summary>
@@ -731,6 +737,7 @@
     const state = {
       images: [],
       rawDebug: [],
+      ingestLog: [],
       parsedLegs: [],
       analysisLegs: []
     };
@@ -741,6 +748,7 @@
       ingestBtn: document.getElementById('ingestBtn'),
       runBtn: document.getElementById('runBtn'),
       resetBtn: document.getElementById('resetBtn'),
+      copyOutputBtn: document.getElementById('copyOutputBtn'),
       backToIngestBtn: document.getElementById('backToIngestBtn'),
       statusText: document.getElementById('statusText'),
       progressLabel: document.getElementById('progressLabel'),
@@ -752,6 +760,8 @@
       reviewEmpty: document.getElementById('reviewEmpty'),
       reviewTableWrap: document.getElementById('reviewTableWrap'),
       reviewTbody: document.getElementById('reviewTbody'),
+      parserLogBox: document.getElementById('parserLogBox'),
+      parserLogInner: document.getElementById('parserLogInner'),
       debugBox: document.getElementById('debugBox'),
       debugInner: document.getElementById('debugInner'),
       analysisGrid: document.getElementById('analysisGrid'),
@@ -779,11 +789,23 @@
     function showError(message) {
       els.errorLog.textContent = message;
       els.errorLog.classList.add('show');
+      logWarn(message);
+      renderParserLog();
     }
 
     function clearError() {
       els.errorLog.textContent = '';
       els.errorLog.classList.remove('show');
+    }
+
+    function logInfo(message) {
+      const ts = new Date().toLocaleTimeString();
+      state.ingestLog.push(`INFO [${ts}] ${message}`);
+    }
+
+    function logWarn(message) {
+      const ts = new Date().toLocaleTimeString();
+      state.ingestLog.push(`WARN [${ts}] ${message}`);
     }
 
     function updateProgress(percent, text) {
@@ -800,6 +822,7 @@
     function resetState() {
       state.images = [];
       state.rawDebug = [];
+      state.ingestLog = [];
       state.parsedLegs = [];
       state.analysisLegs = [];
       els.imageInput.value = '';
@@ -807,6 +830,8 @@
       els.reviewTbody.innerHTML = '';
       els.reviewEmpty.style.display = 'block';
       els.reviewTableWrap.style.display = 'none';
+      els.parserLogBox.style.display = 'none';
+      els.parserLogInner.textContent = '';
       els.debugBox.style.display = 'none';
       els.debugInner.innerHTML = '';
       els.analysisGrid.innerHTML = '';
@@ -830,6 +855,7 @@
     els.ingestBtn.addEventListener('click', ingestImages);
     els.runBtn.addEventListener('click', runAnalysis);
     els.resetBtn.addEventListener('click', resetState);
+    els.copyOutputBtn.addEventListener('click', copyOutput);
     els.backToIngestBtn.addEventListener('click', () => switchScreen('screen-ingest'));
 
     function handleImageSelection(event) {
@@ -841,7 +867,10 @@
         return;
       }
       state.images = files.map((file, index) => ({ file, index, url: URL.createObjectURL(file) }));
+      state.ingestLog = [];
+      logInfo(`${state.images.length} image(s) loaded.`);
       renderPreviews();
+      renderParserLog();
       updateProgress(0, `${state.images.length} image${state.images.length === 1 ? '' : 's'} loaded. Ready to ingest.`);
       setGlobalStatus('Images loaded', 'good');
     }
@@ -872,9 +901,12 @@
       els.ingestBtn.disabled = true;
       els.runBtn.disabled = true;
       state.rawDebug = [];
+      state.ingestLog = [];
       state.parsedLegs = [];
+      logInfo(`Starting ingest for ${state.images.length} image${state.images.length === 1 ? '' : 's'}.`);
       updateProgress(2, 'Preparing screenshots for OCR and parser pass...');
       setGlobalStatus('Ingest running', 'warn');
+      renderParserLog();
 
       try {
         const imageResults = [];
@@ -883,10 +915,14 @@
         for (let i = 0; i < state.images.length; i++) {
           const image = state.images[i];
           updateProgress(Math.round((i / state.images.length) * 35) + 5, `Reading image ${i + 1} of ${state.images.length}...`);
+          logInfo(`Image ${i + 1}: preprocessing started for ${image.file.name}.`);
           const text = await extractTextFromImage(image.file);
+          logInfo(`Image ${i + 1}: OCR returned ${String(text).replace(/\s/g,'').length} non-space characters.`);
           const layoutFamily = detectLayoutFamily(text);
           const platformSource = detectPlatform(layoutFamily, text);
+          logInfo(`Image ${i + 1}: detected layout ${layoutFamily} on ${platformSource}.`);
           const parsed = parseLayoutText(text, layoutFamily, platformSource, carryContext, i);
+          logInfo(`Image ${i + 1}: parser found ${parsed.legs.length} leg(s).`);
           imageResults.push({ imageIndex: i + 1, layoutFamily, platformSource, text, parsedCount: parsed.legs.length });
           state.parsedLegs.push(...parsed.legs);
           if (parsed.context.event) carryContext.event = parsed.context.event;
@@ -897,6 +933,7 @@
 
         updateProgress(55, 'Merging screenshot rows, deduplicating, and normalizing...');
         state.parsedLegs = mergeAndNormalizeLegs(state.parsedLegs);
+        logInfo(`Merge/normalize complete. ${state.parsedLegs.length} final legs kept.`);
 
         updateProgress(72, 'Building editable review grid...');
         renderReviewTable();
@@ -904,6 +941,8 @@
         updateProgress(100, `Ingest complete. Parsed ${state.parsedLegs.length} leg${state.parsedLegs.length === 1 ? '' : 's'}. Review and click Run when ready.`);
         setGlobalStatus('Ingest complete', state.parsedLegs.length ? 'good' : 'bad');
         els.runBtn.disabled = state.parsedLegs.length === 0;
+        logInfo(`Ingest complete with ${state.parsedLegs.length} parsed legs.`);
+        renderParserLog();
         renderDebug();
       } catch (error) {
         console.error(error);
@@ -986,6 +1025,140 @@
       return 'Unknown';
     }
 
+    function cleanParseLine(line) {
+      return String(line || '')
+        .replace(/[§$&<>«»®©™]/g, ' ')
+        .replace(/[|\\]/g, ' ')
+        .replace(/[_~]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function isFooterNoise(line) {
+      return /^(Current Lineup|Clear all|6-pick|EARLY PAYOUT|Win contest|or 6 of 6 picks|Flex Play|Power Play|To Win|Promotions|Entry fee|Submit Lineup|View less|View more|For you|Following)$/i.test(cleanParseLine(line));
+    }
+
+    function titleCaseName(name) {
+      return String(name || '').split(/\s+/).filter(Boolean).map(part => {
+        if (/^[A-Z]\.$/.test(part)) return part.toUpperCase();
+        if (/^[A-Z]\.[A-Z]/.test(part)) return part[0].toUpperCase() + part.slice(1).toLowerCase();
+        return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+      }).join(' ');
+    }
+
+    function normalizeSportsbookLine(raw, family) {
+      const value = String(raw || '').trim();
+      if (!value) return '';
+      if (value.includes('.')) return value;
+      if (family === 'sleep_entry' && /^\d{2,3}$/.test(value) && value.endsWith('5')) {
+        return `${value.slice(0, -1)}.${value.slice(-1)}`;
+      }
+      return value;
+    }
+
+    function extractSleeperPlayerAndLine(line) {
+      let cleaned = cleanParseLine(line).replace(/^La\s+/i,'').replace(/^bl\s+/i,'').replace(/^ca\)\s*/i,'').replace(/^[@&§$®©«»<>()\-p\s]+/i,'').replace(/([A-Za-z])\.([A-Za-z])/g,'$1. $2');
+      if (/^(vs|@)\b/i.test(cleaned)) return null;
+      const m = cleaned.match(/([A-Za-z](?:\.|[a-z]+)?\s*[A-Za-z'\-]+(?:\s+[A-Za-z'\-]+){0,2})\s+(\d{1,3}(?:\.\d+)?)$/i);
+      if (!m) return null;
+      let playerRaw = titleCaseName(m[1].replace(/\bA$/i,'').trim());
+      if (/^(Reb|Pts|Ast|Vs)$/i.test(playerRaw)) return null;
+      playerRaw = playerRaw.replace(/^S\s+Curry$/i,'S. Curry').replace(/^D\s+Green$/i,'D. Green').replace(/^J\s+Collins$/i,'J. Collins').replace(/^J\s+Small$/i,'J. Small').replace(/^J\s+Laravia$/i,'J. LaRavia').replace(/^T\s+Camara$/i,'T. Camara').replace(/^L\s+Dort$/i,'L. Dort').replace(/^J\s+Green$/i,'J. Green');
+      return { playerRaw, line: normalizeSportsbookLine(m[2], 'sleep_entry') };
+    }
+
+    function isLikelySleeperPlayerStart(line) {
+      if (!line || isFooterNoise(line)) return false;
+      const cleaned = cleanParseLine(line);
+      if (/^(PICKS Entry|SUBMIT ENTRY|Image \d+|Current Lineup|Clear all|Win contest|Flex Play|Power Play|To Win|Promotions|Entry fee)$/i.test(cleaned)) return false;
+      if (/^(vs|@)\b/i.test(cleaned)) return false;
+      if (/^(PTS|REB|AST|PRA|3PM|3PTM|Points|Rebounds|Assists)\b/i.test(cleaned)) return false;
+      return !!extractSleeperPlayerAndLine(cleaned);
+    }
+
+    function isLikelyPrizePicksTeamPos(line) {
+      const cleaned = cleanParseLine(line).replace(/\s+/g, ' ');
+      return /^[A-Z]{2,4}\s*[•\.\-]\s*[A-Z\-]{1,4}\s*[•\.\-]\s*#?\d+/i.test(cleaned);
+    }
+
+    function collectPrizePicksName(lines, teamPosIndex) {
+      const parts = [];
+      for (let j = teamPosIndex - 1; j >= Math.max(0, teamPosIndex - 2); j--) {
+        const line = cleanParseLine(lines[j]);
+        if (!line || isFooterNoise(line)) break;
+        if (/^(NBA\s+)?[A-Z]{2,4}\s+vs\s+[A-Z]{2,4}/i.test(line)) break;
+        if (isLikelyPrizePicksTeamPos(line)) break;
+        if (/^(Less|More)$/i.test(line)) break;
+        if (/^\$?\d/.test(line)) break;
+        if (/Starts in/i.test(line)) break;
+        parts.unshift(line);
+      }
+      const joined = parts.join(' ').replace(/\s+/g, ' ').trim();
+      return titleCaseName(joined);
+    }
+
+    function inferPrizePicksDirection(buttonLine, contextChunk) {
+      const all = `${buttonLine || ''} ${contextChunk || ''}`.replace(/\s+/g, ' ').trim();
+      const hasLess = /\bLess\b/i.test(all) || /↓/.test(all);
+      const hasMore = /\bMore\b/i.test(all) || /↑/.test(all);
+      if (hasLess && hasMore) return 'UNKNOWN';
+      if (hasMore) return 'MORE';
+      if (hasLess) return 'LESS';
+      return 'UNKNOWN';
+    }
+
+    function isLikelyJunkLeg(leg) {
+      const player = String(leg.playerRaw || '').toLowerCase();
+      const prop = String(leg.propRaw || '').toLowerCase();
+      if (!player) return true;
+      if (player.length < 3) return true;
+      if (/^(pick|ppt|pt|flex play|power play|current lineup|clear all|entry fee|to win)$/i.test(player)) return true;
+      if (!leg.line && !prop) return true;
+      return false;
+    }
+
+    function isLikelyPrizePicksNameLine(line) {
+      const cleaned = cleanParseLine(line);
+      if (!cleaned || isFooterNoise(cleaned)) return false;
+      if (/^(NBA\s+)?[A-Z]{2,4}\s*vs\s*[A-Z]{2,4}/i.test(cleaned)) return false;
+      if (isLikelyPrizePicksTeamPos(cleaned)) return false;
+      if (/\bStarts in\b/i.test(cleaned)) return false;
+      if (/^(Less|More|Submit Lineup|View less|View more)$/i.test(cleaned)) return false;
+      if (/^\$?\d/.test(cleaned)) return false;
+      return /[A-Za-z]/.test(cleaned);
+    }
+
+    function sanitizePrizePicksName(name) {
+      let parts = cleanParseLine(name).split(/\s+/).filter(Boolean);
+      if (parts.length >= 3) parts = parts.filter((p, idx) => !(idx > 0 && idx < parts.length - 1 && /^[A-Z]{1,2}$/.test(p)));
+      while (parts.length >= 3 && /^[A-Za-z]{1,2}$/.test(parts[0])) parts.shift();
+      let cleaned = titleCaseName(parts.join(' '));
+      cleaned = cleaned.replace(/^Anthony\s+Ea\s+Edwards$/i, 'Anthony Edwards').replace(/^Nn\s+Tari\s+Eason$/i, 'Tari Eason').replace(/^Ea\s+Edwards$/i, 'Edwards');
+      return cleaned.trim();
+    }
+
+    function collectPrizePicksContext(lines, startIndex) {
+      const out = { name: '', teamPos: '', propLine: '', windowText: '' };
+      const nameParts = [];
+      let i = startIndex;
+      while (i < lines.length && nameParts.length < 2 && isLikelyPrizePicksNameLine(lines[i])) {
+        nameParts.push(cleanParseLine(lines[i]));
+        i++;
+      }
+      out.name = sanitizePrizePicksName(nameParts.join(' '));
+      const window = [];
+      for (let j = i; j < Math.min(lines.length, i + 5); j++) {
+        const cleaned = cleanParseLine(lines[j]);
+        if (!cleaned) continue;
+        if (/^(NBA\s+)?[A-Z]{2,4}\s*vs\s*[A-Z]{2,4}/i.test(cleaned)) break;
+        window.push(cleaned);
+        if (!out.teamPos && isLikelyPrizePicksTeamPos(cleaned)) out.teamPos = cleaned;
+        if (!out.propLine && /(\d+(?:\.\d+)?)\s*(Pts\+Asts|Pts\+Rebs|Pts\+Rebs\+Asts|Rebs\+Asts|Rebounds|Points|PRA|3PTM|3PM|Fantasy Score|Blocked Shots|Assists)/i.test(cleaned)) out.propLine = cleaned;
+      }
+      out.windowText = window.join(' ');
+      return out;
+    }
+
     function parseLayoutText(text, layoutFamily, platformSource, carryContext, imageIndex) {
       const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
       const notes = [];
@@ -1004,126 +1177,70 @@
     }
 
     function parseSleeperEntry(lines, platformSource, carryContext, imageIndex, notes) {
-      const legs = [];
-      let currentEvent = carryContext.event || '';
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (/^[A-Z]{2,4}\s+vs\s+[A-Z]{2,4}$/i.test(line.replace(/^NBA\s+/i, '').trim())) {
-          currentEvent = line.replace(/^NBA\s+/i, '').trim();
-          continue;
-        }
-        if (/^[A-Z]\.?\s?[A-Za-z'\-]+(?:\s[A-Za-z'\-]+)?$/.test(line) && (i + 2) < lines.length) {
-          const playerRaw = line;
-          const opponentLine = lines[i + 1];
-          const teamPosLine = lines[i + 2];
-          const maybePropWindow = lines.slice(i + 1, i + 7).join(' ');
-          const linePropDir = parsePropBundleFromChunk(maybePropWindow, 'sleep_entry');
-          if (!linePropDir.line && !linePropDir.propRaw) continue;
-          const teamRaw = extractTeamFromSleeperTeamPos(teamPosLine);
-          const position = extractPositionFromTeamPos(teamPosLine);
-          const opponentRaw = extractOpponentFromSleeperOpponent(opponentLine);
-          const direction = linePropDir.direction || 'UNKNOWN';
-          const promoType = inferPromoTypeFromText(maybePropWindow);
-          const suffix = linePropDir.suffix;
-          legs.push(makeLeg({
-            playerRaw,
-            teamRaw,
-            opponentRaw,
-            position,
-            propRaw: linePropDir.propRaw,
-            line: linePropDir.line,
-            direction,
-            promoType,
-            suffix,
-            platformSource,
-            layoutFamily: 'sleep_entry',
-            sourceImageIndex: imageIndex,
-            eventRaw: currentEvent,
-            rawExtractionNote: 'Sleeper row parse'
-          }));
-        }
+      const legs=[]; let currentEvent=carryContext.event||'';
+      for (let i=0;i<lines.length;i++) {
+        const line=cleanParseLine(lines[i]); if (!line) continue;
+        const eventMatch=line.match(/(?:NBA\s+)?([A-Z]{2,4}\s+vs\s+[A-Z]{2,4})/i);
+        if (eventMatch) { currentEvent=eventMatch[1].trim(); continue; }
+        if (!isLikelySleeperPlayerStart(line)) continue;
+        const pl=extractSleeperPlayerAndLine(line); if (!pl) continue;
+        const lookahead=[]; let j=i+1;
+        while (j<lines.length && !isLikelySleeperPlayerStart(lines[j]) && lookahead.length<4) { const cleaned=cleanParseLine(lines[j]); if (cleaned && !/^(PICKS Entry|SUBMIT ENTRY|Image \d+)/i.test(cleaned)) lookahead.push(cleaned); j++; }
+        const chunk=lookahead.join(' '); const parsed=parsePropBundleFromChunk(chunk,'sleep_entry');
+        const teamLine=lookahead.find(l=>/\b(PG|SG|SF|PF|C|G|F)\b/i.test(l))||'';
+        const teamRaw=extractTeamFromSleeperTeamPos(teamLine); const position=extractPositionFromTeamPos(teamLine);
+        const opponentLine=lookahead.find(l=>/(?:@|vs)\s*[A-Z]{2,4}/i.test(l))||''; const opponentRaw=extractOpponentFromSleeperOpponent(opponentLine);
+        legs.push(makeLeg({ playerRaw:pl.playerRaw, teamRaw, opponentRaw, position, propRaw:parsed.propRaw, line:pl.line || parsed.line, direction:inferArrowDirectionFromText(chunk), promoType:inferPromoTypeFromText(chunk), suffix:parsed.suffix, platformSource, layoutFamily:'sleep_entry', sourceImageIndex:imageIndex, eventRaw:currentEvent, rawExtractionNote:'Sleeper row parse' }));
       }
       notes.push(`Sleeper parse created ${legs.length} row(s).`);
-      return { legs, context: { event: currentEvent }, notes };
+      return { legs, context:{ event: currentEvent }, notes };
     }
 
     function parsePrizePicksCurrentLineup(lines, platformSource, carryContext, imageIndex, notes) {
-      const legs = [];
-      let currentEvent = carryContext.event || '';
-      let pendingMoreLess = null;
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const eventMatch = line.match(/(?:NBA\s+)?([A-Z]{2,4}\s+vs\s+[A-Z]{2,4})/i);
-        if (eventMatch) {
-          currentEvent = eventMatch[1].trim();
-          continue;
-        }
-        if (/\b(Less|More)\b/i.test(line)) {
-          pendingMoreLess = line;
-          continue;
-        }
-        if (isLikelyFullName(line) && (i + 2) < lines.length) {
-          const playerRaw = line;
-          const teamPosLine = lines[i + 1];
-          const propLine = lines[i + 2];
-          const direction = inferPrizePicksDirection(pendingMoreLess, lines.slice(i, i + 5).join(' '));
-          const parsedLine = parsePrizePicksPropLine(propLine);
-          legs.push(makeLeg({
-            playerRaw,
-            teamRaw: extractTeamFromPrizePicksTeamPos(teamPosLine),
-            opponentRaw: extractOpponentFromEvent(currentEvent, extractTeamFromPrizePicksTeamPos(teamPosLine)),
-            position: extractPositionFromPrizePicksTeamPos(teamPosLine),
-            propRaw: parsedLine.propRaw,
-            line: parsedLine.line,
-            direction,
-            promoType: inferPromoTypeFromText(propLine),
-            suffix: parsedLine.suffix,
-            platformSource,
-            layoutFamily: 'prizepicks_current_lineup',
-            sourceImageIndex: imageIndex,
-            eventRaw: currentEvent,
-            rawExtractionNote: 'PrizePicks current lineup parse'
-          }));
-          pendingMoreLess = null;
-        }
+      const legs=[]; let currentEvent=carryContext.event||'';
+      for (let i=0;i<lines.length;i++) {
+        const line=cleanParseLine(lines[i]); if (!line) continue;
+        const eventMatch=line.match(/(?:NBA\s+)?([A-Z]{2,4}\s*vs\s*[A-Z]{2,4})/i); if (eventMatch) { currentEvent=eventMatch[1].replace(/\s+/g,' ').trim(); continue; }
+        if (!isLikelyPrizePicksNameLine(line)) continue;
+        const ctx=collectPrizePicksContext(lines,i); if (!ctx.name || !ctx.propLine) continue;
+        const parsedLine=parsePrizePicksPropLine(ctx.propLine); const teamRaw=extractTeamFromPrizePicksTeamPos(ctx.teamPos);
+        legs.push(makeLeg({ playerRaw:ctx.name, teamRaw, opponentRaw:extractOpponentFromEvent(currentEvent, teamRaw), position:extractPositionFromPrizePicksTeamPos(ctx.teamPos), propRaw:parsedLine.propRaw, line:normalizeSportsbookLine(parsedLine.line,'prizepicks_current_lineup'), direction:inferPrizePicksDirection(ctx.windowText, ctx.windowText), promoType:inferPromoTypeFromText(ctx.windowText), suffix:parsedLine.suffix, platformSource, layoutFamily:'prizepicks_current_lineup', sourceImageIndex:imageIndex, eventRaw:currentEvent, rawExtractionNote:'PrizePicks current lineup parse' }));
       }
       notes.push(`PrizePicks current lineup parse created ${legs.length} row(s).`);
-      return { legs, context: { event: currentEvent }, notes };
+      return { legs, context:{ event: currentEvent }, notes };
     }
 
     function parsePrizePicksTailCard(lines, platformSource, carryContext, imageIndex, notes) {
       const legs = [];
       let currentEvent = carryContext.event || '';
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+        const line = cleanParseLine(lines[i]);
         const eventMatch = line.match(/(?:NBA\s+)?([A-Z]{2,4}\s+vs\s+[A-Z]{2,4})/i);
         if (eventMatch) {
           currentEvent = eventMatch[1].trim();
           continue;
         }
-        if (isLikelyFullName(line) && (i + 2) < lines.length) {
-          const playerRaw = line;
-          const teamPosLine = lines[i + 1];
-          const chunk = lines.slice(i + 2, i + 5).join(' ');
-          const parsed = parsePropBundleFromChunk(chunk, 'tail');
-          if (!parsed.line && !parsed.propRaw) continue;
-          legs.push(makeLeg({
-            playerRaw,
-            teamRaw: extractTeamFromPrizePicksTeamPos(teamPosLine),
-            opponentRaw: extractOpponentFromEvent(currentEvent, extractTeamFromPrizePicksTeamPos(teamPosLine)),
-            position: extractPositionFromPrizePicksTeamPos(teamPosLine),
-            propRaw: parsed.propRaw,
-            line: parsed.line,
-            direction: parsed.direction || 'MORE',
-            promoType: inferPromoTypeFromText(chunk),
-            suffix: parsed.suffix,
-            platformSource,
-            layoutFamily: 'prizepicks_tail_card',
-            sourceImageIndex: imageIndex,
-            eventRaw: currentEvent,
-            rawExtractionNote: 'PrizePicks tail card parse'
-          }));
-        }
+        if (!isLikelyPrizePicksTeamPos(line)) continue;
+        const playerRaw = collectPrizePicksName(lines, i);
+        const propChunk = `${cleanParseLine(lines[i + 1] || '')} ${cleanParseLine(lines[i + 2] || '')}`;
+        const parsed = parsePropBundleFromChunk(propChunk, 'tail');
+        if (!playerRaw || (!parsed.line && !parsed.propRaw)) continue;
+        legs.push(makeLeg({
+          playerRaw,
+          teamRaw: extractTeamFromPrizePicksTeamPos(line),
+          opponentRaw: extractOpponentFromEvent(currentEvent, extractTeamFromPrizePicksTeamPos(line)),
+          position: extractPositionFromPrizePicksTeamPos(line),
+          propRaw: parsed.propRaw,
+          line: normalizeSportsbookLine(parsed.line, 'prizepicks_tail_card'),
+          direction: inferPrizePicksDirection(propChunk, propChunk),
+          promoType: inferPromoTypeFromText(propChunk),
+          suffix: parsed.suffix,
+          platformSource,
+          layoutFamily: 'prizepicks_tail_card',
+          sourceImageIndex: imageIndex,
+          eventRaw: currentEvent,
+          rawExtractionNote: 'PrizePicks tail card parse'
+        }));
       }
       notes.push(`PrizePicks tail card parse created ${legs.length} row(s).`);
       return { legs, context: { event: currentEvent }, notes };
@@ -1132,29 +1249,27 @@
     function parsePrizePicksFeedCard(lines, platformSource, carryContext, imageIndex, notes) {
       const legs = [];
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (isLikelyFullName(line) && (i + 1) < lines.length) {
-          const playerRaw = line;
-          const chunk = lines.slice(i + 1, i + 4).join(' ');
-          const parsed = parsePropBundleFromChunk(chunk, 'feed');
-          if (!parsed.line && !parsed.propRaw) continue;
-          legs.push(makeLeg({
-            playerRaw,
-            teamRaw: '',
-            opponentRaw: '',
-            position: '',
-            propRaw: parsed.propRaw,
-            line: parsed.line,
-            direction: parsed.direction || inferArrowDirectionFromText(chunk),
-            promoType: inferPromoTypeFromText(chunk),
-            suffix: parsed.suffix,
-            platformSource,
-            layoutFamily: 'prizepicks_feed_card',
-            sourceImageIndex: imageIndex,
-            eventRaw: '',
-            rawExtractionNote: 'PrizePicks feed card partial parse'
-          }));
-        }
+        const line = cleanParseLine(lines[i]);
+        if (!isLikelyFullName(line)) continue;
+        const chunk = `${cleanParseLine(lines[i + 1] || '')} ${cleanParseLine(lines[i + 2] || '')}`;
+        const parsed = parsePropBundleFromChunk(chunk, 'feed');
+        if (!parsed.line && !parsed.propRaw) continue;
+        legs.push(makeLeg({
+          playerRaw: titleCaseName(line),
+          teamRaw: '',
+          opponentRaw: '',
+          position: '',
+          propRaw: parsed.propRaw,
+          line: normalizeSportsbookLine(parsed.line, 'prizepicks_feed_card'),
+          direction: inferPrizePicksDirection(chunk, chunk),
+          promoType: inferPromoTypeFromText(chunk),
+          suffix: parsed.suffix,
+          platformSource,
+          layoutFamily: 'prizepicks_feed_card',
+          sourceImageIndex: imageIndex,
+          eventRaw: '',
+          rawExtractionNote: 'PrizePicks feed card partial parse'
+        }));
       }
       notes.push(`PrizePicks feed card parse created ${legs.length} row(s).`);
       return { legs, context: { event: '' }, notes };
@@ -1164,64 +1279,58 @@
       const legs = [];
       let currentEvent = carryContext.event || '';
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+        const line = cleanParseLine(lines[i]);
         const eventMatch = line.match(/([A-Z]{2,4}\s+vs\s+[A-Z]{2,4})/i);
         if (eventMatch) currentEvent = eventMatch[1].trim();
-        if (isLikelyFullName(line) && (i + 1) < lines.length) {
-          const chunk = lines.slice(i + 1, i + 4).join(' ');
-          const parsed = parsePropBundleFromChunk(chunk, 'generic');
-          if (!parsed.line && !parsed.propRaw) continue;
-          legs.push(makeLeg({
-            playerRaw: line,
-            teamRaw: '',
-            opponentRaw: '',
-            position: '',
-            propRaw: parsed.propRaw,
-            line: parsed.line,
-            direction: parsed.direction || inferArrowDirectionFromText(chunk),
-            promoType: inferPromoTypeFromText(chunk),
-            suffix: parsed.suffix,
-            platformSource,
-            layoutFamily: 'unknown',
-            sourceImageIndex: imageIndex,
-            eventRaw: currentEvent,
-            rawExtractionNote: 'Generic fallback parse'
-          }));
-        }
+        if (!isLikelyFullName(line)) continue;
+        const chunk = `${cleanParseLine(lines[i + 1] || '')} ${cleanParseLine(lines[i + 2] || '')}`;
+        const parsed = parsePropBundleFromChunk(chunk, 'generic');
+        if (!parsed.line && !parsed.propRaw) continue;
+        legs.push(makeLeg({
+          playerRaw: titleCaseName(line),
+          teamRaw: '',
+          opponentRaw: '',
+          position: '',
+          propRaw: parsed.propRaw,
+          line: normalizeSportsbookLine(parsed.line, 'generic'),
+          direction: inferArrowDirectionFromText(chunk),
+          promoType: inferPromoTypeFromText(chunk),
+          suffix: parsed.suffix,
+          platformSource,
+          layoutFamily: 'unknown',
+          sourceImageIndex: imageIndex,
+          eventRaw: currentEvent,
+          rawExtractionNote: 'Generic fallback parse'
+        }));
       }
       notes.push(`Generic parse created ${legs.length} row(s).`);
       return { legs, context: { event: currentEvent }, notes };
     }
 
     function isLikelyFullName(line) {
-      return /^[A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-\.]+){1,3}$/.test(line) && !/^(Current Lineup|Flex Play|Power Play|Win contest|Submit Lineup|Copy lineup|View less|View more)$/i.test(line);
+      const cleaned = cleanParseLine(line);
+      return /^[A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-\.]+){1,3}$/.test(cleaned) && !isFooterNoise(cleaned);
     }
 
     function parsePropBundleFromChunk(chunk, family) {
-      const compact = chunk.replace(/\s+/g, ' ').trim();
-      const direction = inferArrowDirectionFromText(compact);
-      let promoType = inferPromoTypeFromText(compact);
-      const marketSuffixMatch = compact.match(/\((1H|2H|Q\d|Fantasy|FS|1Q)\)/i);
-      const suffix = marketSuffixMatch ? marketSuffixMatch[1].toUpperCase() : inferSuffixFromChunk(compact);
+      const compact = cleanParseLine(chunk);
+      const direction = family.startsWith('prizepicks') ? inferPrizePicksDirection(compact, compact) : inferArrowDirectionFromText(compact);
+      const suffix = inferSuffixFromChunk(compact);
       const patterns = [
-        /(\d+(?:\.\d+)?)\s*(Pts\+Rebs\+Asts|Pts\+Asts|Pts\+Rebs|Rebs\+Asts|Fantasy Score|Blocked Shots|3-PT Attempted|3PM|3PTM|PRA|PTS|REB|AST|AST\s*\+\s*REB|REB\s*\+\s*AST)(?:\s*\(([^)]+)\))?/i,
-        /(\d+(?:\.\d+)?)\s*(Points|Rebounds|Assists|Fantasy Score|Blocked Shots|3PTM|3PM|PRA)/i,
-        /(?:Less|More)?\s*[↑↓]?\s*(\d+(?:\.\d+)?)\s*(Points|Rebounds|Assists|Fantasy Score|Blocked Shots|3PTM|3PM|PRA|Pts\+Rebs\+Asts|Pts\+Rebs|Pts\+Asts|Rebs\+Asts)/i,
-        /[↑↓]\s*(\d+(?:\.\d+)?)\s*([A-Za-z+\-() ]{2,30})/i
+        /(\d+(?:\.\d+)?)\s*(Pts\+Rebs\+Asts|Pts\+Asts|Pts\+Rebs|Rebs\+Asts|Fantasy Score|Blocked Shots|3-PT Attempted|3PTM|3PM|PRA|PTS|REB|AST|AST\s*\+\s*REB|REB\s*\+\s*AST|Points|Rebounds|Assists)/i,
+        /(?:Less|More)?\s*[↑↓]?\s*(\d+(?:\.\d+)?)\s*([A-Za-z+\-() ]{2,40})/i
       ];
       for (const pattern of patterns) {
         const m = compact.match(pattern);
         if (m) {
-          const line = m[1];
-          const propRaw = m[2] ? m[2].replace(/\s+/g, ' ').trim() : '';
-          return { line, propRaw, direction, promoType, suffix };
+          return { line: normalizeSportsbookLine(m[1], family), propRaw: m[2].replace(/\s+/g, ' ').trim(), direction, promoType: inferPromoTypeFromText(compact), suffix };
         }
       }
-      return { line: '', propRaw: '', direction, promoType, suffix };
+      return { line: '', propRaw: '', direction, promoType: inferPromoTypeFromText(compact), suffix };
     }
 
     function parsePrizePicksPropLine(line) {
-      const compact = line.replace(/[😈👹👺😇😼🟢🟣]/g, '').trim();
+      const compact = cleanParseLine(line).replace(/[😈👹👺😇😼🟢🟣]/g, '').trim();
       const m = compact.match(/(\d+(?:\.\d+)?)\s*(.+)$/);
       if (!m) return { line: '', propRaw: compact, suffix: inferSuffixFromChunk(compact) };
       return { line: m[1], propRaw: m[2].trim(), suffix: inferSuffixFromChunk(compact) };
@@ -1253,8 +1362,9 @@
     }
 
     function extractTeamFromSleeperTeamPos(line) {
-      const m = line.match(/\b([A-Z]{2,4})\b/);
-      return m ? m[1] : '';
+      const cleaned = cleanParseLine(line);
+      const m = cleaned.match(/\b(ATL|BOS|BKN|BRK|CHA|CHI|CLE|DAL|DEN|DET|GSW|HOU|IND|LAC|LAL|MEM|MIA|MIL|MIN|NOP|NYK|OKC|ORL|PHI|PHX|POR|SAC|SAS|TOR|UTA|WAS)\b/i);
+      return m ? m[1].toUpperCase() : '';
     }
 
     function extractPositionFromTeamPos(line) {
@@ -1263,12 +1373,14 @@
     }
 
     function extractOpponentFromSleeperOpponent(line) {
-      const m = line.match(/(?:@|vs)\s*([A-Z]{2,4})\b/i);
-      return m ? m[1] : '';
+      const cleaned = cleanParseLine(line);
+      const m = cleaned.match(/(?:@|vs)\s*(ATL|BOS|BKN|BRK|CHA|CHI|CLE|DAL|DEN|DET|GSW|HOU|IND|LAC|LAL|MEM|MIA|MIL|MIN|NOP|NYK|OKC|ORL|PHI|PHX|POR|SAC|SAS|TOR|UTA|WAS)\b/i);
+      return m ? m[1].toUpperCase() : '';
     }
 
     function extractTeamFromPrizePicksTeamPos(line) {
-      const m = line.match(/^([A-Z]{2,4})\s*•/i);
+      const cleaned = cleanParseLine(line).replace(/\s+/g, ' ');
+      const m = cleaned.match(/^(ATL|BOS|BKN|BRK|CHA|CHI|CLE|DAL|DEN|DET|GSW|HOU|IND|LAC|LAL|MEM|MIA|MIL|MIN|NOP|NYK|OKC|ORL|PHI|PHX|POR|SAC|SAS|TOR|UTA|WAS)\b/i);
       return m ? m[1].toUpperCase() : '';
     }
 
@@ -1344,7 +1456,7 @@
 
     function normalizePlayer(playerRaw, teamRaw, opponentRaw, position) {
       if (!playerRaw) return '';
-      const clean = playerRaw.replace(/\s+/g, ' ').trim();
+      const clean = titleCaseName(String(playerRaw).replace(/\s+/g, ' ').trim());
       if (isLikelyFullName(clean)) return clean;
       const teamKey = (teamRaw || '').toUpperCase();
       const aliasKey = `${clean}|${teamKey}`;
@@ -1369,23 +1481,15 @@
     }
 
     function mergeAndNormalizeLegs(rawLegs) {
-      const merged = [];
-      const seen = new Map();
+      const merged=[]; const seen=new Map();
       for (const leg of rawLegs) {
-        const key = [leg.playerNormalized || leg.playerRaw, leg.propNormalized || leg.propRaw, leg.line, leg.direction, leg.suffix, leg.platformSource].join('|').toLowerCase();
-        if (!seen.has(key)) {
-          seen.set(key, leg);
-          merged.push(leg);
-          continue;
-        }
-        const existing = seen.get(key);
-        // Fill gaps from the new leg.
-        ['teamRaw','teamNormalized','opponentRaw','opponentNormalized','position','eventRaw','rawExtractionNote'].forEach(field => {
-          if (!existing[field] && leg[field]) existing[field] = leg[field];
-        });
-        if (existing.parseConfidence === 'LOW' && leg.parseConfidence !== 'LOW') existing.parseConfidence = leg.parseConfidence;
+        if (isLikelyJunkLeg(leg)) continue; if (/^(vs|@)\b/i.test(leg.playerRaw || '')) continue; if (/^(reb|pts|ast|3pm)$/i.test(leg.playerRaw || '')) continue;
+        const key=[leg.playerNormalized || leg.playerRaw, leg.propNormalized || leg.propRaw, leg.line, leg.direction, leg.suffix, leg.platformSource].join('|').toLowerCase();
+        if (!seen.has(key)) { seen.set(key, leg); merged.push(leg); continue; }
+        const existing=seen.get(key); ['teamRaw','teamNormalized','opponentRaw','opponentNormalized','position','eventRaw','rawExtractionNote'].forEach(field=>{ if (!existing[field] && leg[field]) existing[field]=leg[field]; });
+        if (existing.parseConfidence==='LOW' && leg.parseConfidence!=='LOW') existing.parseConfidence=leg.parseConfidence;
       }
-      return merged.map((leg, idx) => ({ ...leg, rowNumber: idx + 1 }));
+      return merged.map((leg, idx)=>({ ...leg, rowNumber: idx + 1 }));
     }
 
     function renderReviewTable() {
