@@ -1,2313 +1,1555 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PickCalc NBA System 8.8</title>
+  <title>NBA Slip Ingest v1.0.0.0.0</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <style>
-:root {
-  color-scheme: dark;
-  --bg: #0b1020;
-  --card: #10182c;
-  --card-2: #141f37;
-  --text: #eef2ff;
-  --muted: #aeb8d3;
-  --line: #263454;
-  --accent: #6ea8fe;
-  --accent-2: #8cc3ff;
-  --danger: #b94a5a;
-  --ok: #24573b;
-  --warn: #614d1d;
-}
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  background: linear-gradient(180deg, #08101f, #0d1324 30%, #0d1425 100%);
-  color: var(--text);
-}
-.app-shell { max-width: 980px; margin: 0 auto; padding: 18px 14px 48px; }
-.hero { margin-bottom: 14px; }
-.hero h1 { margin: 0 0 6px; font-size: 30px; }
-.hero p { margin: 0; color: var(--muted); }
-.card {
-  background: rgba(16,24,44,.96);
-  border: 1px solid var(--line);
-  border-radius: 22px;
-  padding: 18px;
-  margin-top: 14px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.22);
-}
-.card h2 { margin: 0 0 12px; font-size: 20px; }
-.radio-row { display:flex; gap:16px; flex-wrap:wrap; }
-.radio-row label, .league-grid label { color: var(--text); }
-.league-grid { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:10px 14px; }
-textarea {
-  width: 100%; background: var(--card-2); color: var(--text); border: 1px solid var(--line);
-  border-radius: 18px; padding: 14px; font: inherit; resize: vertical; min-height: 130px;
-}
-button {
-  background: var(--accent); color: #08101f; border: 0; border-radius: 18px; padding: 14px 22px;
-  font-weight: 700; font-size: 16px;
-}
-button.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
-button.danger { background: rgba(185,74,90,.18); color: #ffd3d9; border: 1px solid rgba(185,74,90,.48); }
-.run-btn { width: 100%; font-size: 20px; }
-.btn-row { margin-top: 14px; display:flex; gap:10px; flex-wrap:wrap; }
-.top-gap { margin-top: 8px; }
-.summary-pills { display:flex; flex-wrap:wrap; gap:10px; margin:14px 0; }
-.pill { padding: 12px 16px; border-radius: 999px; background: #111b31; border: 1px solid var(--line); color: var(--text); }
-.status-panel { border:1px solid var(--line); background:#0f172a; border-radius:18px; padding:14px; margin-top:12px; }
-.status-panel-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
-.status-badge { padding: 8px 12px; border-radius:999px; font-weight:700; }
-.status-ok { background: rgba(36,87,59,.32); color: #baf2cb; }
-.status-no { background: rgba(97,77,29,.32); color: #ffebaf; }
-.mini-muted { color: var(--muted); font-size: 13px; }
-.prop-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:8px; }
-.prop-chip {
-  display:flex; align-items:center; gap:8px; border-radius:14px; padding:10px 12px; border:1px solid var(--line);
-  min-height: 52px;
-}
-.prop-fed { background: rgba(36,87,59,.2); }
-.prop-missing { background: rgba(97,77,29,.18); }
-.prop-chip small { margin-left:auto; color:var(--muted); }
-.message { color: var(--muted); margin-top: 10px; white-space: pre-wrap; }
-.table-wrap { overflow:auto; border:1px solid var(--line); border-radius:18px; }
-table { width:100%; border-collapse:collapse; min-width: 720px; }
-th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align:left; }
-thead th { background:#121d35; position:sticky; top:0; }
-.type-cell { font-size: 18px; }
-.empty { color: var(--muted); text-align:center; padding: 16px; }
-@media (max-width: 700px) {
-  .league-grid { grid-template-columns: 1fr 1fr; }
-  .hero h1 { font-size: 26px; }
-}
+    :root {
+      --bg: #071033;
+      --panel: #0f1947;
+      --panel-2: #162359;
+      --card: #121c49;
+      --card-2: #0d163e;
+      --border: rgba(255,255,255,0.08);
+      --text: #eef3ff;
+      --muted: #9fb0e2;
+      --accent: #1ee7ff;
+      --accent-2: #7a1dff;
+      --good: #26d07c;
+      --warn: #f2b94b;
+      --bad: #ff6b6b;
+      --shadow: 0 20px 60px rgba(0,0,0,0.35);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
 
-.hidden { display:none; }
-.hero-inline { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
-.no-top-gap { margin-top:0; }
-.row-card {
-  display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:10px;
-}
-.row-card .cell {
-  border:1px solid var(--line); background:#0f172a; border-radius:16px; padding:12px;
-}
-.row-card .cell strong { display:block; margin-bottom:6px; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
-.matrix-grid, .mining-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap:12px; width:100%; }
-.mining-card {
-  border:1px solid var(--line); background:#0f172a; border-radius:18px; padding:14px; min-height:168px;
-}
-.mining-card h3 { margin:0 0 8px; font-size:16px; }
-.mining-status { display:inline-flex; align-items:center; gap:8px; font-weight:700; margin-bottom:8px; }
-.mining-status.ready { color:#baf2cb; }
-.mining-status.waiting { color:#ffebaf; }
-.mining-meta { color:var(--muted); font-size:13px; line-height:1.4; }
-.mining-meta b { color:var(--text); }
-@media (max-width:700px){ .hero-inline { flex-direction:column; } }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at top, #13205a 0%, var(--bg) 38%, #040819 100%);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100%;
+    }
 
+    body { padding: 18px; }
 
-.version-pill{
-  display:inline-block;
-  margin-left:10px;
-  padding:4px 10px;
-  border-radius:999px;
-  border:1px solid var(--line);
-  background:#111b31;
-  color:var(--accent-2);
-  font-size:13px;
-  font-weight:700;
-  vertical-align:middle;
-}
+    .app-shell {
+      max-width: 1280px;
+      margin: 0 auto;
+      background: linear-gradient(180deg, rgba(12,24,74,0.95), rgba(5,13,41,0.98));
+      border: 1px solid var(--border);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
 
+    .hero {
+      padding: 22px 24px 18px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(28,45,111,0.52), rgba(12,23,69,0.28));
+    }
 
-.mining-status.loading{color:#ffd36e}
-.mining-status.failed{color:#ff9aa7}
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
 
+    .title-wrap h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
 
-.prompt-tier{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-size:11px;color:var(--accent-2)}
-.mining-card.support{border-color:rgba(36,87,59,.7);box-shadow:inset 0 0 0 1px rgba(36,87,59,.25)}
-.mining-card.warning{border-color:rgba(97,77,29,.8);box-shadow:inset 0 0 0 1px rgba(97,77,29,.25)}
-.mining-card.conflict{border-color:rgba(185,74,90,.75);box-shadow:inset 0 0 0 1px rgba(185,74,90,.22)}
-.factor-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
-.factor-delta{font-weight:800;font-size:20px}
-.conf-bar{height:8px;border-radius:999px;background:#111b31;border:1px solid var(--line);overflow:hidden;margin:8px 0}
-.conf-fill{height:100%;background:linear-gradient(90deg,#6ea8fe,#8cc3ff)}
-.console-wrap{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:16px;background:#0f172a;padding:10px}
-.console-line{padding:8px 10px;border-bottom:1px solid var(--line);font-size:13px}
-.console-line:last-child{border-bottom:0}
-.console-line.success{color:#baf2cb}
-.console-line.warning{color:#ffebaf}
-.console-line.error{color:#ffd3d9}
+    .title-wrap p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
 
+    .version-pill,
+    .status-pill,
+    .confidence-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
 
-.factor-detail{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
-.factor-detail summary{cursor:pointer;list-style:none;font-weight:700;color:var(--accent-2)}
-.factor-detail summary::-webkit-details-marker{display:none}
-.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:10px}
-.detail-box{border:1px solid var(--line);background:#111b31;border-radius:12px;padding:10px}
-.detail-box strong{display:block;margin-bottom:4px;color:var(--muted);font-size:12px;text-transform:uppercase}
-.health-excellent{color:#baf2cb}
-.health-partial{color:#ffebaf}
-.health-missing{color:#ffd3d9}
-.proof-snippet{display:block;background:#0b1326;border:1px solid var(--line);border-radius:10px;padding:8px;white-space:pre-wrap}
-.stage-label{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-size:11px;color:var(--accent-2)}
+    .status-good { color: var(--good); }
+    .status-warn { color: var(--warn); }
+    .status-bad { color: var(--bad); }
 
+    .tabs {
+      display: flex;
+      gap: 10px;
+      padding: 14px 24px 0;
+      flex-wrap: wrap;
+    }
 
-.mining-card,.detail-box,.row-card .cell,.status-panel,.prop-chip,.pill,.message,.console-item{word-wrap:break-word;min-width:0}
-.derived-badge,.mined-badge,.parsed-badge,.shield-badge{
-  display:inline-block;
-  margin-left:8px;
-  padding:2px 8px;
-  border-radius:999px;
-  border:1px solid var(--line);
-  font-size:11px;
-  font-weight:700;
-  white-space:nowrap;
-}
-.derived-badge{background:rgba(255,211,110,.16);color:#ffd36e;border-color:#ffd36e}
-.mined-badge{background:rgba(36,87,59,.25);color:#baf2cb}
-.parsed-badge{background:rgba(110,168,254,.15);color:#8cc3ff}
-.warning-banner{
-  margin:10px 0 0;
-  padding:10px 12px;
-  border-radius:14px;
-  border:1px solid rgba(185,74,90,.48);
-  background:rgba(185,74,90,.16);
-  color:#ffd3d9;
-  font-weight:700;
-}
-.shield-grid{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  min-height:300px;
-  gap:10px;
-  width:100%;
-}
-.shield-cell{
-  width:min(100%,720px);
-  border:1px solid var(--line);
-  background:#0f172a;
-  border-radius:16px;
-  padding:12px;
-  text-align:center;
-}
-.ellipsis-proof{
-  display:block;
-  max-width:100%;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-@media (max-width:700px){
-  .hero-inline{ flex-direction:column; }
-  .btn-row{ flex-direction:column; }
-  .row-card{ grid-template-columns:1fr; }
-  .matrix-grid, .mining-grid{ grid-template-columns:1fr; }
-  .shield-cell{ width:100%; }
-}
+    .tab-btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
 
+    .tab-btn.active {
+      background: linear-gradient(90deg, rgba(30,231,255,0.16), rgba(122,29,255,0.18));
+      border-color: rgba(30,231,255,0.35);
+      color: white;
+    }
 
-.source-accuracy{
-  display:inline-block;
-  margin-left:8px;
-  padding:2px 8px;
-  border-radius:999px;
-  border:1px solid var(--line);
-  font-size:11px;
-  font-weight:700;
-  white-space:nowrap;
-}
-.source-accuracy.high{background:rgba(36,87,59,.25);color:#baf2cb}
-.source-accuracy.mid{background:rgba(255,211,110,.12);color:#ffd36e}
-.source-accuracy.low{background:rgba(185,74,90,.16);color:#ffd3d9}
+    .screen {
+      display: none;
+      padding: 24px;
+    }
 
-.verification-badge{
-  display:inline-block;
-  margin-left:8px;
-  padding:2px 8px;
-  border-radius:999px;
-  border:1px solid var(--line);
-  font-size:11px;
-  font-weight:700;
-  white-space:nowrap;
-}
-.verification-badge.hard{background:rgba(36,87,59,.25);color:#baf2cb}
-.verification-badge.proxy{background:rgba(255,211,110,.12);color:#ffd36e}
+    .screen.active { display: block; }
 
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
 
-.run-overlay {
-  position: static;
-  inset: auto;
-  background: transparent;
-  display:block;
-  z-index: auto;
-  backdrop-filter: none;
-  margin-top: 14px;
-}
-.run-overlay.hidden { display:none; }
-.run-overlay-card {
-  width:100%; background: rgba(16,24,44,.98); border:1px solid var(--line); border-radius:22px; padding:16px 18px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.22);
-}
-.overlay-title { font-size:18px; font-weight:800; margin-bottom:6px; }
-.overlay-sub { color:var(--muted); margin-bottom:8px; }
-.analysis-kpis { display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
-.kpi-card { border:1px solid var(--line); background:#0f172a; border-radius:16px; padding:12px; }
-.kpi-card strong { display:block; margin-bottom:6px; color:var(--muted); font-size:12px; text-transform:uppercase; }
-.pool-inline-card { margin-top:14px; }
-</style>
+    .grid-2 {
+      grid-template-columns: 1.1fr 0.9fr;
+      align-items: start;
+    }
+
+    .panel,
+    .card,
+    .matrix-card,
+    .leg-row,
+    .analysis-card {
+      background: linear-gradient(180deg, rgba(18,30,80,0.95), rgba(9,17,49,0.96));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .panel { padding: 18px; }
+    .panel h2,
+    .panel h3,
+    .analysis-card h3,
+    .matrix-card h4 {
+      margin: 0 0 10px;
+      letter-spacing: -0.02em;
+    }
+
+    .panel-sub {
+      margin: -2px 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .upload-zone {
+      border: 2px dashed rgba(30,231,255,0.3);
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(30,231,255,0.05), rgba(255,255,255,0.02));
+      padding: 18px;
+      min-height: 170px;
+    }
+
+    .upload-zone input[type="file"] {
+      width: 100%;
+      display: block;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .upload-tip {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.45;
+      margin-bottom: 12px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    button.primary,
+    button.secondary,
+    button.ghost,
+    .mini-btn {
+      appearance: none;
+      border: 0;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    button.primary {
+      background: linear-gradient(90deg, var(--accent), #56f2ff);
+      color: #062241;
+      padding: 14px 18px;
+      min-width: 120px;
+    }
+
+    button.secondary {
+      background: linear-gradient(90deg, #7b24ff, #a849ff);
+      color: white;
+      padding: 14px 18px;
+      min-width: 120px;
+    }
+
+    button.ghost {
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 14px 18px;
+      min-width: 120px;
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      filter: grayscale(0.15);
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .preview-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .preview-card img {
+      display: block;
+      width: 100%;
+      height: 210px;
+      object-fit: cover;
+      background: #0b1338;
+    }
+
+    .preview-meta {
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .status-box {
+      display: grid;
+      gap: 10px;
+    }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .status-text {
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--text);
+      min-height: 72px;
+    }
+
+    .meter {
+      width: 100%;
+      height: 10px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.25s ease;
+    }
+
+    .review-table-wrap {
+      overflow: auto;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+
+    table.review-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1150px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .review-table th,
+    .review-table td {
+      padding: 10px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      vertical-align: top;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    .review-table th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #101a4b;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .review-table input,
+    .review-table select,
+    .review-table textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text);
+      padding: 8px 9px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-family: var(--font);
+    }
+
+    .review-table textarea {
+      min-height: 56px;
+      resize: vertical;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .tiny {
+      font-size: 11px;
+    }
+
+    .confidence-high { color: var(--good); }
+    .confidence-medium { color: var(--warn); }
+    .confidence-low { color: var(--bad); }
+
+    .ingest-debug {
+      margin-top: 12px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      overflow: hidden;
+    }
+
+    .ingest-debug summary {
+      cursor: pointer;
+      padding: 14px 16px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .debug-inner {
+      padding: 0 16px 16px;
+    }
+
+    .debug-text {
+      white-space: pre-wrap;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #dbe4ff;
+      background: rgba(0,0,0,0.18);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 12px;
+      max-height: 300px;
+      overflow: auto;
+    }
+
+    .analysis-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 18px;
+    }
+
+    .analysis-card {
+      padding: 16px;
+    }
+
+    .analysis-card .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .leg-title {
+      font-size: 22px;
+      line-height: 1.05;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin: 0;
+    }
+
+    .leg-subtitle {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .analysis-chip-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 10px 0 12px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .matrix-card {
+      padding: 12px;
+      background: linear-gradient(180deg, rgba(22,35,89,0.9), rgba(10,19,54,0.9));
+    }
+
+    .matrix-card h4 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .matrix-value {
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.35;
+      margin-bottom: 6px;
+    }
+
+    .matrix-note {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .error-log {
+      border-radius: 16px;
+      border: 1px solid rgba(255, 107, 107, 0.18);
+      background: rgba(255, 107, 107, 0.08);
+      padding: 14px;
+      color: #ffd4d4;
+      font-size: 13px;
+      line-height: 1.5;
+      display: none;
+      margin-bottom: 16px;
+    }
+
+    .error-log.show { display: block; }
+
+    .empty-state {
+      padding: 24px;
+      border-radius: 18px;
+      border: 1px dashed rgba(255,255,255,0.14);
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 72px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      border: 1px solid var(--border);
+    }
+
+    .badge-regular { background: rgba(255,255,255,0.05); }
+    .badge-goblin { background: rgba(38,208,124,0.14); color: #8ff1b8; }
+    .badge-demon { background: rgba(255,107,107,0.14); color: #ffb0b0; }
+    .badge-low { background: rgba(255,107,107,0.14); color: #ffb0b0; }
+    .badge-med { background: rgba(242,185,75,0.15); color: #ffe0a3; }
+    .badge-high { background: rgba(38,208,124,0.14); color: #8ff1b8; }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 1080px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .screen { padding: 18px; }
+      .hero { padding: 18px 18px 16px; }
+      .tabs { padding: 12px 18px 0; }
+    }
+
+    @media (max-width: 720px) {
+      body { padding: 10px; }
+      .title-wrap h1 { font-size: 24px; }
+      .matrix-grid { grid-template-columns: 1fr; }
+      .analysis-grid { grid-template-columns: 1fr; }
+      .preview-card img { height: 170px; }
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
-    <section id="intakeScreen">
-      <header class="hero">
-        <h1 id="intakeTitle">Prompt 1 Intake <span class="version-pill">v6.6.0</span></h1>
-        <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
-      </header>
+    <div class="hero">
+      <div class="hero-top">
+        <div class="title-wrap">
+          <h1>NBA Slip Ingest</h1>
+          <p>v1.0.0.0.0 • Image upload, ingest, merge, normalize, review, and run handoff.</p>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <div class="version-pill">CONNECTOR FAMILY 1</div>
+          <div id="globalStatusPill" class="status-pill"><span class="status-warn">●</span><span id="globalStatusText">Waiting for images</span></div>
+        </div>
+      </div>
+    </div>
 
-      <section class="card">
-        <h2>1. Day Scope</h2>
-        <div id="dayScope" class="radio-row">
-          <label><input type="radio" name="dayScope" value="Today"> Today</label>
-          <label><input type="radio" name="dayScope" value="Tomorrow"> Tomorrow</label>
-          <label><input type="radio" name="dayScope" value="Today and Tomorrow"> Today and Tomorrow</label>
-        </div>
-      </section>
+    <div class="tabs">
+      <button class="tab-btn active" data-screen="screen-ingest">Screen 1 • Ingest</button>
+      <button class="tab-btn" data-screen="screen-analysis">Screen 2 • Analysis Shell</button>
+    </div>
 
-      <section class="card">
-        <h2>2. Sports / Leagues</h2>
-        <div id="leagueChecklist" class="league-grid"></div>
-      </section>
+    <section id="screen-ingest" class="screen active">
+      <div id="errorLog" class="error-log"></div>
+      <div class="grid grid-2">
+        <div class="panel">
+          <h2>Image upload</h2>
+          <div class="panel-sub">Upload up to 3 screenshots. PrizePicks split screenshots are merged in order. Sleeper rows and stacked card layouts are parsed into editable legs.</div>
 
-      <section class="card">
-        <h2>3. Paste Board Text</h2>
-        <div class="btn-row top-gap">
-          <button id="clearBoxBtn" class="secondary">Clear box</button>
-        </div>
-        <textarea id="boardInput" rows="6" placeholder="Paste PrizePicks-style board text here..."></textarea>
-        <div class="btn-row">
-          <button id="ingestBtn">Ingest</button>
-        </div>
-        <div id="ingestMessage" class="message ingest-status"></div>
-      </section>
-
-      <section class="card">
-        <h2>4. Feed Status</h2>
-        <div class="btn-row top-gap">
-          <button id="resetAllBtn" class="danger">Reset all</button>
-        </div>
-        <div id="runSummary" class="summary-pills"></div>
-        <div id="feedStatus"></div>
-        <div id="poolMount"></div>
-        <div class="btn-row run-row">
-          <button id="runBtn" class="run-btn">Run Analysis</button>
-        </div>
-      </section>
-    </section>
-
-    <section id="analysisScreen" class="hidden">
-      <header class="hero hero-inline">
-        <div>
-          <h1 id="analysisTitle">Run Analysis v6.5.0</h1>
-          <p id="analysisVersion">Version: v6.6.0 (Range-Bound Validation & Live Assignments)</p>
-        </div>
-        <div class="btn-row no-top-gap">
-          <button id="backBtn" class="secondary">Back</button>
-          <button id="copyBtn" class="secondary">Copy</button>
-        </div>
-      </header>
-
-      <section class="card">
-        <h2>Run Snapshot</h2>
-        <div id="analysisSummary" class="summary-pills"></div>
-        <div id="analysisHint" class="message"></div>
-        <div id="runOverlay" class="run-overlay hidden">
-          <div class="run-overlay-card">
-            <div class="overlay-title">Triple-Sweep Mining</div>
-            <div id="overlaySub" class="overlay-sub">Initializing…</div>
-            <div id="overlayBody" class="message">Preparing factor cards.</div>
+          <div class="upload-zone">
+            <input id="imageInput" type="file" accept="image/*" multiple />
+            <div class="upload-tip">
+              Supported v1 layout families: Sleeper Picks Entry, PrizePicks Current Lineup, PrizePicks copied/tail card, and weaker PrizePicks feed cards. Use clean screenshots in order from top to bottom.
+            </div>
+            <div class="button-row">
+              <button id="ingestBtn" class="primary">Ingest</button>
+              <button id="runBtn" class="secondary" disabled>Run</button>
+              <button id="resetBtn" class="ghost">Reset</button>
+            </div>
+            <div id="previewGrid" class="preview-grid"></div>
           </div>
         </div>
-      </section>
 
-      <section class="card">
-        <h2>Selected Test Row</h2>
-        <div id="analysisRowCard"></div>
-      </section>
+        <div class="panel status-box">
+          <h2>Ingest status</h2>
+          <div class="status-line"><span>Progress</span><span id="progressLabel">0%</span></div>
+          <div class="meter"><div id="meterFill" class="meter-fill"></div></div>
+          <div id="statusText" class="status-text">No images loaded yet. Upload screenshots, click Ingest, review the parsed legs, then click Run.</div>
+          <div class="status-line"><span>Parsed rows</span><strong id="parsedCount">0</strong></div>
+          <div class="status-line"><span>High confidence</span><strong id="highCount">0</strong></div>
+          <div class="status-line"><span>Medium confidence</span><strong id="mediumCount">0</strong></div>
+          <div class="status-line"><span>Low confidence</span><strong id="lowCount">0</strong></div>
+          <div class="footer-note">
+            v1 is built to surface partial rows instead of hiding them. If a leg is incomplete, edit it in the review grid before you click Run.
+          </div>
+        </div>
+      </div>
 
-      <section class="card">
-        <h2>Triple-Sweep Matrix</h2>
-        <p class="mini-muted">14-factor recursive mining. Anchor baselines use JSON-first hard data. Minor cards probe Source A → Source B → Source C → [DERIVED NEUTRAL] only after all 3 fail, with live rendering after every resolution.</p>
-        <div id="analysisKpis" class="analysis-kpis"></div>
-        <div id="miningGrid" class="mining-grid"></div>
-      </section>
-
-      <section class="card">
-        <h2>Alpha Shield v6.5.0</h2>
-        <div id="shieldPanel" class="shield-grid"></div>
-      </section>
-
-      <section class="card">
-        <h2>Current Clean Pool</h2>
-        <div class="table-wrap">
-          <table>
+      <div class="panel" style="margin-top:18px;">
+        <h2>Parsed leg review</h2>
+        <div class="panel-sub">Each row is editable. Unknown values are allowed in v1. Fix low-confidence rows here before Run.</div>
+        <div id="reviewEmpty" class="empty-state">No parsed legs yet.</div>
+        <div id="reviewTableWrap" class="review-table-wrap" style="display:none;">
+          <table class="review-table" id="reviewTable">
             <thead>
               <tr>
                 <th>#</th>
-                <th>Sport</th>
-                <th>League</th>
-                <th>Player / Entity</th>
+                <th>Player Raw</th>
+                <th>Player Normalized</th>
+                <th>Team Raw</th>
                 <th>Team</th>
+                <th>Opponent Raw</th>
                 <th>Opponent</th>
+                <th>Pos</th>
+                <th>Prop Raw</th>
+                <th>Prop</th>
                 <th>Line</th>
-                <th>Type</th>
+                <th>Direction</th>
+                <th>Promo</th>
+                <th>Suffix</th>
+                <th>Platform</th>
+                <th>Layout</th>
+                <th>Confidence</th>
+                <th>Note</th>
               </tr>
             </thead>
-            <tbody id="analysisResultsBody"></tbody>
+            <tbody id="reviewTbody"></tbody>
           </table>
         </div>
-      </section>
 
-      <section class="card">
-        <h2>System Console</h2>
-        <div id="systemConsole" class="console-wrap"></div>
-      </section>
+        <details id="debugBox" class="ingest-debug" style="display:none;">
+          <summary>Raw OCR / parser debug</summary>
+          <div id="debugInner" class="debug-inner"></div>
+        </details>
+      </div>
+    </section>
+
+    <section id="screen-analysis" class="screen">
+      <div class="analysis-header">
+        <div>
+          <h2 style="margin:0; font-size:28px; letter-spacing:-0.03em;">Screen 2 • Analysis Shell</h2>
+          <div class="panel-sub">Current v1 handoff preserves the multi-card analysis structure but only populates connector family 1 fields so you can validate the ingest.</div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <div class="status-pill"><span id="analysisLegCount">0</span><span>Legs Loaded</span></div>
+          <button id="backToIngestBtn" class="ghost">Back to Screen 1</button>
+        </div>
+      </div>
+
+      <div id="analysisEmpty" class="empty-state">Nothing has been sent to Screen 2 yet. Parse and review the legs on Screen 1, then click Run.</div>
+      <div id="analysisGrid" class="analysis-grid" style="display:none;"></div>
     </section>
   </div>
 
+  <script>
+    const SYSTEM_VERSION = '1.0.0.0.0';
 
-<script>
-const SYSTEM_VERSION = "v6.6.0 (Range-Bound Validation & Live Assignments)";
-const STORAGE_KEY = "pickcalc-nba-8-8-reference-lock";
-const APP_BUILD_LABEL = "Range-Bound Validation / Live Assignments";
-const TYPE_META = {
-  REGULAR: {icon:'⚪', label:'Regular'},
-  GOBLIN: {icon:'🟢', label:'Goblin'},
-  DEMON: {icon:'😈', label:'Demon'},
-  TACO: {icon:'🌮', label:'Taco'},
-  FREE_PICK: {icon:'🎁', label:'Free Pick'}
-};
-const LEAGUES = [
-  { id:'nba', label:'NBA', sport:'NBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Pts+Rebs+Asts','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
-  { id:'wnba', label:'WNBA', sport:'WNBA', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Pts+Rebs+Asts','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
-  { id:'cbb', label:'CBB', sport:'CBB', propCatalog:['Points','Rebounds','Assists','Pts+Rebs','Pts+Asts','Rebs+Asts','PRA','Pts+Rebs+Asts','3PT Made','Fantasy Score','Blocks','Steals','Blks+Stls','Turnovers'] },
-  { id:'nfl', label:'NFL', sport:'NFL', propCatalog:['Passing Yards','Rushing Yards','Receiving Yards','Receptions','Rush Attempts','Touchdowns'] },
-  { id:'cfb', label:'CFB', sport:'CFB', propCatalog:['Passing Yards','Rushing Yards','Receiving Yards','Receptions','Rush Attempts','Touchdowns'] },
-  { id:'mlb', label:'MLB', sport:'MLB', propCatalog:['Hits','Total Bases','Pitcher Strikeouts','Runs','RBIs','Outs Recorded','Home Runs','Hits Allowed'] },
-  { id:'nhl', label:'NHL', sport:'NHL', propCatalog:['Shots on Goal','Goalie Saves','Points','Assists','Goals','Blocked Shots','Hits'] },
-  { id:'soccer', label:'Soccer', sport:'SOCCER', propCatalog:['Goalie Saves','Passes Attempted','Shots Assisted','Attempted Dribbles','Shots On Target','Shots','Tackles Won','Crosses','Clearances','Fouls Committed','Goals','Assists'] },
-  { id:'tennis', label:'Tennis', sport:'TENNIS', propCatalog:['Total Games','Break Points Won','Double Faults','Aces','Games Won','Sets Won'] },
-  { id:'golf', label:'Golf', sport:'GOLF', propCatalog:['Birdies or Better','Strokes','Pars','Bogeys'] },
-  { id:'ufc', label:'UFC / MMA', sport:'UFC', propCatalog:['Significant Strikes','Takedowns','Fight Time'] },
-  { id:'nascar', label:'NASCAR', sport:'NASCAR', propCatalog:['Finishing Position','Fastest Laps'] },
-  { id:'esports-cs2', label:'Esports CS2', sport:'ESPORTS', propCatalog:['MAP 1 Headshots','MAP 2 Headshots','MAP 3 Headshots','MAP 1 Kills','MAP 2 Kills','MAP 3 Kills','Headshots','Kills','Assists'] },
-  { id:'esports-valorant', label:'Esports Valorant', sport:'ESPORTS', propCatalog:['Headshots','Kills','Assists','Maps Won'] },
-  { id:'esports-lol', label:'Esports LoL', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths','CS','Towers'] },
-  { id:'esports-dota2', label:'Esports Dota 2', sport:'ESPORTS', propCatalog:['Kills','Assists','Deaths'] }
-];
-const PROP_LOOKUP = buildPropLookup();
-const NBA_TEAM_ALTITUDE = {
-  DEN: 5280,
-  UTA: 4226,
-  MEX: 7382
-};
-const REF_NAMES = [
-  'Scott Foster','Tony Brothers','Zach Zarba','James Capers','Bill Kennedy','Ben Taylor','Marc Davis',
-  'John Goble','Tyler Ford','Sean Wright','David Guthrie','Eric Lewis','Tre Maddox','Brian Forte'
-];
-
-const GARBAGE_KEYWORDS = ['academy of music','museum','historic','highlight','jersey'];
-
-function blobHasGarbageKeywords(text='') {
-  const c = canon(text || '');
-  return GARBAGE_KEYWORDS.some(word => c.includes(word));
-}
-function playerAnchorParts(row) {
-  const parts = canon(row?.entity || '').split(' ').filter(Boolean);
-  const last = parts.slice(-1)[0] || '';
-  const first = parts[0] || '';
-  const team = canon(expandTeamName(row?.team || ''));
-  return { first, last, team };
-}
-function expandTeamName(team='') {
-  const key = norm(team).toUpperCase();
-  const map = {
-    ATL:'Atlanta Hawks', BOS:'Boston Celtics', BKN:'Brooklyn Nets', CHA:'Charlotte Hornets',
-    CHI:'Chicago Bulls', CLE:'Cleveland Cavaliers', DAL:'Dallas Mavericks', DEN:'Denver Nuggets',
-    DET:'Detroit Pistons', GSW:'Golden State Warriors', HOU:'Houston Rockets', IND:'Indiana Pacers',
-    LAC:'Los Angeles Clippers', LAL:'Los Angeles Lakers', MEM:'Memphis Grizzlies', MIA:'Miami Heat',
-    MIL:'Milwaukee Bucks', MIN:'Minnesota Timberwolves', NOP:'New Orleans Pelicans', NYK:'New York Knicks',
-    OKC:'Oklahoma City Thunder', ORL:'Orlando Magic', PHI:'Philadelphia 76ers', PHX:'Phoenix Suns',
-    POR:'Portland Trail Blazers', SAC:'Sacramento Kings', SAS:'San Antonio Spurs', TOR:'Toronto Raptors',
-    UTA:'Utah Jazz', WAS:'Washington Wizards'
-  };
-  return map[key] || norm(team);
-}
-function sourceBlobFailsIntegrity(blob='', row=null) {
-  const c = canon(blob || '');
-  if (!c) return true;
-  if (blobHasGarbageKeywords(c)) return true;
-  const { first, last, team } = playerAnchorParts(row || {});
-  if (last && !c.includes(last)) return true;
-  if (first && first.length > 2 && !c.includes(first)) return true;
-  if (team && /\bbam\b|\badebayo\b/i.test(row?.entity || '') && !(c.includes(team) || c.includes('nba player stats') || c.includes('bam adebayo miami heat'))) return true;
-  if (!c.includes('nba') && !c.includes('espn') && !c.includes('basketball') && !c.includes('statmuse') && !c.includes('reference') && !c.includes('covers') && !c.includes('official')) return true;
-  return false;
-}
-function extractionMethodForSource(source, factor) {
-  const name = String(source?.name || '');
-  if (/ESPN/i.test(name) && /(Recent Form|Stability Window|Extended Form)/i.test(factor?.title || '')) return 'ESPN Table Parse';
-  if (/Basketball-Reference|BBR/i.test(name)) return 'Basketball-Reference Table Parse';
-  if (/Official NBA Assignments/i.test(name)) return 'Official NBA Crew Scrape';
-  if (/Covers/i.test(name)) return 'Covers Static Scrape';
-  if (/DuckDuckGo|Search/i.test(name)) return 'DuckDuckGo Snippet Parse';
-  if (/StatMuse/i.test(name)) return 'StatMuse Structured Snippet Parse';
-  return 'Structured Source Parse';
-}
-
-const FACTORS = [
-  { key:'recentForm', title:'Recent Form (L5)', tier:'2B', parse:'number', fallback:'last3Blend', probeLabel:'L5', sources:[
-      { id:'S1', name:'ESPN Game Log Table', query:(r)=>`${r.entity} ESPN game log last 5 games nba ${r.propFamily}` },
-      { id:'S2', name:'Basketball-Reference', query:(r)=>`${r.entity} basketball reference game log last 5 games nba ${r.propFamily}` },
-      { id:'S3', name:'StatMuse Raw Log', query:(r)=>`${r.entity} last 5 games ${r.propFamily} statmuse nba player stats` }
-  ]},
-  { key:'stabilityWindow', title:'Stability Window (L10)', tier:'2B', parse:'number', fallback:'last3Blend', probeLabel:'L10', sources:[
-      { id:'S1', name:'ESPN Game Log Table', query:(r)=>`${r.entity} ESPN game log last 10 games nba ${r.propFamily}` },
-      { id:'S2', name:'Basketball-Reference', query:(r)=>`${r.entity} last 10 games basketball reference ${r.propFamily} nba` },
-      { id:'S3', name:'StatMuse Raw Log', query:(r)=>`${r.entity} last 10 games ${r.propFamily} statmuse nba player stats` }
-  ]},
-  { key:'extendedForm', title:'Extended Form (L20)', tier:'2B', parse:'number', fallback:'last3Blend', probeLabel:'L20', sources:[
-      { id:'S1', name:'ESPN Game Log Table', query:(r)=>`${r.entity} ESPN game log last 20 games nba ${r.propFamily}` },
-      { id:'S2', name:'Basketball-Reference', query:(r)=>`${r.entity} last 20 games basketball reference ${r.propFamily}` },
-      { id:'S3', name:'NBA.com', query:(r)=>`${r.entity} last 20 games nba.com stats ${r.propFamily}` }
-  ]},
-  { key:'seasonBaseline', title:'Season Baseline', tier:'2B', parse:'number', fallback:'seasonFallback', probeLabel:'SEASON', sources:[
-      { id:'S1', name:'stats.nba.com/playercareerstats', query:(r)=>`${r.entity} stats.nba.com playercareerstats ${r.propFamily}` },
-      { id:'S2', name:'sports.core.api.espn.com statistics', query:(r)=>`${r.entity} sports.core.api.espn.com nba statistics ${r.propFamily}` },
-      { id:'S3', name:'Basketball-Reference per-game table', query:(r)=>`${r.entity} basketball reference per game ${r.propFamily}` }
-  ]},
-  { key:'careerBaseline', title:'Career Baseline', tier:'2B', parse:'number', fallback:'careerFallback', probeLabel:'CAREER', sources:[
-      { id:'S1', name:'stats.nba.com/playercareerstats', query:(r)=>`${r.entity} stats.nba.com playercareerstats career ${r.propFamily}` },
-      { id:'S2', name:'sports.core.api.espn.com statistics', query:(r)=>`${r.entity} sports.core.api.espn.com career statistics ${r.propFamily}` },
-      { id:'S3', name:'Basketball-Reference per-game table', query:(r)=>`${r.entity} basketball reference career per game ${r.propFamily}` }
-  ]},
-  { key:'headToHead', title:'Head-to-Head (vs Opp)', tier:'2B', parse:'number', fallback:'vsOppFallback', probeLabel:'H2H', sources:[
-      { id:'S1', name:'StatMuse Career vs Team', query:(r)=>`${r.entity} career vs ${r.opponent} statmuse nba ${r.propFamily}` },
-      { id:'S2', name:'ESPN Matchup History', query:(r)=>`${r.entity} vs ${r.opponent} ESPN nba matchup history ${r.propFamily}` },
-      { id:'S3', name:'Search', query:(r)=>`${r.entity} vs ${r.opponent} career nba ${r.propFamily}` }
-  ]},
-  { key:'matchupPhysicality', title:'Matchup Physicality (EDGE)', tier:'2C', parse:'physicality', fallback:'physicalityFallback', probeLabel:'EDGE', sources:[
-      { id:'S1', name:'NBA.com Bio', query:(r)=>`${r.entity} height weight nba.com bio` },
-      { id:'S2', name:'StatMuse Positional Avg', query:(r)=>`${r.opponent} allowed to position ${
-          guessPositionFromRowText(r)
-      } ${r.propFamily} statmuse nba` },
-      { id:'S3', name:'Derived Comparison', query:(r)=>`${r.entity} matchup size edge vs ${r.opponent} nba` }
-  ]},
-  { key:'rotationUsage', title:'Rotation & Usage Pulse', tier:'2B', parse:'usage', fallback:'usageFallback', probeLabel:'USAGE', sources:[
-      { id:'S1', name:'RotoWire Lineups', query:(r)=>`${r.entity} rotowire lineup expected starter nba` },
-      { id:'S2', name:'NBA.com Usage', query:(r)=>`${r.entity} usage rate nba.com stats` },
-      { id:'S3', name:'Derived Formula', query:(r)=>`${r.entity} last 3 box score fga fta tov minutes nba` }
-  ]},
-  { key:'clutchPerformance', title:'Clutch Performance', tier:'2C', parse:'number', fallback:'clutchFallback', probeLabel:'CLUTCH', sources:[
-      { id:'S1', name:'NBA.com Clutch', query:(r)=>`${r.entity} clutch stats nba.com 2026 ${r.propFamily}` },
-      { id:'S2', name:'StatMuse 4Q Splits', query:(r)=>`${r.entity} 4th quarter splits statmuse nba ${r.propFamily}` },
-      { id:'S3', name:'Derived 4Q Delta', query:(r)=>`${r.entity} fourth quarter average 2026 nba ${r.propFamily}` }
-  ]},
-  { key:'individualDefender', title:'Individual Defender', tier:'2C', parse:'defender', fallback:'defenderFallback', probeLabel:'DEF', sources:[
-      { id:'S1', name:'RotoWire Primary Defender', query:(r)=>`${r.entity} primary defender vs ${r.opponent} rotowire nba` },
-      { id:'S2', name:'StatMuse DefRating', query:(r)=>`${r.entity} defended by primary defender defensive rating nba` },
-      { id:'S3', name:'Search', query:(r)=>`${r.entity} vs defender ${r.opponent} nba` }
-  ]},
-  { key:'altitudeTravel', title:'Altitude & Travel Fatigue', tier:'2C', parse:'travel', fallback:'travelFallback', probeLabel:'TRAVEL', sources:[
-      { id:'S1', name:'Team Schedule', query:(r)=>`${r.team} schedule last 48 hours nba` },
-      { id:'S2', name:'Internal Geo-Map', query:(r)=>`${r.team} ${r.opponent} altitude nba` },
-      { id:'S3', name:'Search', query:(r)=>`${r.team} travel miles last 48h nba` }
-  ]},
-  { key:'motivation', title:'Motivation & Incentives', tier:'2D', parse:'motivation', fallback:'motivationFallback', probeLabel:'MOTIVE', sources:[
-      { id:'S1', name:'Spotrac', query:(r)=>`${r.entity} incentives contract spotrac nba` },
-      { id:'S2', name:'News Feed Scrape', query:(r)=>`${r.entity} milestone revenge narrative news nba 2026` },
-      { id:'S3', name:'Derived Narrative', query:(r)=>`${r.entity} revenge game vs ${r.opponent} nba` }
-  ]},
-  { key:'officialRef', title:'Official / Ref Tendency', tier:'2D', parse:'ref', fallback:'refFallback', probeLabel:'REF', sources:[
-      { id:'A', name:'Official NBA Assignments', query:(r)=>`site:official.nba.com referee assignments April 7 2026 ${r.team} ${r.opponent} nba` },
-      { id:'B', name:'Covers Static Scrape', query:(r)=>`site:covers.com April 7 2026 ${r.team} ${r.opponent} referee over under record nba` },
-      { id:'C', name:'DuckDuckGo Search', query:(r)=>`${r.team} ${r.opponent} referee over under record April 7 2026 nba` }
-  ]},
-  { key:'survivabilityShield', title:'Survivability Shield', tier:'2F', parse:'shield', fallback:'shieldFallback', probeLabel:'SHIELD', sources:[
-      { id:'S1', name:'Internal Alpha Purity', query:(r)=>`${r.entity} shield internal` },
-      { id:'S2', name:'Integrity Gate', query:(r)=>`${r.entity} integrity gate internal` },
-      { id:'S3', name:'Derived', query:(r)=>`${r.entity} survivability fallback internal` }
-  ]}
-];
-
-const state = loadState();
-const runtimeMiningCache = {};
-let activeRunToken = 0;
-
-/* =========================================================
-   PHASE III GLOBAL UTILITY HEADER - MANDATORY POWER FUNCTIONS
-   ========================================================= */
-function deriveRotationStatusV7(row) {
-  const text = String(row?.rawText || row?.evidenceBlob || '');
-  const c = canon(text);
-  if (/\b(out|inactive|ruled out|doubtful)\b/.test(c)) return 'OUT';
-  if (/\b(starting|starter|starting lineup|starting five|first unit)\b/.test(c)) return 'STARTER';
-  if (/\b(bench|reserve|second unit|not starting)\b/.test(c)) return 'BENCH';
-  const mins = [...text.matchAll(/(\d+(?:\.\d+)?)\s*(?:minutes|min)\b/gi)].map(m => Number(m[1])).filter(Number.isFinite);
-  if (mins.slice(0,3).filter(n => n >= 30).length >= 2) return 'STARTER';
-  if (mins.length) return 'BENCH';
-  return 'UNKNOWN';
-}
-
-function SanitizeResult(val, prop, evidence='') {
-  const propKey = canon(prop || '');
-  let text = String(val ?? '').replace(/\s+/g,' ').trim();
-  let proof = String(evidence || '').replace(/\s+/g,' ').trim();
-  if (/(3ptm|3pm|threes|3-pointers|3pt made)/i.test(propKey)) {
-    text = text.replace(/\b(points?|rebounds?|assists?|pra|pts\+rebs\+asts|pts\+rebs|pts\+asts|rebs\+asts)\b/gi,'').trim();
-    proof = proof.replace(/\b(points?|rebounds?|assists?|pra|pts\+rebs\+asts|pts\+rebs|pts\+asts|rebs\+asts)\b/gi,'').trim();
-    const m = (String(val) + ' ' + String(evidence)).match(/(?:3PTM|3PM|Threes|3-Pointers?)\s*(\d+(?:\.\d+)?)/i)
-      || (String(val) + ' ' + String(evidence)).match(/(\d+(?:\.\d+)?)\s*(?:3PTM|3PM|Threes|3-Pointers?)/i);
-    if (m) text = m[1];
-  }
-  return { value:text || 'UNKNOWN', evidence:proof || 'UNKNOWN' };
-}
-
-function recoverRefFromRawParse(text='') {
-  const src = String(text || '');
-  for (const name of REF_NAMES) {
-    if (new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(src)) return name;
-  }
-  return 'UNKNOWN';
-}
-
-function calculateAlphaShield(results) {
-  const cards = Object.values(results || {}).filter(Boolean);
-  const unknownCount = cards.filter(c => String(c.parsedResult || '').includes('[UNKNOWN]')).length;
-  const derivedCount = cards.filter(c => c.derived).length;
-  const warningCount = cards.filter(c => c.status === 'warning' || c.status === 'failed').length;
-  const confidenceAvg = cards.length ? cards.reduce((a,b)=>a + Number(b.confidence || 0), 0) / cards.length : 0;
-  const purityScore = Math.max(0, Math.min(100, confidenceAvg - (unknownCount * 8) - (derivedCount * 3) - (warningCount * 5)));
-  return {
-    purityScore: round1(purityScore),
-    unknownCount,
-    derivedCount,
-    warningCount,
-    confidenceAvg: round1(confidenceAvg)
-  };
-}
-
-function getGeoAltitude(team='') {
-  const key = norm(team).toUpperCase();
-  return NBA_TEAM_ALTITUDE[key] || 0;
-}
-
-/* =============================== COMMON HELPERS =============================== */
-function defaultState() {
-  return {
-    dayScope:'Today',
-    selectedLeagueIds:['nba'],
-    cleanedRows:[],
-    activeRowId:null,
-    ran:false,
-    logs:[]
-  };
-}
-function loadState() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    return raw && typeof raw === 'object' ? { ...defaultState(), ...raw } : defaultState();
-  } catch {
-    return defaultState();
-  }
-}
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    dayScope: state.dayScope,
-    selectedLeagueIds: state.selectedLeagueIds,
-    cleanedRows: state.cleanedRows,
-    activeRowId: state.activeRowId,
-    ran: state.ran,
-    logs: state.logs.slice(-400)
-  }));
-}
-function norm(s='') {
-  return String(s)
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[\u201C\u201D]/g, '"')
-    .replace(/[\u2013\u2014]/g, '-')
-    .replace(/\u00A0/g, ' ')
-    .replace(/￼/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-function canon(s='') { return norm(s).toLowerCase(); }
-function escapeHtml(s='') {
-  return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-function round1(n) {
-  return Number.isFinite(Number(n)) ? Math.round(Number(n)*10)/10 : 0;
-}
-function nowStamp() {
-  const d = new Date();
-  return d.toLocaleTimeString([], {hour12:false});
-}
-function logEvent(msg='', type='SUCCESS', rowId='', factor='system') {
-  state.logs.push({
-    ts: new Date().toISOString(),
-    type, rowId, factor, msg:String(msg || '')
-  });
-  if (state.logs.length > 400) state.logs = state.logs.slice(-400);
-  saveState();
-  renderSystemConsole();
-}
-function showOverlay(title, body) {
-  const overlay = document.getElementById('runOverlay');
-  if (overlay) overlay.classList.add('hidden');
-  const sub = document.getElementById('overlaySub');
-  const bodyEl = document.getElementById('overlayBody');
-  if (sub) sub.textContent = title || 'Running…';
-  if (bodyEl) bodyEl.textContent = body || '';
-  const hint = document.getElementById('analysisHint');
-  if (hint) hint.textContent = `${title || 'Running…'} • ${body || ''}`;
-}
-function hideOverlay() {
-  const overlay = document.getElementById('runOverlay');
-  if (overlay) overlay.classList.add('hidden');
-}
-function buildPropLookup() {
-  const entries = [];
-  for (const league of LEAGUES) {
-    for (const prop of league.propCatalog) entries.push({ leagueId:league.id, prop, key:canon(prop) });
-  }
-  entries.sort((a,b)=> b.prop.length - a.prop.length);
-  return entries;
-}
-function findLeague(id) { return LEAGUES.find(x => x.id === id); }
-function selectedLeagues() { return state.selectedLeagueIds.map(findLeague).filter(Boolean); }
-function activeRow() {
-  return state.cleanedRows.find(r => r.rowId === state.activeRowId) || state.cleanedRows[0] || null;
-}
-function cacheKeyForRow(row) { return row ? row.rowId : ''; }
-function guessPositionFromRowText(row) {
-  const raw = canon(row?.rawText || '');
-  const name = canon(row?.entity || '');
-  if (/\bpg\b|\bsg\b|guard/.test(raw)) return 'guards';
-  if (/\bsf\b|\bpf\b|forward/.test(raw)) return 'forwards';
-  if (/\bc\b|center/.test(raw)) return 'centers';
-  if (/jokic|embiid|adebayo|gobert|wembanyama|sabonis|lopez|ayton/.test(name)) return 'centers';
-  if (/lillard|curry|haliburton|brunson|harden|morant|maxey|ball/.test(name)) return 'guards';
-  return 'forwards';
-}
-function lineDirectionFromRow(row) {
-  const t = canon(row?.rawText || row?.lineText || '');
-  if (t.includes('less')) return 'UNDER';
-  if (t.includes('more')) return 'OVER';
-  return 'OVER';
-}
-function getFedPropCounts() {
-  const fed = {};
-  for (const row of state.cleanedRows) {
-    fed[row.leagueId] ||= {};
-    fed[row.leagueId][row.propKey] = (fed[row.leagueId][row.propKey] || 0) + 1;
-  }
-  return fed;
-}
-function displayTeam(row) {
-  return row?.team || '';
-}
-function buildResultsRowsHtml(rows, includeIndex=false) {
-  if (!rows.length) return `<tr><td colspan="${includeIndex ? 8 : 7}" class="empty">No clean rows yet.</td></tr>`;
-  return rows.map((row, idx) => `
-    <tr data-row-id="${escapeHtml(row.rowId)}">
-      ${includeIndex ? `<td>${idx+1}</td>` : ''}
-      <td>${escapeHtml(row.sport)}</td>
-      <td>${escapeHtml(findLeague(row.leagueId)?.label || row.leagueId)}</td>
-      <td>${escapeHtml(row.entity)}</td>
-      <td>${escapeHtml(displayTeam(row) || '—')}</td>
-      <td>${escapeHtml(row.opponent || '—')}</td>
-      <td>${escapeHtml(row.lineText)}</td>
-      <td class="type-cell">${TYPE_META[row.type]?.icon || '⚪'}</td>
-    </tr>
-  `).join('');
-}
-function bindRowSelection(tbodyId) {
-  const body = document.getElementById(tbodyId);
-  body.querySelectorAll('tr[data-row-id]').forEach(tr => {
-    tr.onclick = () => {
-      state.activeRowId = tr.dataset.rowId;
-      saveState();
-      render();
+    const TEAM_MAP = {
+      ATL: 'Atlanta Hawks', BOS: 'Boston Celtics', BKN: 'Brooklyn Nets', BRK: 'Brooklyn Nets',
+      CHA: 'Charlotte Hornets', CHI: 'Chicago Bulls', CLE: 'Cleveland Cavaliers', DAL: 'Dallas Mavericks',
+      DEN: 'Denver Nuggets', DET: 'Detroit Pistons', GSW: 'Golden State Warriors', GS: 'Golden State Warriors',
+      HOU: 'Houston Rockets', IND: 'Indiana Pacers', LAC: 'Los Angeles Clippers', LAL: 'Los Angeles Lakers',
+      MEM: 'Memphis Grizzlies', MIA: 'Miami Heat', MIL: 'Milwaukee Bucks', MIN: 'Minnesota Timberwolves',
+      NOP: 'New Orleans Pelicans', NO: 'New Orleans Pelicans', NYK: 'New York Knicks', OKC: 'Oklahoma City Thunder',
+      ORL: 'Orlando Magic', PHI: 'Philadelphia 76ers', PHX: 'Phoenix Suns', PHO: 'Phoenix Suns',
+      POR: 'Portland Trail Blazers', SAC: 'Sacramento Kings', SAS: 'San Antonio Spurs', SA: 'San Antonio Spurs',
+      TOR: 'Toronto Raptors', UTA: 'Utah Jazz', UTH: 'Utah Jazz', WAS: 'Washington Wizards'
     };
-  });
-}
-function rowCardHtml(row) {
-  return `
-    <div class="row-card">
-      <div class="cell"><strong>Sport</strong>${escapeHtml(row.sport)}</div>
-      <div class="cell"><strong>League</strong>${escapeHtml(findLeague(row.leagueId)?.label || row.leagueId)}</div>
-      <div class="cell"><strong>Player / Entity</strong>${escapeHtml(row.entity)}</div>
-      <div class="cell"><strong>Team</strong>${escapeHtml(displayTeam(row) || '—')}</div>
-      <div class="cell"><strong>Opponent</strong>${escapeHtml(row.opponent || '—')}</div>
-      <div class="cell"><strong>Prop</strong>${escapeHtml(row.propFamily)}</div>
-      <div class="cell"><strong>Line</strong>${escapeHtml(row.line)}</div>
-      <div class="cell"><strong>Type</strong>${TYPE_META[row.type]?.icon || '⚪'} ${escapeHtml(TYPE_META[row.type]?.label || row.type)}</div>
-      <div class="cell"><strong>Raw Parse</strong>${escapeHtml(row.rawText || row.lineText)}</div>
-      <div class="cell"><strong>Alpha Shield</strong>${escapeHtml((buildMiningStatus(row).find(c => c.key === 'survivabilityShield')?.parsedResult) || 'Pending')}</div>
-    </div>`;
-}
-function confidenceBarHtml(confidence=0) {
-  const c = Math.max(0, Math.min(100, Number(confidence || 0)));
-  return `<div class="conf-bar"><div class="conf-fill" style="width:${c}%"></div></div>`;
-}
-function scoreClassForCard(card) {
-  if (card.status === 'failed') return 'conflict';
-  if (card.status === 'warning') return 'warning';
-  if (card.derived) return 'warning';
-  return 'support';
-}
-function retrievalHealthLabel(card) {
-  if (card.status === 'ready' && !card.derived && !String(card.parsedResult||'').includes('[UNKNOWN]')) return 'Excellent';
-  if (card.status === 'ready') return 'Partial';
-  return 'Missing';
-}
-function renderPromptAwareCard(card) {
-  const stateClass = scoreClassForCard(card);
-  const icon = card.status === 'ready' ? '✅' : card.status === 'failed' ? '❌' : '⚠️';
-  const health = retrievalHealthLabel(card);
-  const healthClass = health === 'Excellent' ? 'health-excellent' : health === 'Partial' ? 'health-partial' : 'health-missing';
-  const minedBadge = card.derived ? '<span class="derived-badge">[DERIVED]</span>' : '<span class="mined-badge">[MINED]</span>';
-  const verificationBadge = `<span class="verification-badge ${card.hardData ? 'hard' : 'proxy'}">${card.hardData ? '🟢 Hard Data' : '🟠 Derived/Proxy'}</span>`;
-  return `
-    <div class="mining-card ${stateClass}">
-      <div class="factor-top">
-        <h3>${escapeHtml(card.title)} <span class="prompt-tier">[${escapeHtml(card.tier || '2X')}]</span>${minedBadge}${verificationBadge}</h3>
-        <div class="factor-delta">${escapeHtml(String(card.scoreDelta ?? 0))}</div>
-      </div>
-      <div class="mining-status ${card.status}">${icon} ${escapeHtml(card.statusLabel || '')}</div>
-      <div class="mining-meta"><b>Current state:</b> ${escapeHtml(card.phase || 'IDLE')}</div>
-      <div class="mining-meta"><b>Confidence:</b> ${escapeHtml(String(Math.round(card.confidence || 0)))}%</div>
-      ${confidenceBarHtml(card.confidence || 0)}
-      <div class="mining-meta"><b>Parsed result:</b> ${escapeHtml(card.parsedResult || '—')}</div>
-      <div class="mining-meta"><b>Evidence:</b> ${escapeHtml(card.evidence || '—')}</div>
-      <div class="mining-meta"><b>Sources:</b> ${escapeHtml(card.sourcesLabel || '—')}</div>
-      <details class="factor-detail">
-        <summary>View Analysis Details</summary>
-        <div class="detail-grid">
-          <div class="detail-box"><strong>Retrieval Health</strong><div class="${healthClass}">${escapeHtml(health)}</div></div>
-          <div class="detail-box"><strong>Probe Log</strong><div>${escapeHtml(card.probeLog || '—')}</div></div>
-          <div class="detail-box"><strong>Source Winner</strong><div>${escapeHtml(card.sourceWinner || '—')}</div></div>
-          <div class="detail-box"><strong>Extraction Method</strong><div>${escapeHtml(card.extractionMethod || '—')}</div></div>
-          <div class="detail-box"><strong>Source URL</strong><div>${escapeHtml(card.sourceUrl || '—')}</div></div>
-          <div class="detail-box"><strong>Extraction Proof</strong><div>${escapeHtml(card.extractionProof || '—')}</div></div>
-        </div>
-      </details>
-    </div>
-  `;
-}
-function renderSystemConsole() {
-  const wrap = document.getElementById('systemConsole');
-  const logs = state.logs.slice(-120).reverse();
-  wrap.innerHTML = logs.length ? logs.map(log => `
-    <div class="console-line ${escapeHtml(String(log.type || '').toLowerCase())}">
-      <strong>${escapeHtml(log.type)}</strong>
-      <span class="mini-muted"> ${escapeHtml((log.ts || '').replace('T',' ').slice(0,19))}</span>
-      <div>${escapeHtml(log.factor || 'system')}${log.rowId ? ` • ${escapeHtml(log.rowId)}` : ''}</div>
-      <div>${escapeHtml(log.msg || '')}</div>
-    </div>
-  `).join('') : '<div class="message">No system logs yet.</div>';
-}
 
-/* =============================== INTAKE PARSING =============================== */
-function detectType(text) {
-  const raw = String(text || '');
-  const t = canon(raw);
-  if (/free[ _]?pick/.test(t)) return 'FREE_PICK';
-  if (t.includes('taco')) return 'TACO';
-  if (t.includes('demon')) return 'DEMON';
-  if (t.includes('goblin')) return 'GOBLIN';
-  return 'REGULAR';
-}
-function inferLeagueFromProp(prop, block, selectedIds) {
-  const candidates = PROP_LOOKUP.filter(x => x.key === canon(prop) && selectedIds.includes(x.leagueId));
-  if (candidates.length === 1) return candidates[0].leagueId;
-  if (selectedIds.includes('nba')) return 'nba';
-  return candidates[0]?.leagueId || null;
-}
-function findPropCandidates(text, selectedIds) {
-  const hay = canon(text);
-  const allowed = new Set(selectedIds);
-  const matches = [];
-  for (const entry of PROP_LOOKUP) {
-    if (!allowed.has(entry.leagueId)) continue;
-    const idx = hay.indexOf(entry.key);
-    if (idx >= 0) matches.push({ ...entry, idx });
-  }
-  matches.sort((a,b)=> b.prop.length - a.prop.length || b.idx - a.idx);
-  return matches;
-}
-function splitIntoBlocks(text) {
-  let cleaned = text.replace(/\r/g,'').replace(/[•●▪]/g,' ').replace(/\n{3,}/g,'\n\n');
-  const lines = cleaned.split('\n').map(x => x.trim()).filter(Boolean);
-  const blocks = [];
-  let current = [];
-  const flush = () => {
-    if (current.length) {
-      blocks.push(current.join('\n').trim());
-      current = [];
-    }
-  };
-  for (const line of lines) {
-    current.push(line);
-    if (/(?:\bLess\b\s*\bMore\b|\bMore\b\s*\bLess\b|\bMore\b|\bLess\b)$/i.test(line)) flush();
-  }
-  flush();
-  return blocks.filter(Boolean);
-}
-function makeRow({ entity, team, opponent='', prop, line, leagueId, type, raw }) {
-  const sport = findLeague(leagueId)?.sport || '';
-  const lineText = `${prop} ${line}`.trim();
-  return {
-    rowId: `${leagueId}|${canon(entity)}|${canon(team)}|${canon(opponent)}|${canon(prop)}|${line}|${type}`,
-    sport, leagueId,
-    entity: norm(entity), team: norm(team), opponent: norm(opponent),
-    propFamily: prop, propKey: canon(prop), line: String(line || '').trim(),
-    lineText, type, rawText: raw
-  };
-}
-function parseDesktopLine(line, selectedIds) {
-  const cols = line.split(/\t+/).map(norm).filter(Boolean);
-  if (cols.length < 3) return null;
-  const raw = cols.join(' ');
-  const propMatch = findPropCandidates(raw, selectedIds)[0];
-  if (!propMatch) return null;
-  const prop = propMatch.prop;
-  const leagueId = inferLeagueFromProp(prop, raw, selectedIds);
-  if (!leagueId) return null;
-  const low = raw.toLowerCase();
-  const propIdx = low.lastIndexOf(prop.toLowerCase());
-  const beforeProp = raw.slice(0, propIdx).trim();
-  const lineNum = (beforeProp.match(/(\d+(?:\.\d+)?)\s*$/) || [])[1] || '';
-  const team = (cols[1]?.split(' - ')[0] || '').trim();
-  const entity = cols[0].replace(/\b(Goblin|Demon|Taco|Free Pick)\b/ig,'').trim();
-  const oppMatch = raw.match(/\b(?:vs|@)\s+(.+?)(?:\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b|\s+\d+m|\s+\d+h|$)/i);
-  const opponent = oppMatch ? norm(oppMatch[1]) : '';
-  return makeRow({ entity, team, opponent, prop, line: lineNum, leagueId, type: detectType(raw), raw });
-}
-function parseBlock(block, selectedIds) {
-  const raw = norm(block);
-  const propMatch = findPropCandidates(raw, selectedIds)[0];
-  if (!propMatch) return null;
-  const prop = propMatch.prop;
-  const leagueId = inferLeagueFromProp(prop, raw, selectedIds);
-  if (!leagueId) return null;
-  const low = raw.toLowerCase();
-  const propIdx = low.lastIndexOf(prop.toLowerCase());
-  const beforeProp = raw.slice(0, propIdx).trim();
-  const lineNum = (beforeProp.match(/(\d+(?:\.\d+)?)\s*$/) || [])[1] || '';
-  let entity = '';
-  let team = '';
-  let opponent = '';
-  const teamRoleName = raw.match(/([A-Za-z0-9'().&\- ]+)\s-\s(?:Player|Guard|Forward|Center|G|F|C)\s+([A-Za-z0-9'().&\- ]+?)\s+(?:vs|@)\s/i);
-  if (teamRoleName) { team = norm(teamRoleName[1]); entity = norm(teamRoleName[2]); }
-  if (!entity) {
-    const simpleVs = raw.match(/([A-Za-z0-9'().&\- ]+?)\s+(?:vs|@)\s+[A-Za-z0-9'().&\- ]+\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun|\d+m|\d+h|$)/i);
-    if (simpleVs) entity = norm(simpleVs[1].replace(/\b(Goblin|Demon|Taco|Free Pick)\b/ig,''));
-  }
-  if (!entity) entity = raw.split(/\s+/).slice(0,4).join(' ');
-  const teamFirst = raw.match(/^([A-Z]{2,4})\s-\s(?:Player|Guard|Forward|Center|G|F|C)\b/i);
-  if (!team && teamFirst) team = norm(teamFirst[1]);
-  const oppMatch = raw.match(/\b(?:vs|@)\s+(.+?)(?:\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b|\s+\d+m|\s+\d+h|$)/i);
-  if (oppMatch) opponent = norm(oppMatch[1]);
-  return makeRow({ entity, team, opponent, prop, line: lineNum, leagueId, type: detectType(raw), raw });
-}
-function flushToSingleRow(firstRow, msg='') {
-  state.cleanedRows = firstRow ? [firstRow] : [];
-  state.activeRowId = firstRow ? firstRow.rowId : null;
-  state.ran = false;
-  Object.keys(runtimeMiningCache).forEach(k => delete runtimeMiningCache[k]);
-  if (msg) logEvent(msg, 'SUCCESS', firstRow?.rowId || '', 'ingest');
-  saveState();
-}
-function ingestText(text) {
-  const selectedIds = [...state.selectedLeagueIds];
-  if (!selectedIds.length) return { added:0, message:'Select at least one league first.' };
-  const found = [];
-  const lines = String(text || '').replace(/\r/g,'').split('\n');
-  for (const line of lines) if (line.includes('\t')) {
-    const row = parseDesktopLine(line, selectedIds);
-    if (row) found.push(row);
-  }
-  const nonTabText = lines.filter(x => !x.includes('\t')).join('\n');
-  for (const block of splitIntoBlocks(nonTabText)) {
-    const row = parseBlock(block, selectedIds);
-    if (row) found.push(row);
-  }
-  const firstRow = found[0] || null;
-  if (!firstRow) return { added:0, message:'No recognizable rows found for the leagues you selected.' };
-  flushToSingleRow(firstRow, 'Global flush complete. Pool re-initialized with only current input.');
-  return { added:1, message:'POOL RESET: SUCCESS • Ingested 1 clean row.' };
-}
+    const PROP_MAP = [
+      [/^PTS$/i, 'Points'],
+      [/^REB$/i, 'Rebounds'],
+      [/^AST$/i, 'Assists'],
+      [/^BLK$/i, 'Blocks'],
+      [/^STL$/i, 'Steals'],
+      [/^3PM$/i, '3-Pointers Made'],
+      [/^3PTM$/i, '3-Pointers Made'],
+      [/^3-?PT Attempted$/i, '3-Point Attempts'],
+      [/^P\+R\+A$/i, 'Points + Rebounds + Assists'],
+      [/^PRA$/i, 'Points + Rebounds + Assists'],
+      [/^Pts\+Asts$/i, 'Points + Assists'],
+      [/^Pts\+Rebs$/i, 'Points + Rebounds'],
+      [/^Rebs\+Asts$/i, 'Rebounds + Assists'],
+      [/^AST\s*\+\s*REB$/i, 'Assists + Rebounds'],
+      [/^REB\s*\+\s*AST$/i, 'Rebounds + Assists'],
+      [/^Fantasy Score$/i, 'Fantasy Score'],
+      [/^Blocked Shots$/i, 'Blocked Shots']
+    ];
 
-/* =============================== SEARCH / SCRAPE =============================== */
-async function withTimeout(promise, ms, label='timeout') {
-  let timer;
-  const timeoutPromise = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error(label)), ms);
-  });
-  try {
-    return await Promise.race([promise, timeoutPromise]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
-function normalizeSearchHref(href='') {
-  try {
-    if (!href) return '';
-    const u = new URL(href, 'https://dummy.local');
-    if (u.hostname.includes('duckduckgo.com')) {
-      const uddg = u.searchParams.get('uddg');
-      if (uddg) return decodeURIComponent(uddg);
-    }
-    return href;
-  } catch {
-    return href || '';
-  }
-}
-async function proxiedFetchText(url) {
-  const tries = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    `https://r.jina.ai/http/${url.replace(/^https?:\/\//,'')}`
-  ];
-  let lastErr = null;
-  for (const target of tries) {
-    try {
-      const res = await withTimeout(fetch(target), 7000, 'fetch timeout');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.text();
-    } catch (err) {
-      lastErr = err;
-    }
-  }
-  throw lastErr || new Error('fetch failed');
-}
-
-async function proxiedFetchJson(url) {
-  const txt = await proxiedFetchText(url);
-  try {
-    return JSON.parse(txt);
-  } catch {
-    const m = txt.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-    if (m) return JSON.parse(m[0]);
-    throw new Error('json parse failed');
-  }
-}
-const KNOWN_NBA_PLAYER_IDS = {
-  'kyle filipowski': 1642271
-};
-function extractJsonStatValueFromRowsets(data, row) {
-  const propKey = canon(row?.propFamily || '');
-  const rows = data?.resultSets?.[0]?.rowSet || data?.resultSet?.rowSet || [];
-  const headers = data?.resultSets?.[0]?.headers || data?.resultSet?.headers || [];
-  if (!rows.length || !headers.length) return null;
-  const idx = Object.fromEntries(headers.map((h, i) => [String(h).toUpperCase(), i]));
-  const last = rows[rows.length - 1];
-  const pts = Number(last[idx.PTS]);
-  const reb = Number(last[idx.REB]);
-  const ast = Number(last[idx.AST]);
-  if (propKey === 'points' && Number.isFinite(pts)) return pts;
-  if (propKey === 'rebounds' && Number.isFinite(reb)) return reb;
-  if (propKey === 'assists' && Number.isFinite(ast)) return ast;
-  if ((propKey === 'pra' || propKey === 'pts+rebs+asts') && [pts, reb, ast].every(Number.isFinite)) return round1(pts + reb + ast);
-  if (propKey === 'pts+rebs' && Number.isFinite(pts) && Number.isFinite(reb)) return round1(pts + reb);
-  if (propKey === 'pts+asts' && Number.isFinite(pts) && Number.isFinite(ast)) return round1(pts + ast);
-  if (propKey === 'rebs+asts' && Number.isFinite(reb) && Number.isFinite(ast)) return round1(reb + ast);
-  return null;
-}
-function extractEspnAthleteId(results=[]) {
-  for (const r of results) {
-    const blob = `${r.href || ''} ${r.title || ''} ${r.snippet || ''}`;
-    const m = blob.match(/athletes\/(\d+)/i) || blob.match(/id\/(\d+)/i);
-    if (m) return m[1];
-  }
-  return null;
-}
-function extractNbaPlayerId(results=[]) {
-  for (const r of results) {
-    const blob = `${r.href || ''} ${r.title || ''} ${r.snippet || ''}`;
-    const m = blob.match(/player\/(\d+)/i);
-    if (m) return m[1];
-  }
-  return null;
-}
-function extractBbrPath(results=[]) {
-  for (const r of results) {
-    const href = normalizeSearchHref(r.href || '');
-    const m = href.match(/basketball-reference\.com\/players\/[a-z]\/[a-z0-9]+\.html/i);
-    if (m) return m[0].startsWith('http') ? m[0] : `https://${m[0]}`;
-  }
-  return null;
-}
-function parseBbrPerGameValue(html, row) {
-  const text = norm(String(html || ''));
-  const parts = canon(row?.entity || '').split(' ').filter(Boolean);
-  if (parts.some(p => p.length > 2 && !canon(text).includes(p))) return null;
-  const propKey = canon(row?.propFamily || '');
-  const p = text.match(/\b(\d+(?:\.\d+)?)\s+points\b/i);
-  const r = text.match(/\b(\d+(?:\.\d+)?)\s+rebounds\b/i);
-  const a = text.match(/\b(\d+(?:\.\d+)?)\s+assists\b/i);
-  const pts = p ? Number(p[1]) : NaN;
-  const reb = r ? Number(r[1]) : NaN;
-  const ast = a ? Number(a[1]) : NaN;
-  if (propKey === 'points' && Number.isFinite(pts)) return pts;
-  if (propKey === 'rebounds' && Number.isFinite(reb)) return reb;
-  if (propKey === 'assists' && Number.isFinite(ast)) return ast;
-  if ((propKey === 'pra' || propKey === 'pts+rebs+asts') && [pts, reb, ast].every(Number.isFinite)) return round1(pts + reb + ast);
-  if (propKey === 'pts+rebs' && Number.isFinite(pts) && Number.isFinite(reb)) return round1(pts + reb);
-  if (propKey === 'pts+asts' && Number.isFinite(pts) && Number.isFinite(ast)) return round1(pts + ast);
-  if (propKey === 'rebs+asts' && Number.isFinite(reb) && Number.isFinite(ast)) return round1(reb + ast);
-  return null;
-}
-async function resolveDirectPlayerIds(row) {
-  const cName = canon(row?.entity || '');
-  const directNbaId = KNOWN_NBA_PLAYER_IDS[cName];
-  let nbaId = directNbaId || null;
-  let espnId = null;
-  let bbrUrl = null;
-  try {
-    const search = await multiSearch(`${row.entity} ${expandTeamName(row.team || '')} nba.com player`);
-    nbaId = nbaId || extractNbaPlayerId(search.results || []);
-  } catch {}
-  try {
-    const search = await multiSearch(`${row.entity} ${expandTeamName(row.team || '')} ESPN nba player`);
-    espnId = extractEspnAthleteId(search.results || []);
-  } catch {}
-  try {
-    const search = await multiSearch(`${row.entity} basketball reference nba`);
-    bbrUrl = extractBbrPath(search.results || []);
-  } catch {}
-  return { nbaId, espnId, bbrUrl };
-}
-async function fetchAnchorBaseline(row, mode='season') {
-  const ids = await resolveDirectPlayerIds(row);
-  const tried = [];
-  if (ids.nbaId) {
-    const url = `https://stats.nba.com/stats/playercareerstats?PlayerID=${ids.nbaId}&PerMode=PerGame`;
-    tried.push(url);
-    try {
-      const data = await proxiedFetchJson(url);
-      const value = extractJsonStatValueFromRowsets(data, row);
-      if (Number.isFinite(value)) {
-        return { ok:true, value, sourceUrl:url, sourceName:'stats.nba.com/playercareerstats', extractionMethod:'JSON Endpoint Parse', evidence:`NBA PlayerID ${ids.nbaId} • ${mode} anchor`, hardData:true };
-      }
-    } catch {}
-  }
-  if (ids.espnId) {
-    const url = `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/athletes/${ids.espnId}/statistics`;
-    tried.push(url);
-    try {
-      const txt = await proxiedFetchText(url);
-      const val = extractNumberForProp(txt, row);
-      if (Number.isFinite(val)) {
-        return { ok:true, value:val, sourceUrl:url, sourceName:'sports.core.api.espn.com statistics', extractionMethod:'ESPN JSON Parse', evidence:`ESPN AthleteID ${ids.espnId} • ${mode} anchor`, hardData:true };
-      }
-    } catch {}
-  }
-  if (ids.bbrUrl) {
-    tried.push(ids.bbrUrl);
-    try {
-      const html = await proxiedFetchText(ids.bbrUrl);
-      const val = parseBbrPerGameValue(html, row);
-      if (Number.isFinite(val)) {
-        return { ok:true, value:val, sourceUrl:ids.bbrUrl, sourceName:'Basketball-Reference per-game table', extractionMethod:'Basketball-Reference Table Parse', evidence:`BBR per-game table • ${mode} anchor`, hardData:true };
-      }
-    } catch {}
-  }
-  return { ok:false, tried };
-}
-function recentValueViolatesAnchor(value, cards) {
-  const seasonBase = Number(cards.seasonBaseline?.numericValue);
-  if (Number.isFinite(value) && Number.isFinite(seasonBase) && seasonBase > 0 && value > seasonBase * 3) return { bad:true, reason:`News Hallucination rejected ${value} vs season ${seasonBase}` };
-  return { bad:false, reason:'' };
-}
-async function fetchEspnGameLogAverage(row, sampleSize=5) {
-  const search = await multiSearch(`${row.entity} ESPN game log nba`);
-  const url = (search.results || []).map(r => normalizeSearchHref(r.href || '')).find(h => /espn\.com/i.test(h)) || '';
-  if (!url) return { ok:false };
-  const html = await proxiedFetchText(url);
-  const txt = norm(html);
-  const c = canon(txt);
-  const parts = canon(row.entity || '').split(' ').filter(Boolean);
-  if (parts.some(p => p.length > 2 && !c.includes(p))) return { ok:false };
-  if (blobHasGarbageKeywords(txt)) return { ok:false };
-  const nums = extractAllNumbers(txt).filter(n => n >= 0 && n < 100).slice(0, sampleSize * 12);
-  const propVals = [];
-  for (let i = 0; i < nums.length; i++) {
-    if (propVals.length >= sampleSize) break;
-    const val = nums[i];
-    if (val >= 0 && val <= 80) propVals.push(val);
-  }
-  if (!propVals.length) return { ok:false };
-  return { ok:true, value: round1(propVals.slice(0, sampleSize).reduce((a,b)=>a+b,0) / Math.min(sampleSize, propVals.length)), sourceUrl:url, evidence: txt.slice(0, 320) };
-}
-async function fetchUsageVacuumBoost(row) {
-  const url = 'https://official.nba.com/injury-report/';
-  try {
-    const html = await proxiedFetchText(url);
-    const c = canon(html);
-    const teamName = canon(expandTeamName(row.team || ''));
-    if (!teamName || !c.includes(teamName.split(' ')[0])) return { ok:false };
-    const topUsageOut = /out|inactive|doubtful/.test(c) && /(usage|starter|leading scorer|guard|forward)/.test(c);
-    if (topUsageOut) {
-      return { ok:true, boost:4.5, sourceUrl:url, evidence:'Top-3 teammate usage absence found on official injury report.' };
-    }
-  } catch {}
-  return { ok:false };
-}
-async function fetchOfficialWhistle(row) {
-  const officialUrl = 'https://official.nba.com/referee-assignments/';
-  try {
-    const html = await proxiedFetchText(officialUrl);
-    const refName = recoverRefFromRawParse(html);
-    if (refName !== 'UNKNOWN') {
-      const coversUrl = `https://www.covers.com/sport/basketball/nba/referees`;
-      let tendency = '';
-      try {
-        const covers = await proxiedFetchText(coversUrl);
-        const regex = new RegExp(`${refName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]{0,180}?(Over|Under)[^0-9]{0,16}(\\d{2,3})%`, 'i');
-        const m = covers.match(regex);
-        if (m) tendency = `${m[1]} ${m[2]}%`;
-      } catch {}
-      return { ok:true, refName, tendency, sourceUrl: officialUrl, coversUrl, evidence:`April 7, 2026 crew scrape • ${refName}${tendency ? ` • ${tendency}` : ''}` };
-    }
-  } catch {}
-  return { ok:false };
-}
-
-async function ddgSearch(query) {
-  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-  const html = await proxiedFetchText(url);
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const results = [];
-  doc.querySelectorAll('.result').forEach((el) => {
-    const title = norm(el.querySelector('.result__title')?.textContent || el.querySelector('a')?.textContent || '');
-    const snippet = norm(el.querySelector('.result__snippet')?.textContent || '');
-    const href = normalizeSearchHref(el.querySelector('a')?.href || '');
-    if (title || snippet) results.push({ title, snippet, href });
-  });
-  return results.slice(0, 5);
-}
-async function bingSearch(query) {
-  const url = `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
-  const html = await proxiedFetchText(url);
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  const results = [];
-  doc.querySelectorAll('li.b_algo').forEach((el) => {
-    const title = norm(el.querySelector('h2')?.textContent || el.querySelector('a')?.textContent || '');
-    const snippet = norm(el.querySelector('.b_caption')?.textContent || el.textContent || '');
-    const href = normalizeSearchHref(el.querySelector('a')?.href || '');
-    if (title || snippet) results.push({ title, snippet, href });
-  });
-  return results.slice(0,5);
-}
-async function multiSearch(query) {
-  for (const provider of [{name:'ddg', fn:ddgSearch}, {name:'bing', fn:bingSearch}]) {
-    try {
-      const results = await withTimeout(provider.fn(query), 9500, 'search timeout');
-      if (results?.length) return { provider: provider.name, results };
-    } catch (err) {}
-  }
-  return { provider:'none', results:[] };
-}
-function combinedBlob(results=[]) {
-  return results.map(r => `${r.title || ''} • ${r.snippet || ''}`).join(' • ');
-}
-function extractAllNumbers(text='') {
-  return [...String(text || '').matchAll(/-?\d+(?:\.\d+)?/g)].map(m => Number(m[0])).filter(Number.isFinite);
-}
-function extractNumberForProp(text='', row) {
-  const src = String(text || '');
-  const propKey = canon(row?.propFamily || '');
-  const triple = src.match(/(\d+(?:\.\d+)?)\s*(?:points?|pts)\D{0,30}(\d+(?:\.\d+)?)\s*(?:rebounds?|rebs?)\D{0,30}(\d+(?:\.\d+)?)\s*(?:assists?|asts?)/i)
-    || src.match(/(\d+(?:\.\d+)?)\s*(?:points?|pts)\D{0,30}(\d+(?:\.\d+)?)\s*(?:assists?|asts?)\D{0,30}(\d+(?:\.\d+)?)\s*(?:rebounds?|rebs?)/i);
-  if (triple) {
-    const a = Number(triple[1]), b = Number(triple[2]), c = Number(triple[3]);
-    if (propKey === 'pra' || propKey === 'pts+rebs+asts') return round1(a+b+c);
-    if (propKey === 'pts+rebs') return round1(a+b);
-    if (propKey === 'pts+asts') return round1(a+c);
-    if (propKey === 'rebs+asts') return round1(b+c);
-    if (propKey === 'points') return a;
-    if (propKey === 'rebounds') return b;
-    if (propKey === 'assists') return c;
-  }
-  const numericPatterns = {
-    points: /(\d+(?:\.\d+)?)\s*(?:points?|pts)\b/i,
-    rebounds: /(\d+(?:\.\d+)?)\s*(?:rebounds?|rebs?)\b/i,
-    assists: /(\d+(?:\.\d+)?)\s*(?:assists?|asts?)\b/i,
-    blocks: /(\d+(?:\.\d+)?)\s*(?:blocks?|blks?)\b/i,
-    steals: /(\d+(?:\.\d+)?)\s*(?:steals?|stls?)\b/i,
-    turnovers: /(\d+(?:\.\d+)?)\s*(?:turnovers?|tos?)\b/i,
-    '3pt made': /(\d+(?:\.\d+)?)\s*(?:3-pointers? made|3pt made|3pm|threes?)\b/i
-  };
-  if (numericPatterns[propKey]) {
-    const m = src.match(numericPatterns[propKey]);
-    if (m) return Number(m[1]);
-  }
-  const avg = src.match(/(?:averag(?:ed|es|ing)?|avg)\D{0,20}(\d+(?:\.\d+)?)/i);
-  if (avg) return Number(avg[1]);
-  const nums = extractAllNumbers(src).filter(n => n > 0 && n < 100);
-  return nums[0] ?? null;
-}
-function extractAmericanOdds(text='') {
-  const m = String(text || '').match(/[+-]\d{3}/g);
-  return m ? [...new Set(m)] : [];
-}
-function parseFactorResult(mode, text, row) {
-  const raw = String(text || '');
-  if (blobHasGarbageKeywords(raw)) return null;
-  if (mode === 'number') return extractNumberForProp(raw, row);
-  if (mode === 'physicality') {
-    const h = raw.match(/(\d{1,2})\s*(?:-|ft|feet)\s*(\d{1,2})?/i);
-    const w = raw.match(/(\d{2,3})\s*(?:lbs|pounds)/i);
-    const rank = raw.match(/(\d{1,2})(?:st|nd|rd|th)\s+(?:most|least|highest|lowest)/i);
-    if (h || w || rank) return `Size/role signals found${rank ? ` • rank ${rank[1]}` : ''}`;
-    return null;
-  }
-  if (mode === 'usage') {
-    const rate = raw.match(/usage(?: rate)?\D{0,20}(\d+(?:\.\d+)?)%?/i);
-    if (rate) return `${Number(rate[1]).toFixed(1)}%`;
-    const derived = deriveUsagePulseFromText(raw);
-    return Number.isFinite(derived) ? `${derived.toFixed(1)}%` : null;
-  }
-  if (mode === 'defender') {
-    const defender = raw.match(/(?:defended by|primary defender|matched up with)\D{0,20}([A-Z][a-z]+\s+[A-Z][a-z]+)/);
-    if (defender) return defender[1];
-    return null;
-  }
-  if (mode === 'travel') {
-    const miles = raw.match(/(\d{3,4})\s*miles?/i);
-    if (miles) return `${miles[1]} miles`;
-    if (/back-to-back|second night/i.test(raw)) return 'B2B';
-    const alt = getGeoAltitude(row.opponent || row.team || '');
-    if (alt) return `${alt} ft`;
-    return null;
-  }
-  if (mode === 'motivation') {
-    if (/incentive|bonus|milestone|revenge|former team|contract year/i.test(raw)) return 'Narrative signal found';
-    return null;
-  }
-  if (mode === 'ref') {
-    const refName = recoverRefFromRawParse(raw);
-    const over = raw.match(/over\D{0,20}(\d{2,3})%/i);
-    const under = raw.match(/under\D{0,20}(\d{2,3})%/i);
-    if (refName !== 'UNKNOWN' || over || under) return `${refName !== 'UNKNOWN' ? refName : 'Crew'}${over ? ` • Over ${over[1]}%` : under ? ` • Under ${under[1]}%` : ''}`;
-    return null;
-  }
-  if (mode === 'shield') return 'Alpha purity gate armed';
-  return null;
-}
-function deriveUsagePulseFromText(text='') {
-  const FGA = extractAllNumbers((String(text).match(/(\d+(?:\.\d+)?)\s*(?:fga|field goal attempts?)/gi) || []).join(' '));
-  const FTA = extractAllNumbers((String(text).match(/(\d+(?:\.\d+)?)\s*(?:fta|free throw attempts?)/gi) || []).join(' '));
-  const TOV = extractAllNumbers((String(text).match(/(\d+(?:\.\d+)?)\s*(?:tov|turnovers?)/gi) || []).join(' '));
-  const MP  = extractAllNumbers((String(text).match(/(\d+(?:\.\d+)?)\s*(?:minutes|min)\b/gi) || []).join(' '));
-  const vals = [];
-  for (let i=0;i<Math.min(3, Math.max(FGA.length,FTA.length,TOV.length,MP.length));i++) {
-    const value = 100 * (((FGA[i]||0) + 0.44*(FTA[i]||0) + (TOV[i]||0)) * (240/5)) / (Math.max(1, (MP[i]||30)) * 100);
-    if (Number.isFinite(value)) vals.push(value);
-  }
-  return vals.length ? round1(vals.reduce((a,b)=>a+b,0)/vals.length) : null;
-}
-function buildFallbackValue(kind, row, results) {
-  const blob = Object.values(results).map(x => `${x.parsedResult || ''} ${x.evidence || ''}`).join(' • ');
-  const season = Number(results.seasonBaseline?.numericValue ?? NaN);
-  const l5 = Number(results.recentForm?.numericValue ?? NaN);
-  const l10 = Number(results.stabilityWindow?.numericValue ?? NaN);
-  const rawNums = extractAllNumbers(blob).filter(n => n > 0 && n < 100);
-  const avg3 = rawNums.slice(0,3).length ? round1(rawNums.slice(0,3).reduce((a,b)=>a+b,0)/rawNums.slice(0,3).length) : null;
-  switch(kind) {
-    case 'last3Blend': return Number.isFinite(avg3) ? avg3 : (Number.isFinite(l5) ? l5 : (Number.isFinite(l10) ? l10 : row.line));
-    case 'seasonFallback': return null;
-    case 'careerFallback': return null;
-    case 'vsOppFallback': return Number.isFinite(l5) ? l5 : row.line;
-    case 'physicalityFallback': return 'Derived size-neutral edge';
-    case 'usageFallback': {
-      const usage = deriveUsagePulseFromText(row.rawText || blob);
-      return Number.isFinite(usage) ? `${usage.toFixed(1)}%` : 'Derived neutral usage';
-    }
-    case 'clutchFallback': return Number.isFinite(l5) ? l5 : row.line;
-    case 'defenderFallback': return 'Derived neutral defender';
-    case 'travelFallback': {
-      const alt = getGeoAltitude(row.opponent || row.team || '');
-      return alt ? `[DERIVED NEUTRAL] ${alt} ft altitude check` : '[DERIVED NEUTRAL] travel';
-    }
-    case 'motivationFallback': return /former|revenge/i.test(row.rawText || '') ? '[DERIVED NEUTRAL] revenge angle' : '[DERIVED NEUTRAL] motivation';
-    case 'refFallback': return '[DERIVED NEUTRAL] whistle';
-    case 'shieldFallback': return 'Alpha shield fallback engaged';
-    default: return '[DERIVED]';
-  }
-}
-function computeCardConfidence(status, sourceIndex, derived=false) {
-  if (derived) return 54;
-  if (status !== 'ready') return 22;
-  return Math.max(52, 88 - (sourceIndex * 10));
-}
-function computeScoreDelta(card, row, results) {
-  const dir = lineDirectionFromRow(row);
-  const line = Number(row.line || 0);
-  const numeric = Number(card.numericValue);
-  if (Number.isFinite(numeric) && Number.isFinite(line) && line > 0) {
-    const edge = dir === 'UNDER' ? (line - numeric) / line : (numeric - line) / line;
-    return round1(Math.max(-8, Math.min(8, edge * 35)));
-  }
-  if (card.derived && /\[DERIVED NEUTRAL\]/i.test(card.parsedResult || '')) return 0;
-  if (card.key === 'officialRef' && /Over\s(\d{2,3})%/i.test(card.parsedResult || '')) return 1.0;
-  if (card.key === 'rotationUsage' && /STARTER/i.test(card.evidence || card.parsedResult || '')) return 2.0;
-  if (card.key === 'altitudeTravel' && /ft|miles|B2B/i.test(card.parsedResult || '')) return -1.5;
-  return 0;
-}
-function sourceLabelFromSources(sources, winner='') {
-  return sources.map(s => s.name).join(' • ') + (winner ? ` • winner: ${winner}` : '');
-}
-
-/* =============================== MINING CORE =============================== */
-function initCards(row) {
-  const out = {};
-  FACTORS.forEach(f => {
-    out[f.key] = {
-      ...f,
-      status:'loading',
-      phase:'PROBING...',
-      statusLabel:'PROBING...',
-      parsedResult:'PROBING...',
-      evidence:'Waiting for Triple-Threat loop.',
-      extractionProof:'Awaiting source attempts.',
-      probeLog:'',
-      sourceWinner:'',
-      sourcesLabel: sourceLabelFromSources(f.sources),
-      confidence:18,
-      scoreDelta:0,
-      derived:false,
-      numericValue:null,
-      extractionMethod:'Awaiting source resolution',
-      sourceUrl:'',
-      hardData:false
+    const PLAYER_ALIAS_MAP = {
+      'S. Curry|GSW': 'Stephen Curry',
+      'D. Green|GSW': 'Draymond Green',
+      'T. Camara|POR': 'Toumani Camara',
+      'L. Dort|OKC': 'Luguentz Dort',
+      'J. Green|PHX': 'Jalen Green',
+      'J. Green|HOU': 'Jalen Green',
+      'J. Small|MEM': 'Jahmai Small',
+      'J. LaRavia|LAL': 'Jake LaRavia',
+      'J. Collins|LAC': 'John Collins',
+      'J. Collins|UTA': 'John Collins',
+      'A. Wiggins|OKC': 'Aaron Wiggins'
     };
-  });
-  return out;
-}
-function buildMiningStatus(row) {
-  const cached = runtimeMiningCache[cacheKeyForRow(row)];
-  return cached?.cards ? FACTORS.map(f => cached.cards[f.key] || initCards(row)[f.key]) : FACTORS.map(f => initCards(row)[f.key]);
-}
-async function runFactor(row, factor, cards, runToken) {
-  const card = cards[factor.key];
-  const logParts = [];
-  const update = (patch={}) => {
-    Object.assign(card, patch);
-    runtimeMiningCache[cacheKeyForRow(row)] = { status:'loading', cards };
-    render();
-  };
-  update({
-    phase:'PROBING...',
-    status:'loading',
-    statusLabel:'PROBING...',
-    parsedResult:'PROBING...',
-    evidence:'Recursive 3-source loop active.',
-    extractionProof:'Triple-Source protocol armed.',
-    extractionMethod:'Awaiting source resolution',
-    confidence:20,
-    sourceUrl:'',
-    hardData:false
-  });
 
-  if (factor.key === 'seasonBaseline' || factor.key === 'careerBaseline') {
-    logEvent('ANCHOR sweep armed.', 'SUCCESS', row.rowId, factor.key);
-    const anchor = await fetchAnchorBaseline(row, factor.key === 'seasonBaseline' ? 'season' : 'career');
-    if (anchor.ok) {
-      const safe = SanitizeResult(anchor.value, row.propFamily, anchor.evidence || '');
-      update({
-        status:'ready',
-        phase:'ANCHOR LOCKED',
-        statusLabel:'ANCHOR DATA SECURED',
-        parsedResult:String(safe.value),
-        evidence:safe.evidence || anchor.evidence || '',
-        extractionProof:anchor.evidence || 'Hard baseline anchor secured.',
-        extractionMethod:anchor.extractionMethod,
-        sourceWinner:anchor.sourceName,
-        sourcesLabel: sourceLabelFromSources(factor.sources, anchor.sourceName),
-        probeLog:`[${nowStamp()}] ${factor.probeLabel}: ANCHOR DATA SECURED`,
-        confidence:90,
-        derived:false,
-        numericValue:Number(anchor.value),
-        sourceUrl:anchor.sourceUrl || '',
-        hardData:true
-      });
-      card.scoreDelta = computeScoreDelta(card, row, cards);
-      logEvent('ANCHOR DATA SECURED', 'SUCCESS', row.rowId, factor.key);
-      runtimeMiningCache[cacheKeyForRow(row)] = { status:'loading', cards };
-      render();
-      return;
+    const state = {
+      images: [],
+      rawDebug: [],
+      parsedLegs: [],
+      analysisLegs: []
+    };
+
+    const els = {
+      imageInput: document.getElementById('imageInput'),
+      previewGrid: document.getElementById('previewGrid'),
+      ingestBtn: document.getElementById('ingestBtn'),
+      runBtn: document.getElementById('runBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      backToIngestBtn: document.getElementById('backToIngestBtn'),
+      statusText: document.getElementById('statusText'),
+      progressLabel: document.getElementById('progressLabel'),
+      meterFill: document.getElementById('meterFill'),
+      parsedCount: document.getElementById('parsedCount'),
+      highCount: document.getElementById('highCount'),
+      mediumCount: document.getElementById('mediumCount'),
+      lowCount: document.getElementById('lowCount'),
+      reviewEmpty: document.getElementById('reviewEmpty'),
+      reviewTableWrap: document.getElementById('reviewTableWrap'),
+      reviewTbody: document.getElementById('reviewTbody'),
+      debugBox: document.getElementById('debugBox'),
+      debugInner: document.getElementById('debugInner'),
+      analysisGrid: document.getElementById('analysisGrid'),
+      analysisEmpty: document.getElementById('analysisEmpty'),
+      analysisLegCount: document.getElementById('analysisLegCount'),
+      errorLog: document.getElementById('errorLog'),
+      globalStatusText: document.getElementById('globalStatusText'),
+      globalStatusPill: document.getElementById('globalStatusPill')
+    };
+
+    const tabs = Array.from(document.querySelectorAll('.tab-btn'));
+    tabs.forEach(btn => btn.addEventListener('click', () => switchScreen(btn.dataset.screen)));
+
+    function switchScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(screen => screen.classList.toggle('active', screen.id === screenId));
+      tabs.forEach(btn => btn.classList.toggle('active', btn.dataset.screen === screenId));
     }
-    update({
-      status:'failed',
-      phase:'CRITICAL_DATA_FAILURE',
-      statusLabel:'CRITICAL_DATA_FAILURE',
-      parsedResult:'Baseline Missing - Manual Entry Required',
-      evidence:'Hard baseline sources failed. Betting line backfill blocked.',
-      extractionProof:(anchor.tried || []).join(' • '),
-      extractionMethod:'Direct Resource Fetching',
-      sourceWinner:'NONE',
-      sourcesLabel:sourceLabelFromSources(factor.sources, 'CRITICAL_DATA_FAILURE'),
-      probeLog:`[${nowStamp()}] ${factor.probeLabel}: CRITICAL_DATA_FAILURE`,
-      confidence:5,
-      derived:false,
-      numericValue:null,
-      sourceUrl:(anchor.tried || [])[0] || '',
-      hardData:false
-    });
-    logEvent('Baseline Missing - Manual Entry Required', 'ERROR', row.rowId, factor.key);
-    return;
-  }
 
-  if (factor.key === 'rotationUsage') {
-    const vacuum = await fetchUsageVacuumBoost(row);
-    if (vacuum.ok) {
-      update({
-        status:'ready',
-        phase:'USAGE VACUUM LOCKED',
-        statusLabel:'High Usage teammate OUT',
-        parsedResult:`Usage Vacuum +${vacuum.boost.toFixed(1)}`,
-        evidence:vacuum.evidence,
-        extractionProof:'Teammate injury status checked before tactical deltas.',
-        extractionMethod:'Official Injury Report Sweep',
-        sourceWinner:'official.nba.com/injury-report',
-        sourcesLabel:sourceLabelFromSources(factor.sources, 'official.nba.com/injury-report'),
-        probeLog:`[${nowStamp()}] ${factor.probeLabel}: USAGE VACUUM +${vacuum.boost.toFixed(1)}`,
-        confidence:84,
-        derived:false,
-        numericValue:vacuum.boost,
-        scoreDelta:vacuum.boost,
-        sourceUrl:vacuum.sourceUrl || '',
-        hardData:true
-      });
-      logEvent(`Usage Vacuum +${vacuum.boost.toFixed(1)} applied before tactical deltas.`, 'SUCCESS', row.rowId, factor.key);
-      return;
+    function setGlobalStatus(text, tone = 'warn') {
+      els.globalStatusText.textContent = text;
+      const dot = tone === 'good' ? 'status-good' : tone === 'bad' ? 'status-bad' : 'status-warn';
+      els.globalStatusPill.innerHTML = `<span class="${dot}">●</span><span>${escapeHtml(text)}</span>`;
     }
-  }
 
-  if (factor.key === 'officialRef') {
-    const whistle = await fetchOfficialWhistle(row);
-    if (whistle.ok) {
-      update({
-        status:'ready',
-        phase:'OFFICIAL WHISTLE LOCKED',
-        statusLabel:'Official crew secured',
-        parsedResult:`${whistle.refName}${whistle.tendency ? ` • ${whistle.tendency}` : ''}`,
-        evidence:whistle.evidence,
-        extractionProof:`Official source ${whistle.sourceUrl}${whistle.coversUrl ? ` • Covers ${whistle.coversUrl}` : ''}`,
-        extractionMethod:'Official NBA Crew Scrape',
-        sourceWinner:'official.nba.com/referee-assignments',
-        sourcesLabel:sourceLabelFromSources(factor.sources, 'official.nba.com/referee-assignments'),
-        probeLog:`[${nowStamp()}] ${factor.probeLabel}: OFFICIAL CREW ${whistle.refName}`,
-        confidence:86,
-        derived:false,
-        numericValue:null,
-        sourceUrl:whistle.sourceUrl || '',
-        hardData:true
-      });
-      card.scoreDelta = computeScoreDelta(card, row, cards);
-      return;
+    function showError(message) {
+      els.errorLog.textContent = message;
+      els.errorLog.classList.add('show');
     }
-  }
 
-  for (let i=0; i<factor.sources.length; i++) {
-    if (runToken !== activeRunToken) return;
-    const source = factor.sources[i];
-    const stamp = nowStamp();
-    const query = source.query(row);
-    logParts.push(`[${stamp}] ${factor.probeLabel}: ${source.id} PROBING`);
-    update({
-      probeLog: logParts.join(' | '),
-      phase:`PROBING... ${source.id}`,
-      evidence:`${source.name} → ${query}`,
-      extractionMethod: extractionMethodForSource(source, factor),
-      sourceUrl:''
-    });
-    logEvent(`${factor.title} :: ${source.id} probing`, 'SUCCESS', row.rowId, factor.key);
-    try {
-      let parsed = null;
-      let blob = '';
-      let provider = '';
-      let sourceUrl = '';
+    function clearError() {
+      els.errorLog.textContent = '';
+      els.errorLog.classList.remove('show');
+    }
 
-      if (/(Recent Form|Stability Window|Extended Form)/i.test(factor.title || '') && /ESPN Game Log Table/i.test(source.name || '')) {
-        const sampleSize = factor.key === 'recentForm' ? 5 : factor.key === 'stabilityWindow' ? 10 : 20;
-        const espn = await fetchEspnGameLogAverage(row, sampleSize);
-        if (espn.ok) {
-          parsed = espn.value;
-          blob = espn.evidence || '';
-          provider = 'espn-table';
-          sourceUrl = espn.sourceUrl || '';
-        }
+    function updateProgress(percent, text) {
+      const safe = Math.max(0, Math.min(100, percent));
+      els.progressLabel.textContent = `${safe}%`;
+      els.meterFill.style.width = `${safe}%`;
+      if (text) els.statusText.textContent = text;
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    }
+
+    function resetState() {
+      state.images = [];
+      state.rawDebug = [];
+      state.parsedLegs = [];
+      state.analysisLegs = [];
+      els.imageInput.value = '';
+      els.previewGrid.innerHTML = '';
+      els.reviewTbody.innerHTML = '';
+      els.reviewEmpty.style.display = 'block';
+      els.reviewTableWrap.style.display = 'none';
+      els.debugBox.style.display = 'none';
+      els.debugInner.innerHTML = '';
+      els.analysisGrid.innerHTML = '';
+      els.analysisGrid.style.display = 'none';
+      els.analysisEmpty.style.display = 'block';
+      els.analysisLegCount.textContent = '0';
+      els.runBtn.disabled = true;
+      updateProgress(0, 'No images loaded yet. Upload screenshots, click Ingest, review the parsed legs, then click Run.');
+      els.parsedCount.textContent = '0';
+      els.highCount.textContent = '0';
+      els.mediumCount.textContent = '0';
+      els.lowCount.textContent = '0';
+      clearError();
+      setGlobalStatus('Waiting for images', 'warn');
+      switchScreen('screen-ingest');
+    }
+
+    resetState();
+
+    els.imageInput.addEventListener('change', handleImageSelection);
+    els.ingestBtn.addEventListener('click', ingestImages);
+    els.runBtn.addEventListener('click', runAnalysis);
+    els.resetBtn.addEventListener('click', resetState);
+    els.backToIngestBtn.addEventListener('click', () => switchScreen('screen-ingest'));
+
+    function handleImageSelection(event) {
+      clearError();
+      const files = Array.from(event.target.files || []);
+      if (files.length > 3) {
+        showError('Maximum 3 images allowed in v1. Reduce the batch and try again.');
+        event.target.value = '';
+        return;
       }
+      state.images = files.map((file, index) => ({ file, index, url: URL.createObjectURL(file) }));
+      renderPreviews();
+      updateProgress(0, `${state.images.length} image${state.images.length === 1 ? '' : 's'} loaded. Ready to ingest.`);
+      setGlobalStatus('Images loaded', 'good');
+    }
 
-      if (parsed == null) {
-        const search = await withTimeout(multiSearch(query), 11000, `${factor.key} search timeout`);
-        provider = search.provider || '';
-        const results = search.results || [];
-        blob = combinedBlob(results);
-        sourceUrl = normalizeSearchHref(results[0]?.href || '') || '';
-        if (sourceBlobFailsIntegrity(blob, row)) {
-          logParts.push(`[${nowStamp()}] ${factor.probeLabel}: ${source.id} GARBAGE DATA`);
-          update({
-            status:'loading',
-            phase:`PROBING... ${factor.sources[i+1]?.id || 'FALLBACK'}`,
-            statusLabel:`${source.id} GARBAGE DATA`,
-            probeLog: logParts.join(' | '),
-            evidence:'Data Integrity Lock rejected the source blob.',
-            sourceUrl
-          });
-          continue;
-        }
-        parsed = parseFactorResult(factor.parse, blob, row);
-      }
+    function renderPreviews() {
+      els.previewGrid.innerHTML = '';
+      state.images.forEach((img, idx) => {
+        const card = document.createElement('div');
+        card.className = 'preview-card';
+        card.innerHTML = `
+          <img src="${img.url}" alt="Preview ${idx + 1}" />
+          <div class="preview-meta">
+            <span>Image ${idx + 1}</span>
+            <span>${escapeHtml(img.file.name)}</span>
+          </div>
+        `;
+        els.previewGrid.appendChild(card);
+      });
+    }
 
-      const numericCandidate = factor.parse === 'number'
-        ? Number(extractNumberForProp(String(parsed), row) ?? parsed)
-        : (factor.key === 'rotationUsage' ? deriveUsagePulseFromText(blob) : null);
-
-      const recentCheck = ['recentForm','stabilityWindow','extendedForm'].includes(factor.key) ? recentValueViolatesAnchor(numericCandidate, cards) : { bad:false, reason:'' };
-      if (recentCheck.bad) {
-        logParts.push(`[${nowStamp()}] ${factor.probeLabel}: ${source.id} NEWS HALLUCINATION`);
-        update({
-          status:'loading',
-          phase:`PROBING... ${factor.sources[i+1]?.id || 'FALLBACK'}`,
-          statusLabel:`${source.id} GARBAGE DATA`,
-          probeLog: logParts.join(' | '),
-          evidence:recentCheck.reason,
-          sourceUrl
-        });
-        continue;
-      }
-
-      if (parsed !== null && parsed !== undefined && String(parsed).trim() !== '') {
-        const safe = SanitizeResult(parsed, row.propFamily, blob);
-        logParts.push(`[${nowStamp()}] ${factor.probeLabel}: ${source.id} Success: ${safe.value}`);
-        update({
-          status:'ready',
-          phase:`LOCKED • ${source.id}`,
-          statusLabel:`${source.id} SUCCESS`,
-          parsedResult:String(safe.value),
-          evidence:safe.evidence.slice(0, 320),
-          extractionProof:blob.slice(0, 320),
-          extractionMethod: extractionMethodForSource(source, factor),
-          sourceWinner:`${source.id} • ${source.name} • ${provider || 'search'}`,
-          sourcesLabel: sourceLabelFromSources(factor.sources, `${source.id}/${provider || 'search'}`),
-          probeLog: logParts.join(' | '),
-          confidence: computeCardConfidence('ready', i, false),
-          derived:false,
-          numericValue: Number.isFinite(numericCandidate) ? numericCandidate : null,
-          sourceUrl,
-          hardData:/nba\.com|espn|basketball-reference|covers|official/i.test(sourceUrl || source.name || '')
-        });
-        card.scoreDelta = computeScoreDelta(card, row, cards);
-        runtimeMiningCache[cacheKeyForRow(row)] = { status:'loading', cards };
-        render();
+    async function ingestImages() {
+      clearError();
+      if (!state.images.length) {
+        showError('Upload at least 1 screenshot before you click Ingest.');
         return;
       }
 
-      logParts.push(`[${nowStamp()}] ${factor.probeLabel}: ${source.id} Blocked`);
-      update({
-        status:'loading',
-        phase:`PROBING... ${factor.sources[i+1]?.id || 'FALLBACK'}`,
-        statusLabel:`${source.id} BLOCKED`,
-        probeLog: logParts.join(' | '),
-        evidence:`${source.name} returned no usable value.`,
-        sourceUrl
-      });
-    } catch (err) {
-      logParts.push(`[${nowStamp()}] ${factor.probeLabel}: ${source.id} Blocked`);
-      update({
-        status:'loading',
-        phase:`PROBING... ${factor.sources[i+1]?.id || 'FALLBACK'}`,
-        statusLabel:`${source.id} BLOCKED`,
-        probeLog: logParts.join(' | '),
-        evidence:String(err && err.message || err)
-      });
-      logEvent(`${factor.title} :: ${source.id} blocked`, 'WARNING', row.rowId, factor.key);
-    } finally {
-      runtimeMiningCache[cacheKeyForRow(row)] = { status:'loading', cards };
-      render();
-    }
-  }
+      els.ingestBtn.disabled = true;
+      els.runBtn.disabled = true;
+      state.rawDebug = [];
+      state.parsedLegs = [];
+      updateProgress(2, 'Preparing screenshots for OCR and parser pass...');
+      setGlobalStatus('Ingest running', 'warn');
 
-  if (factor.key === 'officialRef' || factor.key === 'altitudeTravel' || factor.key === 'motivation') {
-    const fallback = buildFallbackValue(factor.fallback, row, cards);
-    const safe = SanitizeResult(fallback, row.propFamily, String(fallback));
-    logParts.push(`[${nowStamp()}] ${factor.probeLabel}: FALLBACK [DERIVED NEUTRAL]`);
-    update({
-      status:'ready',
-      phase:'DERIVED LOCK',
-      statusLabel:'[DERIVED NEUTRAL]',
-      parsedResult:String(safe.value),
-      evidence:safe.evidence || 'Derived from internal rules.',
-      extractionProof:`Derived via ${factor.fallback}`,
-      extractionMethod:'Heuristic Fallback',
-      sourceWinner:'[DERIVED NEUTRAL]',
-      sourcesLabel: sourceLabelFromSources(factor.sources, '[DERIVED NEUTRAL]'),
-      probeLog: logParts.join(' | '),
-      confidence: computeCardConfidence('ready', 3, true),
-      derived:true,
-      numericValue:null,
-      sourceUrl:'',
-      hardData:false
-    });
-    card.scoreDelta = computeScoreDelta(card, row, cards);
-    runtimeMiningCache[cacheKeyForRow(row)] = { status:'loading', cards };
-    render();
-    return;
-  }
+      try {
+        const imageResults = [];
+        let carryContext = { event: '', layoutFamily: '', platformSource: '' };
 
-  update({
-    status:'failed',
-    phase:'SOURCE FAILURE',
-    statusLabel:'No usable source',
-    parsedResult:'[UNKNOWN]',
-    evidence:'All sources failed and fallback blocked by integrity rules.',
-    extractionProof:`Blocked fallback ${factor.fallback}`,
-    extractionMethod:'Integrity Lock',
-    sourceWinner:'NONE',
-    sourcesLabel: sourceLabelFromSources(factor.sources, 'FAILED'),
-    probeLog: logParts.join(' | '),
-    confidence:10,
-    derived:false,
-    numericValue:null,
-    sourceUrl:'',
-    hardData:false
-  });
-  card.scoreDelta = computeScoreDelta(card, row, cards);
-  runtimeMiningCache[cacheKeyForRow(row)] = { status:'loading', cards };
-  render();
-}
-function finalizeShield(row, cards) {
-  const shield = cards.survivabilityShield;
-  const alpha = calculateAlphaShield(cards);
-  const underJuiceDrag = parseUnderJuiceDrag(row);
-  const whistleBump = /Over\s([5-9]\d|1\d\d)%/i.test(cards.officialRef?.parsedResult || '') ? 1.0 : 0;
-  const derivedCount = Object.values(cards).filter(c => c.derived).length;
-  let hitProb = 62 + Object.values(cards).reduce((sum, c) => sum + Number(c.scoreDelta || 0), 0) / 4;
-  hitProb += whistleBump;
-  hitProb += underJuiceDrag;
-  if (derivedCount > 3) hitProb = Math.min(hitProb, 75);
-  hitProb = Math.max(1, Math.min(99, hitProb));
-  const qualified = Math.max(1, Math.min(99, hitProb - (alpha.warningCount * 10)));
-  Object.assign(shield, {
-    status: alpha.warningCount ? 'warning' : 'ready',
-    phase:'FINALIZED',
-    statusLabel:'ALPHA SHIELD FINAL',
-    parsedResult:`FINAL_HIT_PROBABILITY ${round1(hitProb)}% • FINAL_QUALIFIED_SCORE ${round1(qualified)}`,
-    evidence:`Purity ${alpha.purityScore} • Unknown ${alpha.unknownCount} • Derived ${alpha.derivedCount} • Warning ${alpha.warningCount}`,
-    extractionProof:`Z-score proxy via edge deltas • Integrity penalty -${alpha.warningCount*10}% • Under juice drag ${underJuiceDrag} • Whistle bump +${whistleBump}`,
-    sourceWinner:'Internal Alpha Purity',
-    confidence: Math.max(35, 92 - alpha.warningCount*8),
-    derived:false,
-    scoreDelta:0,
-    alphaShield: { ...alpha, hitProb: round1(hitProb), qualified: round1(qualified), underJuiceDrag, whistleBump }
-  });
-  runtimeMiningCache[cacheKeyForRow(row)] = { status:'done', cards };
-  render();
-}
-function parseUnderJuiceDrag(row) {
-  const prices = extractAmericanOdds(row.rawText || row.lineText || '');
-  const under = lineDirectionFromRow(row) === 'UNDER';
-  if (under && prices.some(x => Number(x) < -135)) return -5;
-  return 0;
-}
-async function ensureNbaMining(row) {
-  if (!row || row.leagueId !== 'nba') return;
-  const key = cacheKeyForRow(row);
-  if (runtimeMiningCache[key]?.status === 'loading') return;
-  activeRunToken += 1;
-  const runToken = activeRunToken;
-  const cards = initCards(row);
-  runtimeMiningCache[key] = { status:'loading', cards };
-  render();
-  showOverlay('Run Analysis engaged', 'Building factor cards without screen lock...');
-  try {
-    const factorOrder = [
-      'seasonBaseline','careerBaseline','rotationUsage',
-      'recentForm','stabilityWindow','extendedForm',
-      'headToHead','matchupPhysicality','clutchPerformance','individualDefender',
-      'altitudeTravel','motivation','officialRef','survivabilityShield'
-    ];
-    const orderedFactors = factorOrder.map(key => FACTORS.find(f => f.key === key)).filter(Boolean);
-    for (const factor of orderedFactors) {
-      if (runToken !== activeRunToken) return;
-      const hint = document.getElementById('analysisHint'); if (hint) hint.textContent = `Probing ${factor.title}`;
-      await runFactor(row, factor, cards, runToken);
-    }
-    finalizeShield(row, cards);
-    logEvent('ANCHOR DATA SECURED', 'SUCCESS', row.rowId, 'system');
-    logEvent('All 14 factor cards finalized.', 'SUCCESS', row.rowId, 'system');
-  } catch (err) {
-    logEvent(String(err && err.message || err), 'ERROR', row.rowId, 'system');
-  } finally {
-    runtimeMiningCache[key] = runtimeMiningCache[key] || { status:'done', cards };
-    hideOverlay();
-    render();
-  }
-}
+        for (let i = 0; i < state.images.length; i++) {
+          const image = state.images[i];
+          updateProgress(Math.round((i / state.images.length) * 35) + 5, `Reading image ${i + 1} of ${state.images.length}...`);
+          const text = await extractTextFromImage(image.file);
+          const layoutFamily = detectLayoutFamily(text);
+          const platformSource = detectPlatform(layoutFamily, text);
+          const parsed = parseLayoutText(text, layoutFamily, platformSource, carryContext, i);
+          imageResults.push({ imageIndex: i + 1, layoutFamily, platformSource, text, parsedCount: parsed.legs.length });
+          state.parsedLegs.push(...parsed.legs);
+          if (parsed.context.event) carryContext.event = parsed.context.event;
+          if (layoutFamily) carryContext.layoutFamily = layoutFamily;
+          if (platformSource) carryContext.platformSource = platformSource;
+          state.rawDebug.push({ imageIndex: i + 1, layoutFamily, platformSource, text, notes: parsed.notes });
+        }
 
-/* =============================== RENDERING =============================== */
-function renderDayScope() {
-  document.querySelectorAll('input[name="dayScope"]').forEach(input => {
-    input.checked = input.value === state.dayScope;
-    input.onchange = () => {
-      state.dayScope = input.value;
-      saveState();
-      render();
-    };
-  });
-}
-function renderLeagues() {
-  const wrap = document.getElementById('leagueChecklist');
-  wrap.innerHTML = LEAGUES.map(l => `
-    <label><input type="checkbox" data-id="${l.id}" ${state.selectedLeagueIds.includes(l.id) ? 'checked':''}> ${escapeHtml(l.label)}</label>
-  `).join('');
-  wrap.querySelectorAll('input[type="checkbox"]').forEach(el => {
-    el.onchange = () => {
-      const id = el.dataset.id;
-      if (el.checked) {
-        if (!state.selectedLeagueIds.includes(id)) state.selectedLeagueIds.push(id);
-      } else {
-        state.selectedLeagueIds = state.selectedLeagueIds.filter(x => x !== id);
+        updateProgress(55, 'Merging screenshot rows, deduplicating, and normalizing...');
+        state.parsedLegs = mergeAndNormalizeLegs(state.parsedLegs);
+
+        updateProgress(72, 'Building editable review grid...');
+        renderReviewTable();
+
+        updateProgress(100, `Ingest complete. Parsed ${state.parsedLegs.length} leg${state.parsedLegs.length === 1 ? '' : 's'}. Review and click Run when ready.`);
+        setGlobalStatus('Ingest complete', state.parsedLegs.length ? 'good' : 'bad');
+        els.runBtn.disabled = state.parsedLegs.length === 0;
+        renderDebug();
+      } catch (error) {
+        console.error(error);
+        showError(`Ingest failed. ${error.message || 'Unexpected OCR or parser error.'}`);
+        updateProgress(0, 'Ingest failed. Fix the issue and try again.');
+        setGlobalStatus('Ingest failed', 'bad');
+      } finally {
+        els.ingestBtn.disabled = false;
       }
-      saveState();
-      render();
-    };
-  });
-}
-function renderFeedStatus() {
-  const wrap = document.getElementById('feedStatus');
-  const fed = getFedPropCounts();
-  if (!state.selectedLeagueIds.length) {
-    wrap.innerHTML = '<div class="message">Select at least one league.</div>';
-    return;
-  }
-  wrap.innerHTML = selectedLeagues().map(league => {
-    const count = state.cleanedRows.filter(r => r.leagueId === league.id).length;
-    const chips = league.propCatalog.map(prop => {
-      const key = canon(prop);
-      const n = fed[league.id]?.[key] || 0;
-      return `<div class="prop-chip ${n > 0 ? 'prop-fed':'prop-missing'}"><span>${n > 0 ? '✅':'❌'}</span><span>${escapeHtml(prop)}</span><small>${n}</small></div>`;
-    }).join('');
-    return `
-      <div class="status-panel">
-        <div class="status-panel-head">
-          <div><strong>${escapeHtml(league.label)}</strong><div class="mini-muted">${count} clean row${count===1?'':'s'}</div></div>
-          <div class="status-badge ${count>0?'status-ok':'status-no'}">${count>0?'FED':'NOT FED'}</div>
-        </div>
-        <div class="prop-grid">${chips}</div>
-      </div>`;
-  }).join('');
-}
-function renderRunSummary() {
-  const fedLeagues = new Set(state.cleanedRows.map(r => r.leagueId)).size;
-  document.getElementById('runSummary').innerHTML = `
-    <div class="pill">System: ${escapeHtml(SYSTEM_VERSION)}</div>
-    <div class="pill">Day: ${escapeHtml(state.dayScope)}</div>
-    <div class="pill">Selected leagues: ${state.selectedLeagueIds.length}</div>
-    <div class="pill">Fed leagues: ${fedLeagues}</div>
-    <div class="pill">Rows in pool: ${state.cleanedRows.length}</div>
-  `;
-}
-function renderPoolOnIntake() {
-  const mount = document.getElementById('poolMount');
-  mount.innerHTML = `
-    <section class="card pool-inline-card">
-      <h2>5. Prop Pool</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th><th>Sport</th><th>League</th><th>Player / Entity</th><th>Team</th><th>Opponent</th><th>Line</th><th>Type</th>
-            </tr>
-          </thead>
-          <tbody id="intakeResultsBody">${buildResultsRowsHtml(state.cleanedRows, true)}</tbody>
-        </table>
-      </div>
-    </section>`;
-  bindRowSelection('intakeResultsBody');
-}
-function renderAnalysis() {
-  const row = activeRow();
-  document.getElementById('analysisTitle').textContent = `Run Analysis ${SYSTEM_VERSION}`;
-  document.getElementById('analysisVersion').textContent = `Version: ${SYSTEM_VERSION} • Build: ${APP_BUILD_LABEL}`;
-  const summary = document.getElementById('analysisSummary');
-  const hint = document.getElementById('analysisHint');
-  const rowCard = document.getElementById('analysisRowCard');
-  const miningGrid = document.getElementById('miningGrid');
-  const analysisBody = document.getElementById('analysisResultsBody');
-  const shieldPanel = document.getElementById('shieldPanel');
-  const kpis = document.getElementById('analysisKpis');
-
-  const alphaTop = row ? (buildMiningStatus(row).find(c => c.key === 'survivabilityShield')?.statusLabel || 'PENDING') : 'PENDING';
-  summary.innerHTML = `
-    <div class="pill">Day: ${escapeHtml(state.dayScope)}</div>
-    <div class="pill">Rows in pool: ${state.cleanedRows.length}</div>
-    <div class="pill">Selected row: ${row ? escapeHtml(row.entity) : 'None'}</div>
-    <div class="pill">League: ${row ? escapeHtml(findLeague(row.leagueId)?.label || row.leagueId) : 'None'}</div>
-    <div class="pill">Alpha Shield: ${escapeHtml(alphaTop)}</div>
-  `;
-  if (!row) {
-    hint.textContent = 'Ingest one row, then run analysis.';
-    rowCard.innerHTML = '<div class="message">No row selected yet.</div>';
-    miningGrid.innerHTML = '<div class="message">No mining cards yet.</div>';
-    shieldPanel.innerHTML = '<div class="shield-cell">No Alpha Shield report yet.</div>';
-    kpis.innerHTML = '';
-  } else if (row.leagueId !== 'nba') {
-    hint.textContent = 'This build is wired for NBA anchor-lock analysis. Intake remains intact for all leagues.';
-    rowCard.innerHTML = rowCardHtml(row);
-    miningGrid.innerHTML = '<div class="message">NBA-only mining engine in this build.</div>';
-    shieldPanel.innerHTML = '<div class="shield-cell">Shield unavailable for non-NBA rows.</div>';
-    kpis.innerHTML = '';
-  } else {
-    hint.textContent = '14-factor recursive mining is live. Cards update in real time after every source attempt, with JSON-first anchor baselines and no screen lock.';
-    rowCard.innerHTML = rowCardHtml(row);
-    const cards = buildMiningStatus(row);
-    miningGrid.innerHTML = cards.map(renderPromptAwareCard).join('');
-    const alpha = cards.find(c => c.key === 'survivabilityShield')?.alphaShield;
-    kpis.innerHTML = `
-      <div class="kpi-card"><strong>Matrix Size</strong>14 factors</div>
-      <div class="kpi-card"><strong>Anchor Lock</strong>JSON → ESPN JSON → BBR</div>
-      <div class="kpi-card"><strong>Alpha Purity</strong>${alpha ? alpha.purityScore : '—'}</div>
-      <div class="kpi-card"><strong>Integrity Penalty</strong>${alpha ? '-' + (alpha.warningCount*10) + '%' : '—'}</div>
-    `;
-    shieldPanel.innerHTML = alpha ? `
-      <div class="shield-cell"><strong>Purity Score</strong><div>${alpha.purityScore}</div></div>
-      <div class="shield-cell"><strong>Confidence Average</strong><div>${alpha.confidenceAvg}</div></div>
-      <div class="shield-cell"><strong>Unknown States</strong><div>${alpha.unknownCount}</div></div>
-      <div class="shield-cell"><strong>Derived States</strong><div>${alpha.derivedCount}</div></div>
-      <div class="shield-cell"><strong>Warning States</strong><div>${alpha.warningCount}</div></div>
-      <div class="shield-cell"><strong>Final Hit Probability</strong><div>${alpha.hitProb}%</div></div>
-      <div class="shield-cell"><strong>Final Qualified Score</strong><div>${alpha.qualified}</div></div>
-      <div class="shield-cell"><strong>Under Juice Drag</strong><div>${alpha.underJuiceDrag}</div></div>
-      <div class="shield-cell"><strong>Whistle Bump</strong><div>+${alpha.whistleBump}</div></div>
-    ` : '<div class="shield-cell">Shield will finalize after all factors resolve.</div>';
-  }
-  analysisBody.innerHTML = buildResultsRowsHtml(state.cleanedRows, true);
-  bindRowSelection('analysisResultsBody');
-}
-function applyScreen() {
-  const analysis = window.location.hash === '#analysis';
-  document.getElementById('intakeScreen').classList.toggle('hidden', analysis);
-  document.getElementById('analysisScreen').classList.toggle('hidden', !analysis);
-}
-function render() {
-  renderDayScope();
-  renderLeagues();
-  renderFeedStatus();
-  renderRunSummary();
-  renderPoolOnIntake();
-  renderAnalysis();
-  renderSystemConsole();
-  applyScreen();
-}
-
-/* =============================== ACTIONS =============================== */
-function buildAnalysisCopyText(row) {
-  const cards = buildMiningStatus(row);
-  return [
-    `System: ${SYSTEM_VERSION}`,
-    `Selected row: ${row?.entity || 'None'}`,
-    `Line: ${row?.lineText || ''}`,
-    '',
-    ...cards.map(c => `${c.title}\n${c.statusLabel}\n${c.parsedResult}\n${c.evidence}\nSource: ${c.sourceUrl || c.sourceWinner || '—'}\n`)
-  ].join('\n');
-}
-function bindActions() {
-  document.getElementById('clearBoxBtn').onclick = () => {
-    document.getElementById('boardInput').value = '';
-  };
-  document.getElementById('resetAllBtn').onclick = () => {
-    Object.assign(state, defaultState());
-    Object.keys(runtimeMiningCache).forEach(k => delete runtimeMiningCache[k]);
-    saveState();
-    render();
-  };
-  document.getElementById('ingestBtn').onclick = () => {
-    const res = ingestText(document.getElementById('boardInput').value);
-    const msg = document.getElementById('ingestMessage');
-    msg.textContent = res.added ? `✅ ${res.message}` : res.message;
-    msg.classList.toggle('ok', !!res.added);
-    if (res.added) document.getElementById('boardInput').value = '';
-    render();
-  };
-  document.getElementById('runBtn').onclick = async () => {
-    state.ran = true;
-    if (!state.activeRowId && state.cleanedRows[0]) state.activeRowId = state.cleanedRows[0].rowId;
-    saveState();
-    window.location.hash = '#analysis';
-    render();
-    const row = activeRow();
-    if (row?.leagueId === 'nba') await ensureNbaMining(row);
-  };
-  document.getElementById('backBtn').onclick = () => {
-    window.location.hash = '#intake';
-    render();
-  };
-  document.getElementById('copyBtn').onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(buildAnalysisCopyText(activeRow()));
-      document.getElementById('analysisHint').textContent = 'Copied.';
-    } catch {
-      document.getElementById('analysisHint').textContent = 'Copy failed.';
     }
-  };
-  window.addEventListener('hashchange', applyScreen);
-}
 
-render();
-bindActions();
-
-(function(){
-  const RANGE_LIMITS = {
-    points: {min:0, max:60},
-    rebounds: {min:0, max:25},
-    assists: {min:0, max:20}
-  };
-  const TARGET_REFS = ['Bill Kennedy','Zach Zarba','Tyler Ford','Kevin Scott','Gediminas Petraitis'];
-
-  function injectV66Style(){
-    if (document.getElementById('v66-style')) return;
-    const style = document.createElement('style');
-    style.id = 'v66-style';
-    style.textContent = `.verification-badge.scrape{background:rgba(110,168,254,.15);color:#8cc3ff;border-color:#8cc3ff}`;
-    document.head.appendChild(style);
-  }
-  injectV66Style();
-
-  function leagueRangeForRow(row){
-    const propKey = canon(row?.propFamily || '');
-    if (propKey === 'points') return RANGE_LIMITS.points;
-    if (propKey === 'rebounds') return RANGE_LIMITS.rebounds;
-    if (propKey === 'assists') return RANGE_LIMITS.assists;
-    return null;
-  }
-  function valueWithinRange(row, value){
-    const r = leagueRangeForRow(row);
-    if (!r || !Number.isFinite(Number(value))) return true;
-    const n = Number(value);
-    return n >= r.min && n <= r.max;
-  }
-  function statTokenForRow(row){
-    const propKey = canon(row?.propFamily || '');
-    if (propKey === 'points') return 'avgPoints';
-    if (propKey === 'rebounds') return 'avgRebounds';
-    if (propKey === 'assists') return 'avgAssists';
-    return 'avgPRA';
-  }
-  function rowIsKDAst(row){
-    return canon(row?.entity || '') === 'kevin durant' && String(row?.team || '').toUpperCase() === 'HOU' && canon(row?.propFamily || '') === 'assists';
-  }
-  function statToValueMap(pts, reb, ast, row){
-    const propKey = canon(row?.propFamily || '');
-    if (propKey === 'points') return pts;
-    if (propKey === 'rebounds') return reb;
-    if (propKey === 'assists') return ast;
-    if (propKey === 'pra' || propKey === 'pts+rebs+asts') return [pts,reb,ast].every(Number.isFinite) ? round1(pts+reb+ast) : null;
-    if (propKey === 'pts+rebs') return Number.isFinite(pts) && Number.isFinite(reb) ? round1(pts+reb) : null;
-    if (propKey === 'pts+asts') return Number.isFinite(pts) && Number.isFinite(ast) ? round1(pts+ast) : null;
-    if (propKey === 'rebs+asts') return Number.isFinite(reb) && Number.isFinite(ast) ? round1(reb+ast) : null;
-    return null;
-  }
-
-  const __origExtractJsonStatValueFromRowsets = extractJsonStatValueFromRowsets;
-  extractJsonStatValueFromRowsets = function(data, row){
-    const base = __origExtractJsonStatValueFromRowsets(data, row);
-    if (valueWithinRange(row, base)) return base;
-    return null;
-  };
-
-  function collectEspnStatisticCandidates(node, acc=[]){
-    if (!node || typeof node !== 'object') return acc;
-    if (Array.isArray(node)) {
-      node.forEach((item, idx) => collectEspnStatisticCandidates(item, acc));
-      return acc;
+    async function extractTextFromImage(file) {
+      const processedDataUrl = await preprocessImage(file);
+      const result = await Tesseract.recognize(processedDataUrl, 'eng', {
+        tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+        preserve_interword_spaces: '1'
+      });
+      return normalizeOcrText(result.data.text || '');
     }
-    const hasDisplay = typeof node.displayValue !== 'undefined';
-    if (hasDisplay) acc.push(node);
-    Object.values(node).forEach(v => collectEspnStatisticCandidates(v, acc));
-    return acc;
-  }
 
-  function parseEspnStatisticsResponse(text, row, athleteId=''){
-    let data;
-    try { data = JSON.parse(text); } catch { return null; }
-    const stats = collectEspnStatisticCandidates(data, []);
-    const target = statTokenForRow(row).toLowerCase();
-    const gamesPlayedNode = stats.find((item) => /gamesplayed|games played/i.test(String(item.name || item.displayName || item.shortDisplayName || item.abbreviation || '')));
-    const gamesPlayed = Number((gamesPlayedNode && (gamesPlayedNode.value ?? gamesPlayedNode.displayValue)) || 0) || null;
-    let best = null;
-    for (let i = 0; i < stats.length; i++) {
-      const item = stats[i] || {};
-      const label = String(item.name || item.displayName || item.shortDisplayName || item.abbreviation || '').toLowerCase();
-      const rawDisplay = item.displayValue ?? item.value ?? item.displayValueText;
-      if (!label || typeof rawDisplay === 'undefined') continue;
-      const n = Number(String(rawDisplay).replace(/[^\d.-]/g, ''));
-      if (!Number.isFinite(n)) continue;
-      let mapped = null;
-      if (label.includes(target)) mapped = n;
-      else if (target === 'avgpoints' && /avg.*points|points per game|ppg/.test(label)) mapped = n;
-      else if (target === 'avgrebounds' && /avg.*reb|rebounds per game|rpg/.test(label)) mapped = n;
-      else if (target === 'avgassists' && /avg.*assists|assists per game|apg/.test(label)) mapped = n;
-      if (mapped == null) continue;
-      if (target === 'avgassists' && mapped > 25 && Number.isFinite(gamesPlayed) && gamesPlayed > 0) {
-        mapped = round1(mapped / gamesPlayed);
+    function preprocessImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const maxWidth = 1600;
+            const scale = Math.min(1, maxWidth / img.width);
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+              const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+              const boosted = avg > 140 ? 255 : avg < 60 ? 0 : avg * 1.25;
+              data[i] = boosted;
+              data[i + 1] = boosted;
+              data[i + 2] = boosted;
+            }
+            ctx.putImageData(imageData, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+          };
+          img.onerror = reject;
+          img.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function normalizeOcrText(text) {
+      return text
+        .replace(/[\u2018\u2019]/g, "'")
+        .replace(/[\u201C\u201D]/g, '"')
+        .replace(/[•·]/g, '•')
+        .replace(/[—–]/g, '-')
+        .replace(/\r/g, '')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+    }
+
+    function detectLayoutFamily(text) {
+      const t = text.toLowerCase();
+      if (t.includes('picks entry')) return 'sleep_entry';
+      if (t.includes('prizepicks') && t.includes('current lineup')) return 'prizepicks_current_lineup';
+      if (t.includes('copy lineup') || (t.includes('flex play') && t.includes('first game starts'))) return 'prizepicks_tail_card';
+      if (t.includes('for you') && t.includes('copy lineup')) return 'prizepicks_feed_card';
+      if (t.includes('prizepicks')) return 'prizepicks_generic';
+      return 'unknown';
+    }
+
+    function detectPlatform(layoutFamily, text) {
+      if (layoutFamily.startsWith('sleep')) return 'Sleeper';
+      if (layoutFamily.startsWith('prizepicks')) return 'PrizePicks';
+      if (text.toLowerCase().includes('prizepicks')) return 'PrizePicks';
+      return 'Unknown';
+    }
+
+    function parseLayoutText(text, layoutFamily, platformSource, carryContext, imageIndex) {
+      const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+      const notes = [];
+      switch (layoutFamily) {
+        case 'sleep_entry':
+          return parseSleeperEntry(lines, platformSource, carryContext, imageIndex, notes);
+        case 'prizepicks_current_lineup':
+          return parsePrizePicksCurrentLineup(lines, platformSource, carryContext, imageIndex, notes);
+        case 'prizepicks_tail_card':
+          return parsePrizePicksTailCard(lines, platformSource, carryContext, imageIndex, notes);
+        case 'prizepicks_feed_card':
+          return parsePrizePicksFeedCard(lines, platformSource, carryContext, imageIndex, notes);
+        default:
+          return parseGeneric(lines, platformSource, carryContext, imageIndex, notes);
       }
-      if (!valueWithinRange(row, mapped)) continue;
-      best = {
-        value: mapped,
-        athleteId: athleteId || '',
-        statIndex: i,
-        gamesPlayed: gamesPlayed,
-        label: label,
-        rawDisplay: String(rawDisplay)
+    }
+
+    function parseSleeperEntry(lines, platformSource, carryContext, imageIndex, notes) {
+      const legs = [];
+      let currentEvent = carryContext.event || '';
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (/^[A-Z]{2,4}\s+vs\s+[A-Z]{2,4}$/i.test(line.replace(/^NBA\s+/i, '').trim())) {
+          currentEvent = line.replace(/^NBA\s+/i, '').trim();
+          continue;
+        }
+        if (/^[A-Z]\.?\s?[A-Za-z'\-]+(?:\s[A-Za-z'\-]+)?$/.test(line) && (i + 2) < lines.length) {
+          const playerRaw = line;
+          const opponentLine = lines[i + 1];
+          const teamPosLine = lines[i + 2];
+          const maybePropWindow = lines.slice(i + 1, i + 7).join(' ');
+          const linePropDir = parsePropBundleFromChunk(maybePropWindow, 'sleep_entry');
+          if (!linePropDir.line && !linePropDir.propRaw) continue;
+          const teamRaw = extractTeamFromSleeperTeamPos(teamPosLine);
+          const position = extractPositionFromTeamPos(teamPosLine);
+          const opponentRaw = extractOpponentFromSleeperOpponent(opponentLine);
+          const direction = linePropDir.direction || 'UNKNOWN';
+          const promoType = inferPromoTypeFromText(maybePropWindow);
+          const suffix = linePropDir.suffix;
+          legs.push(makeLeg({
+            playerRaw,
+            teamRaw,
+            opponentRaw,
+            position,
+            propRaw: linePropDir.propRaw,
+            line: linePropDir.line,
+            direction,
+            promoType,
+            suffix,
+            platformSource,
+            layoutFamily: 'sleep_entry',
+            sourceImageIndex: imageIndex,
+            eventRaw: currentEvent,
+            rawExtractionNote: 'Sleeper row parse'
+          }));
+        }
+      }
+      notes.push(`Sleeper parse created ${legs.length} row(s).`);
+      return { legs, context: { event: currentEvent }, notes };
+    }
+
+    function parsePrizePicksCurrentLineup(lines, platformSource, carryContext, imageIndex, notes) {
+      const legs = [];
+      let currentEvent = carryContext.event || '';
+      let pendingMoreLess = null;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const eventMatch = line.match(/(?:NBA\s+)?([A-Z]{2,4}\s+vs\s+[A-Z]{2,4})/i);
+        if (eventMatch) {
+          currentEvent = eventMatch[1].trim();
+          continue;
+        }
+        if (/\b(Less|More)\b/i.test(line)) {
+          pendingMoreLess = line;
+          continue;
+        }
+        if (isLikelyFullName(line) && (i + 2) < lines.length) {
+          const playerRaw = line;
+          const teamPosLine = lines[i + 1];
+          const propLine = lines[i + 2];
+          const direction = inferPrizePicksDirection(pendingMoreLess, lines.slice(i, i + 5).join(' '));
+          const parsedLine = parsePrizePicksPropLine(propLine);
+          legs.push(makeLeg({
+            playerRaw,
+            teamRaw: extractTeamFromPrizePicksTeamPos(teamPosLine),
+            opponentRaw: extractOpponentFromEvent(currentEvent, extractTeamFromPrizePicksTeamPos(teamPosLine)),
+            position: extractPositionFromPrizePicksTeamPos(teamPosLine),
+            propRaw: parsedLine.propRaw,
+            line: parsedLine.line,
+            direction,
+            promoType: inferPromoTypeFromText(propLine),
+            suffix: parsedLine.suffix,
+            platformSource,
+            layoutFamily: 'prizepicks_current_lineup',
+            sourceImageIndex: imageIndex,
+            eventRaw: currentEvent,
+            rawExtractionNote: 'PrizePicks current lineup parse'
+          }));
+          pendingMoreLess = null;
+        }
+      }
+      notes.push(`PrizePicks current lineup parse created ${legs.length} row(s).`);
+      return { legs, context: { event: currentEvent }, notes };
+    }
+
+    function parsePrizePicksTailCard(lines, platformSource, carryContext, imageIndex, notes) {
+      const legs = [];
+      let currentEvent = carryContext.event || '';
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const eventMatch = line.match(/(?:NBA\s+)?([A-Z]{2,4}\s+vs\s+[A-Z]{2,4})/i);
+        if (eventMatch) {
+          currentEvent = eventMatch[1].trim();
+          continue;
+        }
+        if (isLikelyFullName(line) && (i + 2) < lines.length) {
+          const playerRaw = line;
+          const teamPosLine = lines[i + 1];
+          const chunk = lines.slice(i + 2, i + 5).join(' ');
+          const parsed = parsePropBundleFromChunk(chunk, 'tail');
+          if (!parsed.line && !parsed.propRaw) continue;
+          legs.push(makeLeg({
+            playerRaw,
+            teamRaw: extractTeamFromPrizePicksTeamPos(teamPosLine),
+            opponentRaw: extractOpponentFromEvent(currentEvent, extractTeamFromPrizePicksTeamPos(teamPosLine)),
+            position: extractPositionFromPrizePicksTeamPos(teamPosLine),
+            propRaw: parsed.propRaw,
+            line: parsed.line,
+            direction: parsed.direction || 'MORE',
+            promoType: inferPromoTypeFromText(chunk),
+            suffix: parsed.suffix,
+            platformSource,
+            layoutFamily: 'prizepicks_tail_card',
+            sourceImageIndex: imageIndex,
+            eventRaw: currentEvent,
+            rawExtractionNote: 'PrizePicks tail card parse'
+          }));
+        }
+      }
+      notes.push(`PrizePicks tail card parse created ${legs.length} row(s).`);
+      return { legs, context: { event: currentEvent }, notes };
+    }
+
+    function parsePrizePicksFeedCard(lines, platformSource, carryContext, imageIndex, notes) {
+      const legs = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (isLikelyFullName(line) && (i + 1) < lines.length) {
+          const playerRaw = line;
+          const chunk = lines.slice(i + 1, i + 4).join(' ');
+          const parsed = parsePropBundleFromChunk(chunk, 'feed');
+          if (!parsed.line && !parsed.propRaw) continue;
+          legs.push(makeLeg({
+            playerRaw,
+            teamRaw: '',
+            opponentRaw: '',
+            position: '',
+            propRaw: parsed.propRaw,
+            line: parsed.line,
+            direction: parsed.direction || inferArrowDirectionFromText(chunk),
+            promoType: inferPromoTypeFromText(chunk),
+            suffix: parsed.suffix,
+            platformSource,
+            layoutFamily: 'prizepicks_feed_card',
+            sourceImageIndex: imageIndex,
+            eventRaw: '',
+            rawExtractionNote: 'PrizePicks feed card partial parse'
+          }));
+        }
+      }
+      notes.push(`PrizePicks feed card parse created ${legs.length} row(s).`);
+      return { legs, context: { event: '' }, notes };
+    }
+
+    function parseGeneric(lines, platformSource, carryContext, imageIndex, notes) {
+      const legs = [];
+      let currentEvent = carryContext.event || '';
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const eventMatch = line.match(/([A-Z]{2,4}\s+vs\s+[A-Z]{2,4})/i);
+        if (eventMatch) currentEvent = eventMatch[1].trim();
+        if (isLikelyFullName(line) && (i + 1) < lines.length) {
+          const chunk = lines.slice(i + 1, i + 4).join(' ');
+          const parsed = parsePropBundleFromChunk(chunk, 'generic');
+          if (!parsed.line && !parsed.propRaw) continue;
+          legs.push(makeLeg({
+            playerRaw: line,
+            teamRaw: '',
+            opponentRaw: '',
+            position: '',
+            propRaw: parsed.propRaw,
+            line: parsed.line,
+            direction: parsed.direction || inferArrowDirectionFromText(chunk),
+            promoType: inferPromoTypeFromText(chunk),
+            suffix: parsed.suffix,
+            platformSource,
+            layoutFamily: 'unknown',
+            sourceImageIndex: imageIndex,
+            eventRaw: currentEvent,
+            rawExtractionNote: 'Generic fallback parse'
+          }));
+        }
+      }
+      notes.push(`Generic parse created ${legs.length} row(s).`);
+      return { legs, context: { event: currentEvent }, notes };
+    }
+
+    function isLikelyFullName(line) {
+      return /^[A-Z][a-zA-Z'\-]+(?:\s+[A-Z][a-zA-Z'\-\.]+){1,3}$/.test(line) && !/^(Current Lineup|Flex Play|Power Play|Win contest|Submit Lineup|Copy lineup|View less|View more)$/i.test(line);
+    }
+
+    function parsePropBundleFromChunk(chunk, family) {
+      const compact = chunk.replace(/\s+/g, ' ').trim();
+      const direction = inferArrowDirectionFromText(compact);
+      let promoType = inferPromoTypeFromText(compact);
+      const marketSuffixMatch = compact.match(/\((1H|2H|Q\d|Fantasy|FS|1Q)\)/i);
+      const suffix = marketSuffixMatch ? marketSuffixMatch[1].toUpperCase() : inferSuffixFromChunk(compact);
+      const patterns = [
+        /(\d+(?:\.\d+)?)\s*(Pts\+Rebs\+Asts|Pts\+Asts|Pts\+Rebs|Rebs\+Asts|Fantasy Score|Blocked Shots|3-PT Attempted|3PM|3PTM|PRA|PTS|REB|AST|AST\s*\+\s*REB|REB\s*\+\s*AST)(?:\s*\(([^)]+)\))?/i,
+        /(\d+(?:\.\d+)?)\s*(Points|Rebounds|Assists|Fantasy Score|Blocked Shots|3PTM|3PM|PRA)/i,
+        /(?:Less|More)?\s*[↑↓]?\s*(\d+(?:\.\d+)?)\s*(Points|Rebounds|Assists|Fantasy Score|Blocked Shots|3PTM|3PM|PRA|Pts\+Rebs\+Asts|Pts\+Rebs|Pts\+Asts|Rebs\+Asts)/i,
+        /[↑↓]\s*(\d+(?:\.\d+)?)\s*([A-Za-z+\-() ]{2,30})/i
+      ];
+      for (const pattern of patterns) {
+        const m = compact.match(pattern);
+        if (m) {
+          const line = m[1];
+          const propRaw = m[2] ? m[2].replace(/\s+/g, ' ').trim() : '';
+          return { line, propRaw, direction, promoType, suffix };
+        }
+      }
+      return { line: '', propRaw: '', direction, promoType, suffix };
+    }
+
+    function parsePrizePicksPropLine(line) {
+      const compact = line.replace(/[😈👹👺😇😼🟢🟣]/g, '').trim();
+      const m = compact.match(/(\d+(?:\.\d+)?)\s*(.+)$/);
+      if (!m) return { line: '', propRaw: compact, suffix: inferSuffixFromChunk(compact) };
+      return { line: m[1], propRaw: m[2].trim(), suffix: inferSuffixFromChunk(compact) };
+    }
+
+    function inferArrowDirectionFromText(text) {
+      if (!text) return 'UNKNOWN';
+      if (/\bMore\b/i.test(text)) return 'MORE';
+      if (/\bLess\b/i.test(text)) return 'LESS';
+      if (/↑/.test(text)) return 'MORE';
+      if (/↓/.test(text)) return 'LESS';
+      return 'UNKNOWN';
+    }
+
+    function inferPromoTypeFromText(text) {
+      if (!text) return 'Regular';
+      if (/[😈👹👺]/.test(text) || /demon/i.test(text)) return 'Demon';
+      if (/[😇😼🟢]/.test(text) || /goblin/i.test(text)) return 'Goblin';
+      return 'Regular';
+    }
+
+    function inferSuffixFromChunk(text) {
+      if (!text) return '';
+      const clean = text.toUpperCase();
+      const suffixes = ['1H', '2H', '1Q', '2Q', '3Q', '4Q'];
+      for (const s of suffixes) if (clean.includes(`(${s})`) || clean.endsWith(` ${s}`)) return s;
+      if (/FANTASY SCORE\s*\(1H\)/i.test(text)) return '1H';
+      return '';
+    }
+
+    function extractTeamFromSleeperTeamPos(line) {
+      const m = line.match(/\b([A-Z]{2,4})\b/);
+      return m ? m[1] : '';
+    }
+
+    function extractPositionFromTeamPos(line) {
+      const m = line.match(/\b(PG|SG|SF|PF|C|G|F|G-F|F-C|G-F-C)\b/i);
+      return m ? m[1].toUpperCase() : '';
+    }
+
+    function extractOpponentFromSleeperOpponent(line) {
+      const m = line.match(/(?:@|vs)\s*([A-Z]{2,4})\b/i);
+      return m ? m[1] : '';
+    }
+
+    function extractTeamFromPrizePicksTeamPos(line) {
+      const m = line.match(/^([A-Z]{2,4})\s*•/i);
+      return m ? m[1].toUpperCase() : '';
+    }
+
+    function extractPositionFromPrizePicksTeamPos(line) {
+      const m = line.match(/•\s*([A-Z\-]+)\s*•/i);
+      return m ? m[1].toUpperCase() : extractPositionFromTeamPos(line);
+    }
+
+    function extractOpponentFromEvent(eventRaw, teamRaw) {
+      if (!eventRaw) return '';
+      const m = eventRaw.match(/([A-Z]{2,4})\s+vs\s+([A-Z]{2,4})/i);
+      if (!m) return '';
+      const a = m[1].toUpperCase();
+      const b = m[2].toUpperCase();
+      if (teamRaw === a) return b;
+      if (teamRaw === b) return a;
+      return `${a} / ${b}`;
+    }
+
+    function makeLeg(data) {
+      const teamNormalized = normalizeTeam(data.teamRaw);
+      const opponentNormalized = normalizeTeam(data.opponentRaw);
+      const propNormalized = normalizeProp(data.propRaw);
+      const playerNormalized = normalizePlayer(data.playerRaw, data.teamRaw, data.opponentRaw, data.position);
+      const confidence = scoreConfidence({
+        playerRaw: data.playerRaw,
+        playerNormalized,
+        teamRaw: data.teamRaw,
+        opponentRaw: data.opponentRaw,
+        propNormalized,
+        line: data.line,
+        direction: data.direction,
+        layoutFamily: data.layoutFamily
+      });
+      return {
+        id: crypto.randomUUID(),
+        playerRaw: data.playerRaw || '',
+        playerNormalized,
+        teamRaw: data.teamRaw || '',
+        teamNormalized,
+        opponentRaw: data.opponentRaw || '',
+        opponentNormalized,
+        position: data.position || '',
+        propRaw: data.propRaw || '',
+        propNormalized,
+        line: data.line || '',
+        direction: data.direction || 'UNKNOWN',
+        promoType: data.promoType || 'Regular',
+        suffix: data.suffix || '',
+        platformSource: data.platformSource || 'Unknown',
+        layoutFamily: data.layoutFamily || 'unknown',
+        sourceImageIndex: data.sourceImageIndex || 0,
+        eventRaw: data.eventRaw || '',
+        parseConfidence: confidence,
+        rawExtractionNote: data.rawExtractionNote || ''
       };
-      break;
     }
-    return best;
-  }
 
-  const __origFetchAnchorBaseline = fetchAnchorBaseline;
-  fetchAnchorBaseline = async function(row, mode='season'){
-    const ids = await resolveDirectPlayerIds(row);
-    const tried = [];
-    if (ids.nbaId) {
-      const url = `https://stats.nba.com/stats/playercareerstats?PlayerID=${ids.nbaId}&PerMode=PerGame`;
-      tried.push(url);
-      try {
-        const data = await proxiedFetchJson(url);
-        const value = extractJsonStatValueFromRowsets(data, row);
-        if (Number.isFinite(value) && valueWithinRange(row, value)) {
-          return {
-            ok:true,
-            value,
-            sourceUrl:url,
-            sourceName:'stats.nba.com/playercareerstats',
-            extractionMethod:'JSON Endpoint Parse',
-            evidence:`NBA PlayerID ${ids.nbaId} • ${mode} anchor`,
-            hardData:true,
-            sourceTrace:`PlayerID ${ids.nbaId} • statIndex rowSet:${mode === 'career' ? 'career-last' : 'season-last'}`,
-            athleteId: String(ids.nbaId),
-            statIndex: mode === 'career' ? 'career-last' : 'season-last'
-          };
-        }
-      } catch {}
+    function normalizeTeam(teamRaw) {
+      if (!teamRaw) return '';
+      const key = String(teamRaw).trim().toUpperCase();
+      return TEAM_MAP[key] || teamRaw;
     }
-    if (ids.espnId) {
-      const url = `https://sports.core.api.espn.com/v2/sports/basketball/leagues/nba/athletes/${ids.espnId}/statistics`;
-      tried.push(url);
-      try {
-        const txt = await proxiedFetchText(url);
-        const parsed = parseEspnStatisticsResponse(txt, row, ids.espnId);
-        if (parsed && Number.isFinite(parsed.value) && valueWithinRange(row, parsed.value)) {
-          return {
-            ok:true,
-            value:parsed.value,
-            sourceUrl:url,
-            sourceName:'sports.core.api.espn.com statistics',
-            extractionMethod:'ESPN JSON Parse (statistics[index].displayValue)',
-            evidence:`ESPN AthleteID ${ids.espnId} • statIndex ${parsed.statIndex} • ${mode} anchor`,
-            hardData:true,
-            sourceTrace:`AthleteID ${ids.espnId} • statIndex ${parsed.statIndex} • label ${parsed.label}${parsed.gamesPlayed ? ` • gamesPlayed ${parsed.gamesPlayed}` : ''}`,
-            athleteId:String(ids.espnId),
-            statIndex:parsed.statIndex
-          };
-        }
-      } catch {}
-    }
-    if (ids.bbrUrl) {
-      tried.push(ids.bbrUrl);
-      try {
-        const html = await proxiedFetchText(ids.bbrUrl);
-        const val = parseBbrPerGameValue(html, row);
-        if (Number.isFinite(val) && valueWithinRange(row, val)) {
-          return {
-            ok:true,
-            value:val,
-            sourceUrl:ids.bbrUrl,
-            sourceName:'Basketball-Reference per-game table',
-            extractionMethod:'Basketball-Reference Table Parse',
-            evidence:`BBR per-game table • ${mode} anchor`,
-            hardData:false,
-            sourceTrace:`BBR URL • ${ids.bbrUrl}`,
-            athleteId:'',
-            statIndex:'table'
-          };
-        }
-      } catch {}
-    }
-    logEvent('Baseline Missing - Manual Entry Required', 'ERROR', row.rowId, mode === 'career' ? 'careerBaseline' : 'seasonBaseline');
-    return { ok:false, tried };
-  };
 
-  const __origRecentValueViolatesAnchor = recentValueViolatesAnchor;
-  recentValueViolatesAnchor = function(value, cards){
-    const seasonBase = Number(cards.seasonBaseline?.numericValue);
-    const row = state.cleanedRows.find(r => r.rowId === state.activeRowId) || activeRow() || null;
-    if (row && !valueWithinRange(row, value)) {
-      return { bad:true, reason:`League-normal range reject ${value}` };
-    }
-    if (Number.isFinite(value) && Number.isFinite(seasonBase) && seasonBase > 0 && value > seasonBase * 3) {
-      return { bad:true, reason:`News Hallucination rejected ${value} vs season ${seasonBase}` };
-    }
-    return __origRecentValueViolatesAnchor(value, cards);
-  };
-
-  const __origParseFactorResult = parseFactorResult;
-  parseFactorResult = function(mode, text, row){
-    const out = __origParseFactorResult(mode, text, row);
-    if (mode === 'number' && Number.isFinite(Number(out)) && !valueWithinRange(row, Number(out))) return null;
-    return out;
-  };
-
-  const __origFetchOfficialWhistle = fetchOfficialWhistle;
-  fetchOfficialWhistle = async function(row){
-    const officialUrl = 'https://official.nba.com/referee-assignments/';
-    try {
-      const html = await proxiedFetchText(officialUrl);
-      const lowered = String(html || '');
-      const found = TARGET_REFS.find(name => new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(lowered));
-      const refName = found || recoverRefFromRawParse(lowered);
-      if (refName && refName !== 'UNKNOWN') {
-        const coversUrl = 'https://www.covers.com/sport/basketball/nba/referees';
-        let tendency = '';
-        try {
-          const covers = await proxiedFetchText(coversUrl);
-          if (/Bill Kennedy/i.test(refName)) tendency = 'Under lean';
-          else if (/Zach Zarba/i.test(refName)) tendency = 'Higher-paced';
-          else if (/Tyler Ford|Kevin Scott|Gediminas Petraitis/i.test(refName)) tendency = 'Live assignment tracked';
-          const regex = new RegExp(`${refName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]{0,180}?(Over|Under)[^0-9]{0,16}(\\d{2,3})%`, 'i');
-          const m = covers.match(regex);
-          if (m) tendency = `${m[1]} ${m[2]}%`;
-        } catch {}
-        return { ok:true, refName, tendency, sourceUrl:officialUrl, coversUrl, evidence:`April 7, 2026 live crew scrape • ${refName}${tendency ? ` • ${tendency}` : ''}` };
+    function normalizeProp(propRaw) {
+      if (!propRaw) return '';
+      const trimmed = String(propRaw).replace(/\s+/g, ' ').trim();
+      for (const [regex, normalized] of PROP_MAP) {
+        if (regex.test(trimmed)) return normalized;
       }
-    } catch {}
-    return __origFetchOfficialWhistle(row);
-  };
-
-  const __origComputeScoreDelta = computeScoreDelta;
-  computeScoreDelta = function(card, row, results){
-    if (card.key === 'officialRef') {
-      const blob = String(card.parsedResult || '') + ' ' + String(card.evidence || '');
-      if (/Bill Kennedy/i.test(blob)) return -1.5;
-      if (/Zach Zarba/i.test(blob)) return 1.5;
-      if (/Tyler Ford|Kevin Scott|Gediminas Petraitis/i.test(blob)) return 0;
+      return trimmed;
     }
-    return __origComputeScoreDelta(card, row, results);
-  };
 
-  const __origRenderPromptAwareCard = renderPromptAwareCard;
-  renderPromptAwareCard = function(card){
-    const stateClass = scoreClassForCard(card);
-    const icon = card.status === 'ready' ? '✅' : card.status === 'failed' ? '❌' : '⚠️';
-    const health = retrievalHealthLabel(card);
-    const healthClass = health === 'Excellent' ? 'health-excellent' : health === 'Partial' ? 'health-partial' : 'health-missing';
-    let verificationBadge = '<span class="verification-badge proxy">🟠 Derived/Proxy</span>';
-    if (card.derived) verificationBadge = '<span class="verification-badge proxy">🟠 Derived/Proxy</span>';
-    else if (card.hardData) verificationBadge = '<span class="verification-badge hard">🟢 Verified JSON</span>';
-    else if (!card.derived && card.status === 'ready') verificationBadge = '<span class="verification-badge scrape">🔵 Verified Scrape</span>';
-    const minedBadge = card.derived ? '<span class="derived-badge">[DERIVED]</span>' : '<span class="mined-badge">[MINED]</span>';
-    return `
-      <div class="mining-card ${stateClass}">
-        <div class="factor-top">
-          <h3>${escapeHtml(card.title)} <span class="prompt-tier">[${escapeHtml(card.tier || '2X')}]</span>${minedBadge}${verificationBadge}</h3>
-          <div class="factor-delta">${escapeHtml(String(card.scoreDelta ?? 0))}</div>
+    function normalizePlayer(playerRaw, teamRaw, opponentRaw, position) {
+      if (!playerRaw) return '';
+      const clean = playerRaw.replace(/\s+/g, ' ').trim();
+      if (isLikelyFullName(clean)) return clean;
+      const teamKey = (teamRaw || '').toUpperCase();
+      const aliasKey = `${clean}|${teamKey}`;
+      if (PLAYER_ALIAS_MAP[aliasKey]) return PLAYER_ALIAS_MAP[aliasKey];
+      return clean;
+    }
+
+    function scoreConfidence(leg) {
+      let score = 0;
+      if (leg.playerRaw) score += 1;
+      if (leg.playerNormalized && leg.playerNormalized !== leg.playerRaw) score += 1;
+      if (leg.teamRaw) score += 1;
+      if (leg.opponentRaw) score += 1;
+      if (leg.propNormalized) score += 1;
+      if (leg.line) score += 1;
+      if (leg.direction && leg.direction !== 'UNKNOWN') score += 1;
+      if (leg.layoutFamily !== 'unknown') score += 1;
+      if (leg.layoutFamily === 'prizepicks_feed_card' && (!leg.teamRaw || !leg.opponentRaw)) score -= 2;
+      if (score >= 7) return 'HIGH';
+      if (score >= 5) return 'MEDIUM';
+      return 'LOW';
+    }
+
+    function mergeAndNormalizeLegs(rawLegs) {
+      const merged = [];
+      const seen = new Map();
+      for (const leg of rawLegs) {
+        const key = [leg.playerNormalized || leg.playerRaw, leg.propNormalized || leg.propRaw, leg.line, leg.direction, leg.suffix, leg.platformSource].join('|').toLowerCase();
+        if (!seen.has(key)) {
+          seen.set(key, leg);
+          merged.push(leg);
+          continue;
+        }
+        const existing = seen.get(key);
+        // Fill gaps from the new leg.
+        ['teamRaw','teamNormalized','opponentRaw','opponentNormalized','position','eventRaw','rawExtractionNote'].forEach(field => {
+          if (!existing[field] && leg[field]) existing[field] = leg[field];
+        });
+        if (existing.parseConfidence === 'LOW' && leg.parseConfidence !== 'LOW') existing.parseConfidence = leg.parseConfidence;
+      }
+      return merged.map((leg, idx) => ({ ...leg, rowNumber: idx + 1 }));
+    }
+
+    function renderReviewTable() {
+      els.reviewTbody.innerHTML = '';
+      const legs = state.parsedLegs;
+      if (!legs.length) {
+        els.reviewEmpty.style.display = 'block';
+        els.reviewTableWrap.style.display = 'none';
+        els.runBtn.disabled = true;
+        return;
+      }
+      els.reviewEmpty.style.display = 'none';
+      els.reviewTableWrap.style.display = 'block';
+      const counts = { HIGH: 0, MEDIUM: 0, LOW: 0 };
+
+      legs.forEach((leg, index) => {
+        counts[leg.parseConfidence] = (counts[leg.parseConfidence] || 0) + 1;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td><input data-field="playerRaw" data-id="${leg.id}" value="${escapeHtml(leg.playerRaw)}" /></td>
+          <td><input data-field="playerNormalized" data-id="${leg.id}" value="${escapeHtml(leg.playerNormalized)}" /></td>
+          <td><input data-field="teamRaw" data-id="${leg.id}" value="${escapeHtml(leg.teamRaw)}" /></td>
+          <td><input data-field="teamNormalized" data-id="${leg.id}" value="${escapeHtml(leg.teamNormalized)}" /></td>
+          <td><input data-field="opponentRaw" data-id="${leg.id}" value="${escapeHtml(leg.opponentRaw)}" /></td>
+          <td><input data-field="opponentNormalized" data-id="${leg.id}" value="${escapeHtml(leg.opponentNormalized)}" /></td>
+          <td><input data-field="position" data-id="${leg.id}" value="${escapeHtml(leg.position)}" /></td>
+          <td><input data-field="propRaw" data-id="${leg.id}" value="${escapeHtml(leg.propRaw)}" /></td>
+          <td><input data-field="propNormalized" data-id="${leg.id}" value="${escapeHtml(leg.propNormalized)}" /></td>
+          <td><input data-field="line" data-id="${leg.id}" value="${escapeHtml(leg.line)}" /></td>
+          <td>
+            <select data-field="direction" data-id="${leg.id}">
+              <option ${leg.direction === 'MORE' ? 'selected' : ''}>MORE</option>
+              <option ${leg.direction === 'LESS' ? 'selected' : ''}>LESS</option>
+              <option ${leg.direction === 'UNKNOWN' ? 'selected' : ''}>UNKNOWN</option>
+            </select>
+          </td>
+          <td>
+            <select data-field="promoType" data-id="${leg.id}">
+              <option ${leg.promoType === 'Regular' ? 'selected' : ''}>Regular</option>
+              <option ${leg.promoType === 'Goblin' ? 'selected' : ''}>Goblin</option>
+              <option ${leg.promoType === 'Demon' ? 'selected' : ''}>Demon</option>
+            </select>
+          </td>
+          <td><input data-field="suffix" data-id="${leg.id}" value="${escapeHtml(leg.suffix)}" /></td>
+          <td><input data-field="platformSource" data-id="${leg.id}" value="${escapeHtml(leg.platformSource)}" /></td>
+          <td><input data-field="layoutFamily" data-id="${leg.id}" value="${escapeHtml(leg.layoutFamily)}" /></td>
+          <td>
+            <div class="badge ${leg.parseConfidence === 'HIGH' ? 'badge-high' : leg.parseConfidence === 'MEDIUM' ? 'badge-med' : 'badge-low'}">${leg.parseConfidence}</div>
+          </td>
+          <td><textarea data-field="rawExtractionNote" data-id="${leg.id}">${escapeHtml(leg.rawExtractionNote)}</textarea></td>
+        `;
+        els.reviewTbody.appendChild(tr);
+      });
+
+      els.reviewTbody.querySelectorAll('input, select, textarea').forEach(el => {
+        el.addEventListener('change', handleReviewEdit);
+      });
+
+      els.parsedCount.textContent = String(legs.length);
+      els.highCount.textContent = String(counts.HIGH || 0);
+      els.mediumCount.textContent = String(counts.MEDIUM || 0);
+      els.lowCount.textContent = String(counts.LOW || 0);
+    }
+
+    function handleReviewEdit(event) {
+      const id = event.target.dataset.id;
+      const field = event.target.dataset.field;
+      const leg = state.parsedLegs.find(item => item.id === id);
+      if (!leg) return;
+      leg[field] = event.target.value;
+      if (field === 'playerRaw' && !leg.playerNormalized) leg.playerNormalized = normalizePlayer(leg.playerRaw, leg.teamRaw, leg.opponentRaw, leg.position);
+      if (field === 'teamRaw' && !leg.teamNormalized) leg.teamNormalized = normalizeTeam(leg.teamRaw);
+      if (field === 'opponentRaw' && !leg.opponentNormalized) leg.opponentNormalized = normalizeTeam(leg.opponentRaw);
+      if (field === 'propRaw' && !leg.propNormalized) leg.propNormalized = normalizeProp(leg.propRaw);
+    }
+
+    function renderDebug() {
+      if (!state.rawDebug.length) {
+        els.debugBox.style.display = 'none';
+        return;
+      }
+      els.debugBox.style.display = 'block';
+      els.debugInner.innerHTML = state.rawDebug.map(entry => `
+        <div style="margin-bottom:16px;">
+          <div class="status-line" style="margin-bottom:8px;"><strong>Image ${entry.imageIndex}</strong><span>${escapeHtml(entry.platformSource)} • ${escapeHtml(entry.layoutFamily)}</span></div>
+          <div class="debug-text">${escapeHtml(entry.text)}</div>
+          <div class="tiny muted" style="margin-top:8px;">${escapeHtml((entry.notes || []).join(' | '))}</div>
         </div>
-        <div class="mining-status ${card.status}">${icon} ${escapeHtml(card.statusLabel || '')}</div>
-        <div class="mining-meta"><b>Current state:</b> ${escapeHtml(card.phase || 'IDLE')}</div>
-        <div class="mining-meta"><b>Confidence:</b> ${escapeHtml(String(Math.round(card.confidence || 0)))}%</div>
-        ${confidenceBarHtml(card.confidence || 0)}
-        <div class="mining-meta"><b>Parsed result:</b> ${escapeHtml(card.parsedResult || '—')}</div>
-        <div class="mining-meta"><b>Evidence:</b> ${escapeHtml(card.evidence || '—')}</div>
-        <div class="mining-meta"><b>Sources:</b> ${escapeHtml(card.sourcesLabel || '—')}</div>
-        <details class="factor-detail">
-          <summary>View Analysis Details</summary>
-          <div class="detail-grid">
-            <div class="detail-box"><strong>Retrieval Health</strong><div class="${healthClass}">${escapeHtml(health)}</div></div>
-            <div class="detail-box"><strong>Probe Log</strong><div>${escapeHtml(card.probeLog || '—')}</div></div>
-            <div class="detail-box"><strong>Source Winner</strong><div>${escapeHtml(card.sourceWinner || '—')}</div></div>
-            <div class="detail-box"><strong>Extraction Method</strong><div>${escapeHtml(card.extractionMethod || '—')}</div></div>
-            <div class="detail-box"><strong>Source URL</strong><div>${escapeHtml(card.sourceUrl || '—')}</div></div>
-            <div class="detail-box"><strong>Source Trace</strong><div>${escapeHtml(card.sourceTrace || `AthleteID ${card.athleteId || '—'} • statIndex ${card.statIndex ?? '—'}`)}</div></div>
-            <div class="detail-box"><strong>Extraction Proof</strong><div>${escapeHtml(card.extractionProof || '—')}</div></div>
+      `).join('');
+    }
+
+    function runAnalysis() {
+      clearError();
+      if (!state.parsedLegs.length) {
+        showError('No parsed legs available. Ingest screenshots first.');
+        return;
+      }
+      state.analysisLegs = state.parsedLegs.map(leg => ({ ...leg }));
+      renderAnalysisShell();
+      switchScreen('screen-analysis');
+      setGlobalStatus('Screen 2 ready', 'good');
+    }
+
+    function renderAnalysisShell() {
+      if (!state.analysisLegs.length) {
+        els.analysisEmpty.style.display = 'block';
+        els.analysisGrid.style.display = 'none';
+        els.analysisGrid.innerHTML = '';
+        els.analysisLegCount.textContent = '0';
+        return;
+      }
+      els.analysisEmpty.style.display = 'none';
+      els.analysisGrid.style.display = 'grid';
+      els.analysisLegCount.textContent = String(state.analysisLegs.length);
+      els.analysisGrid.innerHTML = '';
+
+      state.analysisLegs.forEach((leg, idx) => {
+        const card = document.createElement('div');
+        card.className = 'analysis-card';
+        const confidenceClass = leg.parseConfidence === 'HIGH' ? 'badge-high' : leg.parseConfidence === 'MEDIUM' ? 'badge-med' : 'badge-low';
+        const promoClass = leg.promoType === 'Demon' ? 'badge-demon' : leg.promoType === 'Goblin' ? 'badge-goblin' : 'badge-regular';
+        card.innerHTML = `
+          <div class="top">
+            <div>
+              <h3 class="leg-title">${escapeHtml(leg.playerNormalized || leg.playerRaw || `Leg ${idx + 1}`)}</h3>
+              <div class="leg-subtitle">${escapeHtml(leg.teamNormalized || leg.teamRaw || 'Unknown team')} ${leg.opponentNormalized || leg.opponentRaw ? 'vs ' + escapeHtml(leg.opponentNormalized || leg.opponentRaw) : ''}<br>${escapeHtml(leg.propNormalized || leg.propRaw || 'Unknown prop')} • ${escapeHtml(leg.direction)} ${escapeHtml(leg.line || '?')}${leg.suffix ? ` • ${escapeHtml(leg.suffix)}` : ''}</div>
+            </div>
+            <div class="status-pill"><span class="status-good">●</span><span>READY</span></div>
           </div>
-        </details>
-      </div>
-    `;
-  };
 
-  // Kevin Durant direct query lock
-  const recentFactor = FACTORS.find(f => f.key === 'recentForm');
-  if (recentFactor) {
-    recentFactor.sources.forEach((source) => {
-      const orig = source.query;
-      source.query = function(row){
-        if (rowIsKDAst(row)) return 'Kevin Durant assists last 5 games StatMuse';
-        return orig(row);
-      };
-    });
-  }
+          <div class="analysis-chip-group">
+            <div class="chip ${promoClass}">${escapeHtml(leg.promoType || 'Regular')}</div>
+            <div class="chip ${confidenceClass}">${escapeHtml(leg.parseConfidence)}</div>
+            <div class="chip">${escapeHtml(leg.platformSource)}</div>
+            <div class="chip">${escapeHtml(leg.layoutFamily)}</div>
+          </div>
 
-  const __origRunFactor = runFactor;
-  runFactor = async function(row, factor, cards, runToken){
-    await __origRunFactor(row, factor, cards, runToken);
-    const card = cards[factor.key];
-    if (card && factor.key === 'recentForm') {
-      const n = Number(card.numericValue ?? card.parsedResult);
-      if (rowIsKDAst(row) && Number.isFinite(n) && valueWithinRange(row, n)) {
-        logEvent('VALIDATION PASS: KD Assists 7.4 within range.', 'SUCCESS', row.rowId, factor.key);
-      }
+          <div class="matrix-grid">
+            <div class="matrix-card">
+              <h4>Connector family 1</h4>
+              <div class="matrix-value">Image intake passed</div>
+              <div class="matrix-note">Upload → OCR → layout detect → merge → normalize → review → run handoff completed.</div>
+            </div>
+            <div class="matrix-card">
+              <h4>Identity shell</h4>
+              <div class="matrix-value">${escapeHtml(leg.playerNormalized || leg.playerRaw || 'Unknown')}</div>
+              <div class="matrix-note">Team: ${escapeHtml(leg.teamNormalized || leg.teamRaw || 'Unknown')} • Opponent: ${escapeHtml(leg.opponentNormalized || leg.opponentRaw || 'Unknown')}</div>
+            </div>
+            <div class="matrix-card">
+              <h4>Market shell</h4>
+              <div class="matrix-value">${escapeHtml(leg.propNormalized || leg.propRaw || 'Unknown')} ${escapeHtml(leg.direction)} ${escapeHtml(leg.line || '?')}</div>
+              <div class="matrix-note">Suffix: ${escapeHtml(leg.suffix || 'None')} • Variant: ${escapeHtml(leg.promoType || 'Regular')}</div>
+            </div>
+            <div class="matrix-card">
+              <h4>Parser note</h4>
+              <div class="matrix-value">${escapeHtml(leg.rawExtractionNote || 'No parser note')}</div>
+              <div class="matrix-note">This screen preserves the multi-card analysis structure while v1 only loads connector family 1 fields.</div>
+            </div>
+          </div>
+        `;
+        els.analysisGrid.appendChild(card);
+      });
     }
-  };
-
-  const __origEnsureNbaMining = ensureNbaMining;
-  ensureNbaMining = async function(row){
-    await __origEnsureNbaMining(row);
-    const key = cacheKeyForRow(row);
-    const cache = runtimeMiningCache[key];
-    const cards = cache?.cards || {};
-    ['seasonBaseline','careerBaseline'].forEach((k) => {
-      const card = cards[k];
-      if (card && card.sourceTrace && !String(card.extractionProof || '').includes('Source Trace')) {
-        card.extractionProof = `${card.extractionProof || ''}${card.extractionProof ? ' • ' : ''}Source Trace: ${card.sourceTrace}`;
-      }
-    });
-    if (cards.seasonBaseline && cards.careerBaseline && cards.seasonBaseline.status === 'ready' && cards.careerBaseline.status === 'ready') {
-      logEvent('ANCHOR DATA SECURED', 'SUCCESS', row.rowId, 'system');
-    }
-    render();
-  };
-
-  const __origRenderAnalysis = renderAnalysis;
-  renderAnalysis = function(){
-    __origRenderAnalysis();
-    const t1 = document.getElementById('intakeTitle');
-    if (t1) t1.innerHTML = 'Prompt 1 Intake <span class="version-pill">v6.6.0</span>';
-    const t2 = document.getElementById('analysisTitle');
-    if (t2) t2.textContent = 'Run Analysis v6.6.0';
-    const tv = document.getElementById('analysisVersion');
-    if (tv) tv.textContent = 'Version: v6.6.0 (Range-Bound Validation & Live Assignments)';
-  };
-})();
-
-</script>
+  </script>
 </body>
 </html>
