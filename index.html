@@ -775,7 +775,7 @@
       /^following$/i, /^players$/i, /^flex play$/i, /^power play$/i, /^entry fee$/i,
       /^to win$/i, /^promotions/i, /^6-pick$/i, /^win contest/i, /^first game starts/i,
       /^starts in\s+\d+/i, /^prizepicks$/i, /^copy$/i, /^edit$/i
-    };
+    ];
 
     const state = {
       images: [],
@@ -1018,6 +1018,75 @@
         .trim();
     }
 
+    function cleanParserLine(line) {
+      return String(line || '')
+        .replace(/[§&«»©®™✓✔︎•]+/g, ' ')
+        .replace(/[|\\]/g, ' ')
+        .replace(/[_~]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .replace(/^[-:;,.\s]+|[-:;,.\s]+$/g, '')
+        .trim();
+    }
+
+    function isUiNoise(line) {
+      const clean = cleanParserLine(line).toLowerCase();
+      if (!clean) return true;
+      return UI_NOISE_PATTERNS.some(p => p.test(clean)) ||
+        /^(entry fee|to win|promotions|submit lineup|submit entry|copy lineup|copy|edit|clear all|follow|following|for you|players|my entries|board|feed|promos|profile|view less|view more|starts in \d+)/i.test(clean) ||
+        /^\$?\d+(?:\.\d+)?x?$/.test(clean) ||
+        /^(less|more|flex play|power play)$/i.test(clean);
+    }
+
+    function looksLikePlausiblePlayerName(name) {
+      const clean = cleanParserLine(name);
+      if (!clean || isUiNoise(clean)) return false;
+      if (/^(sac|lal|den|okc|mem|uta|por|lac|phx|hou|min)$/i.test(clean)) return false;
+      return /^[A-Z][A-Za-z'.-]+(?:\s+[A-Z][A-Za-z'.-]+){0,2}$/.test(clean) || /^[A-Z]\.\s?[A-Za-z'.-]+$/.test(clean);
+    }
+
+    function isLikelyShortName(line) {
+      const clean = cleanParserLine(line);
+      return /^[A-Z]\.\s?[A-Za-z'.-]+(?:\s+[A-Z])?(?:\s+\d+(?:\.\d+)?)?$/.test(clean);
+    }
+
+    function isLikelyNameFragment(line) {
+      const clean = cleanParserLine(line);
+      if (!clean || isUiNoise(clean)) return false;
+      if (/^(nba\s+)?[A-Z]{2,4}\s+vs\s+[A-Z]{2,4}/i.test(clean)) return false;
+      if (/^(less|more|started|submit|entry|to win|6-pick)/i.test(clean)) return false;
+      return /^[A-Z][A-Za-z'.-]+(?:\s+[A-Za-z'.-]+){0,3}$/.test(clean);
+    }
+
+    function isLikelyTeamPosLine(line) {
+      const clean = cleanParserLine(line).replace(/-/g, '•');
+      return /\b[A-Z]{2,4}\b\s*[•.]\s*(PG|SG|SF|PF|C|G|F|G-F|F-C|G-F-C)\b/i.test(clean) || /\b[A-Z]{2,4}\b\s*[•.]\s*[A-Z-]+\s*[•.]\s*#?\d+/i.test(clean);
+    }
+
+    function smartNormalizeLine(line, propRaw = '') {
+      let raw = String(line || '').replace(/[^\d.]/g, '');
+      if (!raw) return '';
+      if (raw.includes('.')) return raw;
+      const n = Number(raw);
+      const prop = normalizeProp(propRaw || '').toLowerCase();
+      if (!Number.isFinite(n)) return '';
+      const maybeDecimal = (val) => (val / 10).toFixed(1);
+      if (/3-pointers made|assists|rebounds|blocked shots/.test(prop) && n >= 20) return maybeDecimal(n);
+      if (/points \+ rebounds \+ assists|points \+ rebounds|assists \+ rebounds|points \+ assists|pra/.test(prop) && n >= 100) return maybeDecimal(n);
+      if (/points/.test(prop) && n >= 80) return maybeDecimal(n);
+      if (/fantasy/.test(prop) && n >= 100) return maybeDecimal(n);
+      return raw;
+    }
+
+    function isHardStopPrizePicksLine(line) {
+      const clean = cleanParserLine(line).toLowerCase();
+      return /^(6-pick|entry fee|to win|promotions|flex play|power play|submit lineup|win contest|current lineup|clear all)$/i.test(clean);
+    }
+
+    function cleanNameFragment(fragment) {
+      return cleanParserLine(fragment).replace(/^[A-Za-z]{1,2}\s+(?=[A-Z][a-z])/, '').trim();
+    }
+
+
     function detectLayoutFamily(text) {
       const t = text.toLowerCase();
       if (t.includes('picks entry')) return 'sleep_entry';
@@ -1063,22 +1132,22 @@
           currentEvent = eventMatch[1].trim();
           continue;
         }
-        const nameLineMatch = line.match(/^([A-Z]\.?\s?[A-Za-z'\-]+)\s+(\d+(?:\.\d+)?)$/);
-        const shortNameOnly = isLikelyShortName(line);
         let playerRaw = '';
         let lineValue = '';
+        const nameLineMatch = line.match(/^([A-Z]\.\s?[A-Za-z'\-]+)\s+(\d+(?:\.\d+)?)$/);
         if (nameLineMatch) {
-          playerRaw = nameLineMatch[1].replace(/\s+[A-Z]$/, '').trim();
+          playerRaw = cleanParserLine(nameLineMatch[1]);
           lineValue = nameLineMatch[2];
-        } else if (shortNameOnly) {
-          playerRaw = line.replace(/\s+[A-Z]$/, '').trim();
+        } else if (isLikelyShortName(line)) {
+          playerRaw = cleanParserLine(line).replace(/\s+\d+(?:\.\d+)?$/, '').trim();
         } else {
           continue;
         }
-        const chunkLines = cleanedLines.slice(i + 1, i + 5);
+        if (!looksLikePlausiblePlayerName(playerRaw)) continue;
+        const chunkLines = cleanedLines.slice(i + 1, i + 4);
         const chunk = chunkLines.join(' ');
         const parsed = parsePropBundleFromChunk(`${lineValue} ${chunk}`.trim(), 'sleep_entry');
-        if (!lineValue) lineValue = smartNormalizeLine(parsed.line, parsed.propRaw);
+        lineValue = smartNormalizeLine(lineValue || parsed.line, parsed.propRaw);
         if (!parsed.propRaw || !lineValue) continue;
         let teamRaw = '';
         let position = '';
@@ -1095,7 +1164,7 @@
           position,
           propRaw: parsed.propRaw,
           line: lineValue,
-          direction: parsed.direction || 'UNKNOWN',
+          direction: parsed.direction || inferArrowDirectionFromText(chunk),
           promoType: inferPromoTypeFromText(chunk),
           suffix: parsed.suffix,
           platformSource,
@@ -1104,7 +1173,7 @@
           eventRaw: currentEvent,
           rawExtractionNote: 'Sleeper row parse'
         });
-        legs.push(enrichMissingTeamFromPlayer(leg));
+        if (looksLikeValidLeg(leg, 'sleep_entry')) legs.push(enrichMissingTeamFromPlayer(leg));
       }
       notes.push(`Sleeper parse created ${legs.length} row(s).`);
       return { legs, context: { event: currentEvent }, notes };
@@ -1113,48 +1182,36 @@
     function parsePrizePicksCurrentLineup(lines, platformSource, carryContext, imageIndex, notes) {
       const legs = [];
       let currentEvent = extractFirstEventFromLines(lines, carryContext.event || '');
-      const cleanedLines = lines.map(cleanParserLine).filter(Boolean);
-      let i = 0;
-      while (i < cleanedLines.length) {
+      const cleanedLines = lines.map(cleanParserLine).filter(Boolean).filter(line => !isUiNoise(line));
+      for (let i = 0; i < cleanedLines.length; i++) {
         const line = cleanedLines[i];
-        if (/^(6-pick|Win contest|To Win|Entry fee|Promotions|Submit Lineup)$/i.test(line)) break;
+        if (isHardStopPrizePicksLine(line)) break;
         const eventMatch = line.match(/(?:NBA\s+)?([A-Z]{2,4}\s+vs\s+[A-Z]{2,4})/i);
         if (eventMatch) {
           currentEvent = eventMatch[1].trim();
-          i++;
           continue;
         }
-        if (!isLikelyNameFragment(line) || isUiNoise(line)) {
-          i++;
-          continue;
-        }
-        let nameParts = [line];
-        let j = i + 1;
-        while (j < cleanedLines.length && nameParts.length < 3 && isLikelyNameFragment(cleanedLines[j]) && !isLikelyTeamPosLine(cleanedLines[j])) {
-          nameParts.push(cleanedLines[j]);
-          j++;
-        }
-        if (j >= cleanedLines.length || !isLikelyTeamPosLine(cleanedLines[j])) {
-          i++;
-          continue;
-        }
+        if (!isLikelyTeamPosLine(line)) continue;
+        const teamPosLine = line;
+        const prev1 = cleanedLines[i - 1] || '';
+        const prev2 = cleanedLines[i - 2] || '';
+        const nameParts = [prev2, prev1].filter(p => isLikelyNameFragment(p));
         const playerRaw = combinePrizePicksName(nameParts);
-        const teamPosLine = cleanedLines[j];
-        const nearby = cleanedLines.slice(j, j + 4).join(' ');
-        const propLine = cleanedLines[j + 1] || '';
+        if (!looksLikePlausiblePlayerName(playerRaw)) continue;
+        const propLine = cleanedLines[i + 1] || '';
+        const nearby = cleanedLines.slice(i, i + 3).join(' ');
         const parsedLine = parsePrizePicksPropLine(propLine || nearby);
         const direction = inferPrizePicksDirection(nearby, propLine);
-        if (!parsedLine.line || !parsedLine.propRaw) {
-          i = j + 1;
-          continue;
-        }
+        const lineVal = smartNormalizeLine(parsedLine.line, parsedLine.propRaw);
+        if (!parsedLine.propRaw || !lineVal) continue;
+        const teamRaw = extractTeamFromPrizePicksTeamPos(teamPosLine);
         const leg = makeLeg({
           playerRaw,
-          teamRaw: extractTeamFromPrizePicksTeamPos(teamPosLine),
-          opponentRaw: extractOpponentFromEvent(currentEvent, extractTeamFromPrizePicksTeamPos(teamPosLine)),
+          teamRaw,
+          opponentRaw: extractOpponentFromEvent(currentEvent, teamRaw),
           position: extractPositionFromPrizePicksTeamPos(teamPosLine),
           propRaw: parsedLine.propRaw,
-          line: smartNormalizeLine(parsedLine.line, parsedLine.propRaw),
+          line: lineVal,
           direction,
           promoType: inferPromoTypeFromText(propLine || nearby),
           suffix: parsedLine.suffix,
@@ -1164,8 +1221,7 @@
           eventRaw: currentEvent,
           rawExtractionNote: 'PrizePicks current lineup parse'
         });
-        legs.push(enrichMissingTeamFromPlayer(leg));
-        i = j + 2;
+        if (looksLikeValidLeg(leg, 'prizepicks_current_lineup')) legs.push(enrichMissingTeamFromPlayer(leg));
       }
       notes.push(`PrizePicks current lineup parse created ${legs.length} row(s).`);
       return { legs, context: { event: currentEvent }, notes };
@@ -1281,15 +1337,19 @@
     }
 
     function combinePrizePicksName(parts) {
-      const cleanParts = parts.map(cleanParserLine).filter(Boolean);
+      const cleanParts = parts.map(cleanNameFragment).filter(Boolean).filter(p => !isUiNoise(p));
+      if (!cleanParts.length) return '';
       if (cleanParts.length === 1) return cleanParts[0];
       if (cleanParts.length === 2) {
-        const first = cleanParts[0].split(' ')[0];
-        const secondTokens = cleanParts[1].split(' ');
-        const second = secondTokens[secondTokens.length - 1];
-        return `${first} ${second}`.trim();
+        const a = cleanParts[0];
+        const b = cleanParts[1];
+        const bTokens = b.split(' ');
+        if (bTokens.length === 1 && b.length <= 3) return a;
+        return `${a.split(' ')[0]} ${bTokens[bTokens.length - 1]}`.trim();
       }
-      return `${cleanParts[0]} ${cleanParts[cleanParts.length - 1]}`.trim();
+      const first = cleanParts[0].split(' ')[0];
+      const lastTokens = cleanParts[cleanParts.length - 1].split(' ');
+      return `${first} ${lastTokens[lastTokens.length - 1]}`.trim();
     }
 
     function parsePropBundleFromChunk(chunk, family) {
@@ -1340,12 +1400,12 @@
 
     function inferPrizePicksDirection(nearby, propLine = '') {
       const text = `${nearby || ''} ${propLine || ''}`;
-      if (/More/i.test(text) && !/Less/i.test(text)) return 'MORE';
-      if (/Less/i.test(text) && !/More/i.test(text)) return 'LESS';
+      if (/\bMore\b/i.test(text) && !/\bLess\b/i.test(text)) return 'MORE';
+      if (/\bLess\b/i.test(text) && !/\bMore\b/i.test(text)) return 'LESS';
       const compact = text.replace(/\s+/g, ' ');
-      if (/Less[^
-]{0,15}More/i.test(compact)) return 'LESS';
-      return 'UNKNOWN';
+      if (/Less[^\n]{0,15}More/i.test(compact)) return 'LESS';
+      if (/More[^\n]{0,15}Less/i.test(compact)) return 'MORE';
+      return inferArrowDirectionFromText(text);
     }
 
     function inferSuffixFromChunk(text) {
@@ -1392,6 +1452,15 @@
       if (teamRaw === a) return b;
       if (teamRaw === b) return a;
       return `${a} / ${b}`;
+    }
+
+    function looksLikeValidLeg(leg, layoutFamily) {
+      const player = cleanParserLine(leg.playerRaw || '');
+      if (!looksLikePlausiblePlayerName(player)) return false;
+      if (!leg.propRaw || /unknown prop/i.test(leg.propRaw)) return false;
+      if (!leg.line) return false;
+      if (['prizepicks_current_lineup','sleep_entry','prizepicks_tail_card'].includes(layoutFamily) && (!leg.teamRaw && !leg.teamNormalized)) return false;
+      return true;
     }
 
     function makeLeg(data) {
@@ -1480,14 +1549,14 @@
       const merged = [];
       const seen = new Map();
       for (const leg of rawLegs) {
-        const key = [leg.playerNormalized || leg.playerRaw, leg.propNormalized || leg.propRaw, leg.line, leg.direction, leg.suffix, leg.platformSource].join('|').toLowerCase();
+        if (!looksLikeValidLeg(leg, leg.layoutFamily)) continue;
+        const key = [leg.playerNormalized || leg.playerRaw, leg.teamNormalized || leg.teamRaw, leg.propNormalized || leg.propRaw, leg.line, leg.direction, leg.suffix, leg.platformSource].join('|').toLowerCase();
         if (!seen.has(key)) {
           seen.set(key, leg);
           merged.push(leg);
           continue;
         }
         const existing = seen.get(key);
-        // Fill gaps from the new leg.
         ['teamRaw','teamNormalized','opponentRaw','opponentNormalized','position','eventRaw','rawExtractionNote'].forEach(field => {
           if (!existing[field] && leg[field]) existing[field] = leg[field];
         });
