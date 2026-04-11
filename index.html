@@ -514,6 +514,32 @@
 
     .error-log.show { display: block; }
 
+    .log-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .log-entry {
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.035);
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .log-entry strong {
+      display: inline-block;
+      margin-right: 8px;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+    }
+
+    .log-entry.info strong { color: var(--accent); }
+    .log-entry.warn strong { color: var(--warn); }
+    .log-entry.error strong { color: var(--bad); }
+
     .empty-state {
       padding: 24px;
       border-radius: 18px;
@@ -617,6 +643,12 @@
           <div class="status-line"><span>High confidence</span><strong id="highCount">0</strong></div>
           <div class="status-line"><span>Medium confidence</span><strong id="mediumCount">0</strong></div>
           <div class="status-line"><span>Low confidence</span><strong id="lowCount">0</strong></div>
+          <div id="ingestLogPanel" class="ingest-debug" style="display:none;">
+            <summary style="list-style:none; cursor:default;">Ingest error log</summary>
+            <div class="debug-inner">
+              <div id="ingestLogList" class="log-list"></div>
+            </div>
+          </div>
           <div class="footer-note">
             v1 is built to surface partial rows instead of hiding them. If a leg is incomplete, edit it in the review grid before you click Run.
           </div>
@@ -732,7 +764,8 @@
       images: [],
       rawDebug: [],
       parsedLegs: [],
-      analysisLegs: []
+      analysisLegs: [],
+      ingestLog: []
     };
 
     const els = {
@@ -758,6 +791,8 @@
       analysisEmpty: document.getElementById('analysisEmpty'),
       analysisLegCount: document.getElementById('analysisLegCount'),
       errorLog: document.getElementById('errorLog'),
+      ingestLogPanel: document.getElementById('ingestLogPanel'),
+      ingestLogList: document.getElementById('ingestLogList'),
       globalStatusText: document.getElementById('globalStatusText'),
       globalStatusPill: document.getElementById('globalStatusPill')
     };
@@ -786,6 +821,27 @@
       els.errorLog.classList.remove('show');
     }
 
+    function logIngest(level, message) {
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      state.ingestLog.push({ level, message, time });
+      renderIngestLog();
+    }
+
+    function renderIngestLog() {
+      if (!state.ingestLog.length) {
+        els.ingestLogPanel.style.display = 'none';
+        els.ingestLogList.innerHTML = '';
+        return;
+      }
+      els.ingestLogPanel.style.display = 'block';
+      els.ingestLogList.innerHTML = state.ingestLog.map(entry => `
+        <div class="log-entry ${escapeHtml(entry.level)}">
+          <strong>${escapeHtml(entry.level.toUpperCase())}</strong>
+          <span>[${escapeHtml(entry.time)}] ${escapeHtml(entry.message)}</span>
+        </div>
+      `).join('');
+    }
+
     function updateProgress(percent, text) {
       const safe = Math.max(0, Math.min(100, percent));
       els.progressLabel.textContent = `${safe}%`;
@@ -802,6 +858,7 @@
       state.rawDebug = [];
       state.parsedLegs = [];
       state.analysisLegs = [];
+      state.ingestLog = [];
       els.imageInput.value = '';
       els.previewGrid.innerHTML = '';
       els.reviewTbody.innerHTML = '';
@@ -820,6 +877,7 @@
       els.mediumCount.textContent = '0';
       els.lowCount.textContent = '0';
       clearError();
+      renderIngestLog();
       setGlobalStatus('Waiting for images', 'warn');
       switchScreen('screen-ingest');
     }
@@ -841,6 +899,8 @@
         return;
       }
       state.images = files.map((file, index) => ({ file, index, url: URL.createObjectURL(file) }));
+      state.ingestLog = [];
+      logIngest('info', `${state.images.length} image${state.images.length === 1 ? '' : 's'} loaded for ingest.`);
       renderPreviews();
       updateProgress(0, `${state.images.length} image${state.images.length === 1 ? '' : 's'} loaded. Ready to ingest.`);
       setGlobalStatus('Images loaded', 'good');
@@ -869,44 +929,100 @@
         return;
       }
 
+      if (!window.Tesseract || !window.Tesseract.recognize) {
+        logIngest('error', 'Tesseract failed to load. The OCR library is unavailable on this page.');
+        showError('OCR failed to start because the Tesseract library did not load.');
+        updateProgress(0, 'Ingest failed. OCR library unavailable.');
+        setGlobalStatus('Ingest failed', 'bad');
+        return;
+      }
+
       els.ingestBtn.disabled = true;
       els.runBtn.disabled = true;
       state.rawDebug = [];
       state.parsedLegs = [];
+      state.ingestLog = [];
+      renderIngestLog();
+      logIngest('info', `Starting ingest for ${state.images.length} image${state.images.length === 1 ? '' : 's'}.`);
       updateProgress(2, 'Preparing screenshots for OCR and parser pass...');
       setGlobalStatus('Ingest running', 'warn');
 
       try {
-        const imageResults = [];
         let carryContext = { event: '', layoutFamily: '', platformSource: '' };
 
         for (let i = 0; i < state.images.length; i++) {
           const image = state.images[i];
+          const imageLabel = `Image ${i + 1}`;
           updateProgress(Math.round((i / state.images.length) * 35) + 5, `Reading image ${i + 1} of ${state.images.length}...`);
-          const text = await extractTextFromImage(image.file);
+          logIngest('info', `${imageLabel}: preprocessing started for ${image.file.name}.`);
+
+          let text = '';
+          try {
+            text = await extractTextFromImage(image.file);
+          } catch (imageError) {
+            logIngest('error', `${imageLabel}: OCR failed for ${image.file.name}. ${imageError.message || 'Unknown OCR error.'}`);
+            throw new Error(`${imageLabel} OCR failed. ${imageError.message || 'Unknown OCR error.'}`);
+          }
+
+          const textLength = text.replace(/\s+/g, '').length;
+          if (!textLength) {
+            logIngest('warn', `${imageLabel}: OCR returned no readable text.`);
+          } else {
+            logIngest('info', `${imageLabel}: OCR returned ${textLength} non-space characters.`);
+          }
+
           const layoutFamily = detectLayoutFamily(text);
           const platformSource = detectPlatform(layoutFamily, text);
+          logIngest('info', `${imageLabel}: detected layout ${layoutFamily} on ${platformSource}.`);
+
           const parsed = parseLayoutText(text, layoutFamily, platformSource, carryContext, i);
-          imageResults.push({ imageIndex: i + 1, layoutFamily, platformSource, text, parsedCount: parsed.legs.length });
           state.parsedLegs.push(...parsed.legs);
+
           if (parsed.context.event) carryContext.event = parsed.context.event;
           if (layoutFamily) carryContext.layoutFamily = layoutFamily;
           if (platformSource) carryContext.platformSource = platformSource;
-          state.rawDebug.push({ imageIndex: i + 1, layoutFamily, platformSource, text, notes: parsed.notes });
+
+          if (!parsed.legs.length) {
+            logIngest('warn', `${imageLabel}: parser found 0 legs.`);
+          } else {
+            logIngest('info', `${imageLabel}: parser found ${parsed.legs.length} leg${parsed.legs.length === 1 ? '' : 's'}.`);
+          }
+
+          state.rawDebug.push({
+            imageIndex: i + 1,
+            layoutFamily,
+            platformSource,
+            text,
+            notes: parsed.notes
+          });
         }
 
         updateProgress(55, 'Merging screenshot rows, deduplicating, and normalizing...');
+        const beforeMergeCount = state.parsedLegs.length;
         state.parsedLegs = mergeAndNormalizeLegs(state.parsedLegs);
+        const removedByMerge = Math.max(0, beforeMergeCount - state.parsedLegs.length);
+        logIngest('info', `Merge/normalize complete. ${state.parsedLegs.length} final leg${state.parsedLegs.length === 1 ? '' : 's'} kept.${removedByMerge ? ` ${removedByMerge} duplicate row${removedByMerge === 1 ? '' : 's'} removed.` : ''}`);
 
         updateProgress(72, 'Building editable review grid...');
         renderReviewTable();
+        renderDebug();
+
+        if (!state.parsedLegs.length) {
+          logIngest('error', 'Ingest finished with 0 parsed legs. Treating result as failed instead of complete.');
+          showError('Ingest finished but 0 legs were parsed. Review the error log and raw OCR debug below.');
+          updateProgress(0, 'Ingest failed. 0 legs parsed. Review the error log and try a cleaner screenshot.');
+          setGlobalStatus('Ingest failed', 'bad');
+          els.runBtn.disabled = true;
+          return;
+        }
 
         updateProgress(100, `Ingest complete. Parsed ${state.parsedLegs.length} leg${state.parsedLegs.length === 1 ? '' : 's'}. Review and click Run when ready.`);
-        setGlobalStatus('Ingest complete', state.parsedLegs.length ? 'good' : 'bad');
-        els.runBtn.disabled = state.parsedLegs.length === 0;
-        renderDebug();
+        setGlobalStatus('Ingest complete', 'good');
+        els.runBtn.disabled = false;
+        logIngest('info', 'Ingest completed successfully.');
       } catch (error) {
         console.error(error);
+        logIngest('error', error.message || 'Unexpected OCR or parser error.');
         showError(`Ingest failed. ${error.message || 'Unexpected OCR or parser error.'}`);
         updateProgress(0, 'Ingest failed. Fix the issue and try again.');
         setGlobalStatus('Ingest failed', 'bad');
@@ -949,10 +1065,10 @@
             ctx.putImageData(imageData, 0, 0);
             resolve(canvas.toDataURL('image/png'));
           };
-          img.onerror = reject;
+          img.onerror = () => reject(new Error('Image decode failed during preprocessing.'));
           img.src = reader.result;
         };
-        reader.onerror = reject;
+        reader.onerror = () => reject(new Error('File read failed during preprocessing.'));
         reader.readAsDataURL(file);
       });
     }
@@ -1394,6 +1510,10 @@
       if (!legs.length) {
         els.reviewEmpty.style.display = 'block';
         els.reviewTableWrap.style.display = 'none';
+        els.parsedCount.textContent = '0';
+        els.highCount.textContent = '0';
+        els.mediumCount.textContent = '0';
+        els.lowCount.textContent = '0';
         els.runBtn.disabled = true;
         return;
       }
@@ -1481,6 +1601,7 @@
     function runAnalysis() {
       clearError();
       if (!state.parsedLegs.length) {
+        logIngest('error', 'Run was blocked because there are no parsed legs available.');
         showError('No parsed legs available. Ingest screenshots first.');
         return;
       }
