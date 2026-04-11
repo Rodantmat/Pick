@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NBA Slip Ingest v1.0.0.0.5</title>
+  <title>NBA Slip Ingest v1.0.0.0.6</title>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <style>
     :root {
@@ -573,7 +573,7 @@
       <div class="hero-top">
         <div class="title-wrap">
           <h1>NBA Slip Ingest</h1>
-          <p>v1.0.0.0.5 • Image upload, ingest, merge, normalize, review, and run handoff.</p>
+          <p>v1.0.0.0.6 • Image upload, ingest, merge, normalize, review, and run handoff.</p>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <div class="version-pill">CONNECTOR FAMILY 1</div>
@@ -603,6 +603,7 @@
               <button id="ingestBtn" class="primary">Ingest</button>
               <button id="runBtn" class="secondary" disabled>Run</button>
               <button id="resetBtn" class="ghost">Reset</button>
+              <button id="copyBtn" class="ghost" disabled>Copy parsed legs</button>
             </div>
             <div id="previewGrid" class="preview-grid"></div>
           </div>
@@ -680,7 +681,7 @@
   </div>
 
   <script>
-    const SYSTEM_VERSION = '1.0.0.0.0';
+    const SYSTEM_VERSION = '1.0.0.0.6';
 
     const TEAM_MAP = {
       ATL: 'Atlanta Hawks', BOS: 'Boston Celtics', BKN: 'Brooklyn Nets', BRK: 'Brooklyn Nets',
@@ -741,6 +742,7 @@
       ingestBtn: document.getElementById('ingestBtn'),
       runBtn: document.getElementById('runBtn'),
       resetBtn: document.getElementById('resetBtn'),
+      copyBtn: document.getElementById('copyBtn'),
       backToIngestBtn: document.getElementById('backToIngestBtn'),
       statusText: document.getElementById('statusText'),
       progressLabel: document.getElementById('progressLabel'),
@@ -814,6 +816,7 @@
       els.analysisEmpty.style.display = 'block';
       els.analysisLegCount.textContent = '0';
       els.runBtn.disabled = true;
+      els.copyBtn.disabled = true;
       updateProgress(0, 'No images loaded yet. Upload screenshots, click Ingest, review the parsed legs, then click Run.');
       els.parsedCount.textContent = '0';
       els.highCount.textContent = '0';
@@ -830,6 +833,7 @@
     els.ingestBtn.addEventListener('click', ingestImages);
     els.runBtn.addEventListener('click', runAnalysis);
     els.resetBtn.addEventListener('click', resetState);
+    els.copyBtn.addEventListener('click', copyParsedLegs);
     els.backToIngestBtn.addEventListener('click', () => switchScreen('screen-ingest'));
 
     function handleImageSelection(event) {
@@ -904,6 +908,7 @@
         updateProgress(100, `Ingest complete. Parsed ${state.parsedLegs.length} leg${state.parsedLegs.length === 1 ? '' : 's'}. Review and click Run when ready.`);
         setGlobalStatus('Ingest complete', state.parsedLegs.length ? 'good' : 'bad');
         els.runBtn.disabled = state.parsedLegs.length === 0;
+        els.copyBtn.disabled = state.parsedLegs.length === 0;
         renderDebug();
       } catch (error) {
         console.error(error);
@@ -1156,19 +1161,28 @@
         const teamPosLine = line;
         const playerRaw = collectPrizePicksName(lines, i);
         if (!playerRaw || isFooterNoise(playerRaw)) continue;
-        const propLine = cleanParseLine(lines[i + 1] || '');
-        if (!propLine || isFooterNoise(propLine)) continue;
-        const directionChunk = `${cleanParseLine(lines[i + 1] || '')} ${cleanParseLine(lines[i + 2] || '')} ${cleanParseLine(lines[i + 3] || '')}`;
-        const direction = inferPrizePicksDirection(directionChunk, directionChunk);
+        let propLine = '';
+        let directionChunk = '';
+        for (let k = 1; k <= 4; k++) {
+          const cand = cleanParseLine(lines[i + k] || '');
+          directionChunk += ' ' + cand;
+          if (!cand || isFooterNoise(cand)) continue;
+          if (/\d+(?:\.\d+)?\s*(Pts\+Asts|Pts\+Rebs|Pts\+Rebs\+Asts|Rebs\+Asts|Points|Rebounds|Assists|3PTM|3PM|PRA)/i.test(cand)) {
+            propLine = cand;
+            break;
+          }
+        }
+        if (!propLine) continue;
         const parsedLine = parsePrizePicksPropLine(propLine);
+        const teamRaw = extractTeamFromPrizePicksTeamPos(teamPosLine);
         legs.push(makeLeg({
           playerRaw,
-          teamRaw: extractTeamFromPrizePicksTeamPos(teamPosLine),
-          opponentRaw: extractOpponentFromEvent(currentEvent, extractTeamFromPrizePicksTeamPos(teamPosLine)),
+          teamRaw,
+          opponentRaw: extractOpponentFromEvent(currentEvent, teamRaw),
           position: extractPositionFromPrizePicksTeamPos(teamPosLine),
           propRaw: parsedLine.propRaw,
           line: normalizeSportsbookLine(parsedLine.line, 'prizepicks_current_lineup'),
-          direction,
+          direction: inferPrizePicksDirection(directionChunk, directionChunk),
           promoType: inferPromoTypeFromText(propLine),
           suffix: parsedLine.suffix,
           platformSource,
@@ -1479,6 +1493,7 @@
         els.reviewEmpty.style.display = 'block';
         els.reviewTableWrap.style.display = 'none';
         els.runBtn.disabled = true;
+        els.copyBtn.disabled = true;
         return;
       }
       els.reviewEmpty.style.display = 'none';
@@ -1560,6 +1575,42 @@
           <div class="tiny muted" style="margin-top:8px;">${escapeHtml((entry.notes || []).join(' | '))}</div>
         </div>
       `).join('');
+    }
+
+    async function copyParsedLegs() {
+      clearError();
+      if (!state.parsedLegs.length) {
+        showError('No parsed legs available to copy.');
+        return;
+      }
+      const payload = state.parsedLegs.map((leg, idx) => ({
+        row: idx + 1,
+        player_raw: leg.playerRaw || '',
+        player: leg.playerNormalized || '',
+        team_raw: leg.teamRaw || '',
+        team: leg.teamNormalized || '',
+        opponent_raw: leg.opponentRaw || '',
+        opponent: leg.opponentNormalized || '',
+        position: leg.position || '',
+        prop_raw: leg.propRaw || '',
+        prop: leg.propNormalized || '',
+        line: leg.line || '',
+        direction: leg.direction || 'UNKNOWN',
+        promo: leg.promoType || 'Regular',
+        suffix: leg.suffix || '',
+        platform: leg.platformSource || '',
+        layout: leg.layoutFamily || '',
+        confidence: leg.parseConfidence || '',
+        note: leg.rawExtractionNote || ''
+      }));
+      const text = JSON.stringify(payload, null, 2);
+      try {
+        await navigator.clipboard.writeText(text);
+        updateProgress(100, `Copied ${state.parsedLegs.length} parsed leg${state.parsedLegs.length === 1 ? '' : 's'} to clipboard.`);
+        setGlobalStatus('Parsed legs copied', 'good');
+      } catch (err) {
+        showError('Clipboard copy failed on this device/browser.');
+      }
     }
 
     function runAnalysis() {
