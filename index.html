@@ -263,7 +263,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1 id="intakeTitle">Prompt 1 Intake <span class="version-pill">v6.5.0</span></h1>
+        <h1 id="intakeTitle">Prompt 1 Intake <span class="version-pill">v6.5.2</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -310,8 +310,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v6.5.0</h1>
-          <p id="analysisVersion">Version: v6.5.0 (Anchor Lock & JSON-First Retrieval)</p>
+          <h1 id="analysisTitle">Run Analysis v6.5.2</h1>
+          <p id="analysisVersion">Version: v6.5.2 (Anchor Lock & JSON-First Retrieval)</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -345,7 +345,7 @@ thead th { background:#121d35; position:sticky; top:0; }
       </section>
 
       <section class="card">
-        <h2>Alpha Shield v6.5.0</h2>
+        <h2>Alpha Shield v6.5.2</h2>
         <div id="shieldPanel" class="shield-grid"></div>
       </section>
 
@@ -379,7 +379,7 @@ thead th { background:#121d35; position:sticky; top:0; }
 
 
 <script>
-const SYSTEM_VERSION = "v6.5.1 (Phase 1 Connectors • BDL + ESPN + Odds)";
+const SYSTEM_VERSION = "v6.5.2 (Phase 1 Connectors • ESPN Proxy + Odds)";
 const STORAGE_KEY = "pickcalc-nba-8-8-reference-lock";
 const APP_BUILD_LABEL = "Phase 1 Connectors / BDL + ESPN + Odds";
 const TYPE_META = {
@@ -476,11 +476,20 @@ function normalizePhase1PropFamily(input) {
   const clean = String(input || '').toUpperCase().replace(/[^A-Z0-9+]/g, '');
   return PHASE1_PROP_FAMILY_ALIASES[clean] || null;
 }
+const PHASE1_PROXY_BASE = 'https://nbaproxy.rodolfoaamattos.workers.dev/?url=';
+function maybeProxyUrl(url) {
+  const raw = String(url || '');
+  if (!raw) return raw;
+  if (/site\.web\.api\.espn\.com|site\.api\.espn\.com|sports\.core\.api\.espn\.com/i.test(raw)) {
+    return `${PHASE1_PROXY_BASE}${encodeURIComponent(raw)}`;
+  }
+  return raw;
+}
 async function safeFetchJson(url, timeout = 12000, headers = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   try {
-    const response = await fetch(url, {
+    const response = await fetch(maybeProxyUrl(url), {
       method:'GET',
       signal: controller.signal,
       headers: Object.assign({ 'Accept':'application/json, text/plain, */*' }, headers)
@@ -720,14 +729,14 @@ const CON_01_Identity = {
     const normalizedOpponent = normalizeTeamAbbr(opponentInput);
     const result = {
       ok:false, player_id:null, espn_athlete_id:null, full_name:null, team_abbr:normalizedTeam, team_full:getTeamDisplayName(normalizedTeam),
-      opponent_abbr:normalizedOpponent, opponent_full:getTeamDisplayName(normalizedOpponent), source:'BALLDONTLIE/ESPN', confidence:'NONE', error:null
+      opponent_abbr:normalizedOpponent, opponent_full:getTeamDisplayName(normalizedOpponent), source:'ESPN/BDL', confidence:'NONE', error:null
     };
     try {
       const inputNorm = this._normalize(playerName);
       const inputParts = String(playerName || '').trim().split(/\s+/).filter(Boolean);
       const inputInitial = inputParts[0] ? inputParts[0][0].toLowerCase() : null;
       const inputLast = inputParts.length > 1 ? this._normalize(inputParts[inputParts.length - 1]) : null;
-      const [bdl, espn] = await Promise.all([BallDontLieAdapter.searchPlayers(playerName), ESPNDataAdapter.searchAthletes(playerName)]);
+      const [espn, bdl] = await Promise.all([ESPNDataAdapter.searchAthletes(playerName), BallDontLieAdapter.searchPlayers(playerName)]);
       const candidates = [];
       const pushCandidate = (fullName, teamAbbr, source, playerId, espnId, active, firstName, lastName) => {
         const full = fullName || '';
@@ -2599,9 +2608,30 @@ function bindActions() {
     render();
   };
   document.getElementById('copyBtn').onclick = async () => {
+    const text = buildAnalysisCopyText(activeRow());
     try {
-      await navigator.clipboard.writeText(buildAnalysisCopyText(activeRow()));
-      document.getElementById('analysisHint').textContent = 'Copied.';
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        document.getElementById('analysisHint').textContent = 'Copied.';
+        return;
+      }
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', 'readonly');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) {
+        document.getElementById('analysisHint').textContent = 'Copied.';
+        return;
+      }
+      throw new Error('execCommand copy failed');
     } catch {
       document.getElementById('analysisHint').textContent = 'Copy failed.';
     }
