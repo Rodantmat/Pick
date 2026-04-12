@@ -263,7 +263,7 @@ thead th { background:#121d35; position:sticky; top:0; }
   <div class="app-shell">
     <section id="intakeScreen">
       <header class="hero">
-        <h1 id="intakeTitle">Prompt 1 Intake <span class="version-pill">v6.5.2</span></h1>
+        <h1 id="intakeTitle">Prompt 1 Intake <span class="version-pill">v6.5.1</span></h1>
         <p>Paste board chunks, ingest them, track prop-line feed status, then run the clean pool.</p>
       </header>
 
@@ -310,8 +310,8 @@ thead th { background:#121d35; position:sticky; top:0; }
     <section id="analysisScreen" class="hidden">
       <header class="hero hero-inline">
         <div>
-          <h1 id="analysisTitle">Run Analysis v6.5.2</h1>
-          <p id="analysisVersion">Version: v6.5.2 (Anchor Lock & JSON-First Retrieval)</p>
+          <h1 id="analysisTitle">Run Analysis v6.5.1</h1>
+          <p id="analysisVersion">Version: v6.5.0 (Anchor Lock & JSON-First Retrieval)</p>
         </div>
         <div class="btn-row no-top-gap">
           <button id="backBtn" class="secondary">Back</button>
@@ -345,7 +345,7 @@ thead th { background:#121d35; position:sticky; top:0; }
       </section>
 
       <section class="card">
-        <h2>Alpha Shield v6.5.2</h2>
+        <h2>Alpha Shield v6.5.1</h2>
         <div id="shieldPanel" class="shield-grid"></div>
       </section>
 
@@ -379,9 +379,744 @@ thead th { background:#121d35; position:sticky; top:0; }
 
 
 <script>
-const SYSTEM_VERSION = "v6.5.2 (Phase 1 Connectors • ESPN Proxy + Odds)";
+
+const NBA_TEAM_BY_ABBR = {
+  "ATL": { team_id: 1610612737, abbr: "ATL", city: "Atlanta", name: "Hawks", full_name: "Atlanta Hawks" },
+  "BOS": { team_id: 1610612738, abbr: "BOS", city: "Boston", name: "Celtics", full_name: "Boston Celtics" },
+  "CLE": { team_id: 1610612739, abbr: "CLE", city: "Cleveland", name: "Cavaliers", full_name: "Cleveland Cavaliers" },
+  "NOP": { team_id: 1610612740, abbr: "NOP", city: "New Orleans", name: "Pelicans", full_name: "New Orleans Pelicans" },
+  "CHI": { team_id: 1610612741, abbr: "CHI", city: "Chicago", name: "Bulls", full_name: "Chicago Bulls" },
+  "DAL": { team_id: 1610612742, abbr: "DAL", city: "Dallas", name: "Mavericks", full_name: "Dallas Mavericks" },
+  "DEN": { team_id: 1610612743, abbr: "DEN", city: "Denver", name: "Nuggets", full_name: "Denver Nuggets" },
+  "GSW": { team_id: 1610612744, abbr: "GSW", city: "Golden State", name: "Warriors", full_name: "Golden State Warriors" },
+  "HOU": { team_id: 1610612745, abbr: "HOU", city: "Houston", name: "Rockets", full_name: "Houston Rockets" },
+  "LAC": { team_id: 1610612746, abbr: "LAC", city: "LA", name: "Clippers", full_name: "LA Clippers" },
+  "LAL": { team_id: 1610612747, abbr: "LAL", city: "Los Angeles", name: "Lakers", full_name: "Los Angeles Lakers" },
+  "MIA": { team_id: 1610612748, abbr: "MIA", city: "Miami", name: "Heat", full_name: "Miami Heat" },
+  "MIL": { team_id: 1610612749, abbr: "MIL", city: "Milwaukee", name: "Bucks", full_name: "Milwaukee Bucks" },
+  "MIN": { team_id: 1610612750, abbr: "MIN", city: "Minnesota", name: "Timberwolves", full_name: "Minnesota Timberwolves" },
+  "BKN": { team_id: 1610612751, abbr: "BKN", city: "Brooklyn", name: "Nets", full_name: "Brooklyn Nets" },
+  "NYK": { team_id: 1610612752, abbr: "NYK", city: "New York", name: "Knicks", full_name: "New York Knicks" },
+  "ORL": { team_id: 1610612753, abbr: "ORL", city: "Orlando", name: "Magic", full_name: "Orlando Magic" },
+  "IND": { team_id: 1610612754, abbr: "IND", city: "Indiana", name: "Pacers", full_name: "Indiana Pacers" },
+  "PHI": { team_id: 1610612755, abbr: "PHI", city: "Philadelphia", name: "76ers", full_name: "Philadelphia 76ers" },
+  "PHX": { team_id: 1610612756, abbr: "PHX", city: "Phoenix", name: "Suns", full_name: "Phoenix Suns" },
+  "POR": { team_id: 1610612757, abbr: "POR", city: "Portland", name: "Trail Blazers", full_name: "Portland Trail Blazers" },
+  "SAC": { team_id: 1610612758, abbr: "SAC", city: "Sacramento", name: "Kings", full_name: "Sacramento Kings" },
+  "SAS": { team_id: 1610612759, abbr: "SAS", city: "San Antonio", name: "Spurs", full_name: "San Antonio Spurs" },
+  "OKC": { team_id: 1610612760, abbr: "OKC", city: "Oklahoma City", name: "Thunder", full_name: "Oklahoma City Thunder" },
+  "TOR": { team_id: 1610612761, abbr: "TOR", city: "Toronto", name: "Raptors", full_name: "Toronto Raptors" },
+  "UTA": { team_id: 1610612762, abbr: "UTA", city: "Utah", name: "Jazz", full_name: "Utah Jazz" },
+  "MEM": { team_id: 1610612763, abbr: "MEM", city: "Memphis", name: "Grizzlies", full_name: "Memphis Grizzlies" },
+  "WAS": { team_id: 1610612764, abbr: "WAS", city: "Washington", name: "Wizards", full_name: "Washington Wizards" },
+  "DET": { team_id: 1610612765, abbr: "DET", city: "Detroit", name: "Pistons", full_name: "Detroit Pistons" },
+  "CHA": { team_id: 1610612766, abbr: "CHA", city: "Charlotte", name: "Hornets", full_name: "Charlotte Hornets" }
+};
+
+const NBA_TEAM_BY_ID = Object.fromEntries(Object.values(NBA_TEAM_BY_ABBR).map(team => [team.team_id, team]));
+
+const NBA_TEAM_ALIASES = {
+  "GS": "GSW", "WARRIORS": "GSW", "GOLDEN STATE": "GSW",
+  "PHO": "PHX", "SUNS": "PHX",
+  "SA": "SAS", "SPURS": "SAS", "SAN ANTONIO": "SAS",
+  "NO": "NOP", "PELICANS": "NOP", "NEW ORLEANS": "NOP", "PELS": "NOP",
+  "NY": "NYK", "KNICKS": "NYK", "NEW YORK": "NYK",
+  "BK": "BKN", "BRK": "BKN", "NETS": "BKN", "BROOKLYN": "BKN",
+  "CLIPPERS": "LAC", "CLIPS": "LAC",
+  "LAKERS": "LAL",
+  "HAWKS": "ATL", "CELTICS": "BOS", "HORNETS": "CHA", "BULLS": "CHI",
+  "CAVALIERS": "CLE", "CAVS": "CLE", "MAVERICKS": "DAL", "MAVS": "DAL",
+  "NUGGETS": "DEN", "PISTONS": "DET", "ROCKETS": "HOU", "PACERS": "IND",
+  "GRIZZLIES": "MEM", "GRIZ": "MEM", "HEAT": "MIA", "BUCKS": "MIL",
+  "TIMBERWOLVES": "MIN", "WOLVES": "MIN", "MAGIC": "ORL", "76ERS": "PHI",
+  "SIXERS": "PHI", "BLAZERS": "POR", "TRAIL BLAZERS": "POR", "KINGS": "SAC",
+  "RAPTORS": "TOR", "RAPS": "TOR", "JAZZ": "UTA", "WIZARDS": "WAS"
+};
+
+function normalizeTeamAbbr(input) {
+  if (!input) return null;
+  const clean = String(input).trim().toUpperCase();
+  if (NBA_TEAM_BY_ABBR[clean]) return clean;
+  if (NBA_TEAM_ALIASES[clean]) return NBA_TEAM_ALIASES[clean];
+  for (const team of Object.values(NBA_TEAM_BY_ABBR)) {
+    if (team.full_name.toUpperCase() === clean || `${team.city} ${team.name}`.toUpperCase() === clean) {
+      return team.abbr;
+    }
+  }
+  return null;
+}
+
+function getTeamByAbbr(input) {
+  const abbr = normalizeTeamAbbr(input);
+  return abbr ? NBA_TEAM_BY_ABBR[abbr] : null;
+}
+
+function getTeamById(input) {
+  return NBA_TEAM_BY_ID[input] || null;
+}
+
+function getTeamDisplayName(input) {
+  const team = getTeamByAbbr(input);
+  return team ? team.full_name : null;
+}
+
+const PHASE1_PROP_FAMILY_ALIASES = {
+  "POINTS": "POINTS",
+  "PTS": "POINTS",
+  "REBOUNDS": "REBOUNDS",
+  "REB": "REBOUNDS",
+  "ASSISTS": "ASSISTS",
+  "AST": "ASSISTS",
+  "PRA": "PRA",
+  "POINTS+REBOUNDS": "POINTS+REBOUNDS",
+  "PTS+REBS": "POINTS+REBOUNDS",
+  "PTS+REB": "POINTS+REBOUNDS",
+  "POINTS+ASSISTS": "POINTS+ASSISTS",
+  "PTS+ASTS": "POINTS+ASSISTS",
+  "PTS+AST": "POINTS+ASSISTS",
+  "REBOUNDS+ASSISTS": "REBOUNDS+ASSISTS",
+  "REB+ASTS": "REBOUNDS+ASSISTS",
+  "REB+AST": "REBOUNDS+ASSISTS",
+  "PTS+REBS+ASTS": "PRA",
+  "POINTS+REBOUNDS+ASSISTS": "PRA",
+  "3PM": "3PM",
+  "3PTMADE": "3PM",
+  "3PTM": "3PM",
+  "3PT MADE": "3PM"
+};
+
+function normalizePhase1PropFamily(input) {
+  const clean = String(input || '').toUpperCase().replace(/[^A-Z0-9+]/g, '');
+  return PHASE1_PROP_FAMILY_ALIASES[clean] || null;
+}
+
+const NBA_ENDPOINTS = {
+  PLAYERS: 'https://stats.nba.com/stats/commonallplayers?IsOnlyCurrentSeason=0&LeagueID=00&Season={season}',
+  GAME_LOG: 'https://stats.nba.com/stats/playergamelog?DateFrom=&DateTo=&LeagueID=00&PlayerID={playerId}&Season={season}&SeasonType=Regular+Season',
+  CAREER_STATS: 'https://stats.nba.com/stats/playercareerstats?LeagueID=00&PerMode=PerGame&PlayerID={playerId}',
+  TEAM_ADVANCED: 'https://stats.nba.com/stats/leaguedashteamstats?DateFrom=&DateTo=&LastNGames={lastN}&LeagueID=00&Location=&Month=0&OpponentTeamID=0&Outcome=&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerExperience=&PlayerPosition=&PlusMinus=N&Rank=N&Season={season}&SeasonType=Regular+Season&MeasureType=Advanced'
+};
+
+async function safeFetchJson(url, timeout = 12000, headers = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: Object.assign({
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json',
+        'x-nba-stats-origin': 'stats',
+        'x-nba-stats-token': 'true'
+      }, headers)
+    });
+    clearTimeout(timer);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (err) {
+    clearTimeout(timer);
+    return null;
+  }
+}
+
+function nbaRowsToObjects(resultSet, setName = '') {
+  if (!resultSet || !resultSet.headers || !resultSet.rowSet) return [];
+  const headers = resultSet.headers.map(h => String(h).toLowerCase());
+  return resultSet.rowSet.map(row => {
+    const obj = { __resultSetName: setName || '' };
+    headers.forEach((header, index) => {
+      obj[header] = row[index];
+    });
+    return obj;
+  });
+}
+
+function normalizeNbaPayload(payload) {
+  if (!payload) return [];
+  if (payload.resultSets && Array.isArray(payload.resultSets)) {
+    return payload.resultSets.map(rs => nbaRowsToObjects(rs, rs.name || rs.name || '')).flat();
+  }
+  if (payload.resultSet) {
+    return nbaRowsToObjects(payload.resultSet, payload.resultSet.name || '');
+  }
+  return [];
+}
+
+const NBADataAdapter = {
+  formatUrl(template, params = {}) {
+    let url = template;
+    Object.entries(params).forEach(([key, value]) => {
+      url = url.replace(`{${key}}`, encodeURIComponent(value));
+    });
+    return url;
+  },
+  async fetchPlayers(season = '2025-26') {
+    const url = this.formatUrl(NBA_ENDPOINTS.PLAYERS, { season });
+    const data = await safeFetchJson(url);
+    return normalizeNbaPayload(data);
+  },
+  async fetchPlayerGameLog(playerId, season = '2025-26') {
+    const url = this.formatUrl(NBA_ENDPOINTS.GAME_LOG, { playerId, season });
+    const data = await safeFetchJson(url);
+    return normalizeNbaPayload(data);
+  },
+  async fetchPlayerCareerStats(playerId) {
+    const url = this.formatUrl(NBA_ENDPOINTS.CAREER_STATS, { playerId });
+    const data = await safeFetchJson(url);
+    return normalizeNbaPayload(data);
+  },
+  async fetchTeamAdvancedStats(lastN = 0, season = '2025-26') {
+    const url = this.formatUrl(NBA_ENDPOINTS.TEAM_ADVANCED, { lastN, season });
+    const data = await safeFetchJson(url);
+    return normalizeNbaPayload(data);
+  }
+};
+
+const CON_01_Identity = {
+  _normalize(str) {
+    if (!str) return '';
+    return String(str)
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+(jr|sr|ii|iii|iv|v)$/g, '')
+      .trim();
+  },
+  async resolve({ playerName, teamInput, opponentInput, season = '2025-26' }) {
+    const normalizedTeam = normalizeTeamAbbr(teamInput);
+    const normalizedOpponent = normalizeTeamAbbr(opponentInput);
+    const result = {
+      ok: false,
+      player_id: null,
+      full_name: null,
+      team_abbr: normalizedTeam,
+      team_full: getTeamDisplayName(normalizedTeam),
+      opponent_abbr: normalizedOpponent,
+      opponent_full: getTeamDisplayName(normalizedOpponent),
+      source: 'NBA_API',
+      confidence: 'NONE',
+      error: null
+    };
+    try {
+      const players = await NBADataAdapter.fetchPlayers(season);
+      if (!players || !players.length) {
+        result.error = 'Source unreachable';
+        return result;
+      }
+      const inputNorm = this._normalize(playerName);
+      const inputParts = String(playerName || '').trim().split(/\s+/).filter(Boolean);
+      const inputInitial = inputParts[0] ? inputParts[0][0].toLowerCase() : null;
+      const inputLastName = inputParts.length > 1 ? this._normalize(inputParts[inputParts.length - 1]) : null;
+      let matches = [];
+      for (const p of players) {
+        const apiFull = String(p.display_first_last || '');
+        const apiNorm = this._normalize(apiFull);
+        const apiLast = this._normalize(p.last_name || apiFull.split(' ').pop());
+        const apiFirst = this._normalize(p.first_name || apiFull.split(' ')[0]);
+        if (apiFull.toLowerCase() === String(playerName || '').toLowerCase()) {
+          matches.push({ player: p, rank: 1 });
+          continue;
+        }
+        if (apiNorm === inputNorm) {
+          matches.push({ player: p, rank: 2 });
+          continue;
+        }
+        if (inputInitial && inputLastName && apiLast === inputLastName && apiFirst.startsWith(inputInitial)) {
+          matches.push({ player: p, rank: 3 });
+        }
+      }
+      if (normalizedTeam) {
+        matches = matches.filter(m => m.player.team_abbreviation === normalizedTeam);
+      }
+      if (!matches.length) {
+        result.error = 'Identity mismatch or team inconsistent';
+        return result;
+      }
+      const minRank = Math.min(...matches.map(m => m.rank));
+      const finalCandidates = matches.filter(m => m.rank === minRank);
+      if (finalCandidates.length > 1) {
+        result.error = 'Ambiguous identity; multiple candidates at same rank';
+        return result;
+      }
+      const bestMatch = finalCandidates[0];
+      if (bestMatch.rank <= 2 && normalizedTeam) result.confidence = 'HIGH';
+      else if (bestMatch.rank === 3 && normalizedTeam) result.confidence = 'MEDIUM';
+      else if (bestMatch.rank <= 2 && !normalizedTeam) result.confidence = 'MEDIUM';
+      else {
+        result.error = 'Low confidence identity; team verification required for partial matches';
+        return result;
+      }
+      result.ok = true;
+      result.player_id = bestMatch.player.person_id;
+      result.full_name = bestMatch.player.display_first_last;
+      result.team_abbr = bestMatch.player.team_abbreviation;
+      result.team_full = getTeamDisplayName(bestMatch.player.team_abbreviation);
+      result.opponent_abbr = normalizedOpponent;
+      result.opponent_full = getTeamDisplayName(normalizedOpponent);
+      return result;
+    } catch (err) {
+      result.error = `CON-01_ERR: ${err.message}`;
+      return result;
+    }
+  }
+};
+
+const CON_02_StatResolver = {
+  SUPPORTED_FAMILIES: ['POINTS','REBOUNDS','ASSISTS','3PM','PRA','POINTS+REBOUNDS','POINTS+ASSISTS','REBOUNDS+ASSISTS'],
+  normalizeFamily(family) {
+    return normalizePhase1PropFamily(family);
+  },
+  isValid(family) {
+    const normalized = this.normalizeFamily(family);
+    return Boolean(normalized && this.SUPPORTED_FAMILIES.includes(normalized));
+  },
+  resolve(row, family) {
+    const normalized = this.normalizeFamily(family);
+    if (!normalized || !row) return 0;
+    const pts = parseFloat(row.pts) || 0;
+    const reb = parseFloat(row.reb) || 0;
+    const ast = parseFloat(row.ast) || 0;
+    const fg3m = parseFloat(row.fg3m) || 0;
+    switch (normalized) {
+      case 'POINTS': return pts;
+      case 'REBOUNDS': return reb;
+      case 'ASSISTS': return ast;
+      case '3PM': return fg3m;
+      case 'PRA': return pts + reb + ast;
+      case 'POINTS+REBOUNDS': return pts + reb;
+      case 'POINTS+ASSISTS': return pts + ast;
+      case 'REBOUNDS+ASSISTS': return reb + ast;
+      default: return 0;
+    }
+  }
+};
+
+const CON_02_Helpers = {
+  average(rows, family) {
+    if (!rows || rows.length === 0) return null;
+    const sum = rows.reduce((acc, row) => acc + CON_02_StatResolver.resolve(row, family), 0);
+    return parseFloat((sum / rows.length).toFixed(2));
+  },
+  filterMatchup(rows, opponentAbbr) {
+    if (!opponentAbbr || !rows) return [];
+    const target = opponentAbbr.toUpperCase();
+    return rows.filter(r => {
+      const matchup = String(r.matchup || '').toUpperCase();
+      const parts = matchup.split(/\s+/);
+      return parts.length === 3 && parts[2] === target;
+    });
+  },
+  filterSplits(rows, type) {
+    if (!rows) return [];
+    switch (type) {
+      case 'HOME': return rows.filter(r => String(r.matchup || '').includes('vs.'));
+      case 'AWAY': return rows.filter(r => String(r.matchup || '').includes('@'));
+      case 'WIN': return rows.filter(r => String(r.wl || '').toUpperCase() === 'W');
+      case 'LOSS': return rows.filter(r => String(r.wl || '').toUpperCase() === 'L');
+      default: return rows;
+    }
+  }
+};
+
+const CON_02_Historical = {
+  async fetch({ playerId, opponentInput, propFamily, season = '2025-26' }) {
+    const result = {
+      ok: false,
+      prop_family: CON_02_StatResolver.normalizeFamily(propFamily),
+      season_baseline: null,
+      career_baseline: null,
+      last5: null,
+      last10: null,
+      last20: null,
+      head_to_head: null,
+      home_split: null,
+      away_split: null,
+      win_split: null,
+      loss_split: null,
+      source: 'NBA_API',
+      confidence: 'NONE',
+      sample_counts: { total_games: 0, h2h_games: 0, home_games: 0, away_games: 0, win_games: 0, loss_games: 0 },
+      error: null
+    };
+    try {
+      if (!CON_02_StatResolver.isValid(propFamily)) {
+        result.error = `Unsupported prop family: ${propFamily}`;
+        return result;
+      }
+      const [gameLog, careerStats] = await Promise.all([
+        NBADataAdapter.fetchPlayerGameLog(playerId, season),
+        NBADataAdapter.fetchPlayerCareerStats(playerId)
+      ]);
+      if (!gameLog || !gameLog.length) {
+        result.error = 'Empty game log for current season';
+        return result;
+      }
+      result.season_baseline = CON_02_Helpers.average(gameLog, propFamily);
+      result.last5 = CON_02_Helpers.average(gameLog.slice(0, 5), propFamily);
+      result.last10 = CON_02_Helpers.average(gameLog.slice(0, 10), propFamily);
+      result.last20 = CON_02_Helpers.average(gameLog.slice(0, 20), propFamily);
+      result.sample_counts.total_games = gameLog.length;
+
+      const splitMap = [
+        ['HOME', 'home_split', 'home_games'],
+        ['AWAY', 'away_split', 'away_games'],
+        ['WIN', 'win_split', 'win_games'],
+        ['LOSS', 'loss_split', 'loss_games']
+      ];
+      splitMap.forEach(([type, resultKey, countKey]) => {
+        const rows = CON_02_Helpers.filterSplits(gameLog, type);
+        result[resultKey] = CON_02_Helpers.average(rows, propFamily);
+        result.sample_counts[countKey] = rows.length;
+      });
+
+      const oppAbbr = normalizeTeamAbbr(opponentInput);
+      if (oppAbbr) {
+        const h2hRows = CON_02_Helpers.filterMatchup(gameLog, oppAbbr);
+        result.head_to_head = CON_02_Helpers.average(h2hRows, propFamily);
+        result.sample_counts.h2h_games = h2hRows.length;
+      }
+
+      if (careerStats && careerStats.length > 0) {
+        const careerRow = careerStats.find(r => String(r.__resultSetName || '').toLowerCase().includes('careertotalsregularseason'))
+          || careerStats.find(r => String(r.season_id || '').toUpperCase() === 'CAREER')
+          || null;
+        if (careerRow) {
+          result.career_baseline = CON_02_StatResolver.resolve(careerRow, propFamily);
+        }
+      }
+
+      let missingFactors = 0;
+      ['season_baseline','last5','last10','last20','home_split','away_split','win_split','loss_split'].forEach(key => {
+        if (result[key] == null) missingFactors += 1;
+      });
+      if (result.season_baseline != null && result.last5 != null && result.last10 != null && missingFactors <= 2) {
+        result.confidence = 'HIGH';
+      } else if (result.season_baseline != null) {
+        result.confidence = 'MEDIUM';
+      } else {
+        result.confidence = 'LOW';
+      }
+      result.ok = result.confidence !== 'LOW';
+      return result;
+    } catch (err) {
+      result.error = `CON-02_INTERNAL_ERR: ${err.message}`;
+      result.ok = false;
+      return result;
+    }
+  }
+};
+
+const MARKET_CONFIG = {
+  BASE_URL: 'https://api.the-odds-api.com/v4/sports/basketball_nba/odds/',
+  REGIONS: 'us',
+  MARKETS: 'spreads,totals',
+  ODDS_FORMAT: 'american'
+};
+
+const CON_07_Helpers = {
+  toIsoDay(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toISOString().slice(0, 10);
+  },
+  findEvent(events, homeAbbr, awayAbbr, targetDate) {
+    if (!events || !Array.isArray(events)) return null;
+    const targetIso = this.toIsoDay(targetDate);
+    const matches = events.filter(event => {
+      const h = normalizeTeamAbbr(event.home_team);
+      const a = normalizeTeamAbbr(event.away_team);
+      if (!(h === homeAbbr && a === awayAbbr)) return false;
+      if (!targetIso) return true;
+      return this.toIsoDay(event.commence_time) === targetIso;
+    });
+    return matches.length === 1 ? matches[0] : null;
+  },
+  getBestBookmaker(event, requiredMarkets = []) {
+    if (!event || !Array.isArray(event.bookmakers)) return null;
+    const priority = ['pinnacle', 'draftkings', 'fanduel', 'betmgm', 'caesars'];
+    const validBooks = event.bookmakers.filter(book => Array.isArray(book.markets) && requiredMarkets.every(key => book.markets.some(m => m.key === key)));
+    if (!validBooks.length) return null;
+    validBooks.sort((a, b) => {
+      const aKey = String(a.key || a.title || '').toLowerCase();
+      const bKey = String(b.key || b.title || '').toLowerCase();
+      const aIdx = priority.findIndex(x => aKey.includes(x));
+      const bIdx = priority.findIndex(x => bKey.includes(x));
+      const av = aIdx === -1 ? 999 : aIdx;
+      const bv = bIdx === -1 ? 999 : bIdx;
+      if (av !== bv) return av - bv;
+      return new Date(b.last_update || 0).getTime() - new Date(a.last_update || 0).getTime();
+    });
+    return validBooks[0];
+  },
+  calculateImpliedForContext(teamSpread, total) {
+    if (teamSpread == null || total == null) return { team: null, opponent: null };
+    return {
+      team: parseFloat(((total / 2) - (teamSpread / 2)).toFixed(2)),
+      opponent: parseFloat(((total / 2) + (teamSpread / 2)).toFixed(2))
+    };
+  }
+};
+
+const CON_07_Market = {
+  async fetch({ homeTeamInput, awayTeamInput, teamInput, targetDate, apiKey }) {
+    const resolvedApiKey = apiKey || window.PICKCALC_ODDS_API_KEY || localStorage.getItem('PICKCALC_ODDS_API_KEY') || '';
+    const result = {
+      ok: false,
+      home_team_abbr: normalizeTeamAbbr(homeTeamInput),
+      away_team_abbr: normalizeTeamAbbr(awayTeamInput),
+      spread: null,
+      spread_price_home: null,
+      spread_price_away: null,
+      game_total: null,
+      over_price: null,
+      under_price: null,
+      market_line_family: { book: null, last_update: null },
+      team_implied_total: null,
+      opponent_implied_total: null,
+      source: 'ODDS_AGGREGATOR',
+      confidence: 'NONE',
+      stale: false,
+      timestamp: null,
+      error: null
+    };
+    if (!resolvedApiKey) {
+      result.error = 'API_KEY_MISSING';
+      return result;
+    }
+    try {
+      const url = `${MARKET_CONFIG.BASE_URL}?apiKey=${encodeURIComponent(resolvedApiKey)}&regions=${encodeURIComponent(MARKET_CONFIG.REGIONS)}&markets=${encodeURIComponent(MARKET_CONFIG.MARKETS)}&oddsFormat=${encodeURIComponent(MARKET_CONFIG.ODDS_FORMAT)}`;
+      const events = await safeFetchJson(url, 12000, { 'Accept': 'application/json' });
+      if (!events) {
+        result.error = 'Source unreachable';
+        return result;
+      }
+      const event = CON_07_Helpers.findEvent(events, result.home_team_abbr, result.away_team_abbr, targetDate);
+      if (!event) {
+        result.error = 'Event match ambiguous or not found';
+        return result;
+      }
+      result.timestamp = event.commence_time;
+      const book = CON_07_Helpers.getBestBookmaker(event, ['spreads', 'totals']);
+      if (!book) {
+        result.error = 'No bookmaker with required markets';
+        return result;
+      }
+      result.market_line_family = {
+        book: book.title || book.key || 'Unknown',
+        last_update: book.last_update || null,
+        available_markets: (book.markets || []).map(m => m.key).filter(Boolean)
+      };
+      const spreadMarket = book.markets.find(m => m.key === 'spreads');
+      const totalMarket = book.markets.find(m => m.key === 'totals');
+      const contextAbbr = normalizeTeamAbbr(teamInput);
+      if (spreadMarket && Array.isArray(spreadMarket.outcomes)) {
+        const homeOutcome = spreadMarket.outcomes.find(o => normalizeTeamAbbr(o.name) === result.home_team_abbr);
+        const awayOutcome = spreadMarket.outcomes.find(o => normalizeTeamAbbr(o.name) === result.away_team_abbr);
+        if (homeOutcome && awayOutcome) {
+          result.spread_price_home = homeOutcome.price ?? null;
+          result.spread_price_away = awayOutcome.price ?? null;
+          if (contextAbbr === result.away_team_abbr) result.spread = awayOutcome.point ?? null;
+          else result.spread = homeOutcome.point ?? null;
+        }
+      }
+      if (totalMarket && Array.isArray(totalMarket.outcomes)) {
+        const overOutcome = totalMarket.outcomes.find(o => String(o.name || '').toLowerCase() === 'over');
+        const underOutcome = totalMarket.outcomes.find(o => String(o.name || '').toLowerCase() === 'under');
+        if (overOutcome) {
+          result.game_total = overOutcome.point ?? null;
+          result.over_price = overOutcome.price ?? null;
+        }
+        if (underOutcome) result.under_price = underOutcome.price ?? null;
+      }
+      if (result.spread != null && result.game_total != null) {
+        const implied = CON_07_Helpers.calculateImpliedForContext(result.spread, result.game_total);
+        result.team_implied_total = implied.team;
+        result.opponent_implied_total = implied.opponent;
+        result.ok = true;
+        result.confidence = 'HIGH';
+      } else if (result.spread != null || result.game_total != null) {
+        result.ok = true;
+        result.confidence = 'MEDIUM';
+        result.error = 'Partial lines: spread or total missing';
+      } else {
+        result.error = 'No usable lines found in matched event';
+      }
+      if (result.market_line_family.last_update) {
+        const diff = Date.now() - new Date(result.market_line_family.last_update).getTime();
+        if (diff > 14400000) result.stale = true;
+      }
+      return result;
+    } catch (err) {
+      result.error = `CON-07_EXCEPTION: ${err.message}`;
+      return result;
+    }
+  }
+};
+
+const PACE_ENDPOINTS = {
+  TEAM_ADVANCED: 'https://stats.nba.com/stats/leaguedashteamstats?DateFrom=&DateTo=&LastNGames={lastN}&LeagueID=00&Location=&Month=0&OpponentTeamID=0&Outcome=&PaceAdjust=N&PerMode=PerGame&Period=0&PlayerExperience=&PlayerPosition=&PlusMinus=N&Rank=N&Season={season}&SeasonType=Regular+Season&MeasureType=Advanced'
+};
+
+const CON_08_Helpers = {
+  findTeamRow(rows, teamAbbr) {
+    if (!rows || !Array.isArray(rows)) return null;
+    return rows.find(r => normalizeTeamAbbr(r.team_abbreviation) === teamAbbr);
+  },
+  calculatePaceDelta(teamPace, oppPace, leagueAvgPace = 99.1) {
+    const gamePace = (teamPace + oppPace) / 2;
+    return parseFloat((gamePace - leagueAvgPace).toFixed(2));
+  }
+};
+
+const CON_08_Pace = {
+  async fetch({ teamInput, opponentInput, season = '2025-26' }) {
+    const result = {
+      ok: false,
+      team_abbr: normalizeTeamAbbr(teamInput),
+      opponent_abbr: normalizeTeamAbbr(opponentInput),
+      pace: 0,
+      opponent_recent_pace: 0,
+      pace_delta: 0,
+      source: 'NBA_API_ADVANCED',
+      confidence: 'NONE',
+      error: null
+    };
+    if (!result.team_abbr || !result.opponent_abbr) {
+      result.error = 'INVALID_TEAM_OR_OPPONENT_INPUT';
+      return result;
+    }
+    try {
+      const [seasonRows, recentRows] = await Promise.all([
+        NBADataAdapter.fetchTeamAdvancedStats(0, season),
+        NBADataAdapter.fetchTeamAdvancedStats(10, season)
+      ]);
+      if (!seasonRows || !seasonRows.length) {
+        result.error = 'FAILED_TO_RETRIEVE_PACE_DATA';
+        return result;
+      }
+      const teamSeasonRow = CON_08_Helpers.findTeamRow(seasonRows, result.team_abbr);
+      const oppSeasonRow = CON_08_Helpers.findTeamRow(seasonRows, result.opponent_abbr);
+      const oppRecentRow = CON_08_Helpers.findTeamRow(recentRows, result.opponent_abbr);
+      if (!teamSeasonRow || !oppSeasonRow) {
+        result.error = 'TEAM_DATA_MISSING_IN_SOURCE';
+        return result;
+      }
+      result.pace = parseFloat(teamSeasonRow.pace) || 0;
+      if (oppRecentRow && oppRecentRow.pace) {
+        result.opponent_recent_pace = parseFloat(oppRecentRow.pace) || 0;
+        result.confidence = 'HIGH';
+      } else {
+        result.opponent_recent_pace = parseFloat(oppSeasonRow.pace) || 0;
+        result.confidence = 'MEDIUM';
+      }
+      const leagueAvgPace = seasonRows.reduce((sum, r) => sum + (parseFloat(r.pace) || 0), 0) / seasonRows.length;
+      result.pace_delta = CON_08_Helpers.calculatePaceDelta(result.pace, result.opponent_recent_pace, leagueAvgPace || 99.1);
+      result.ok = result.pace > 0 && result.opponent_recent_pace > 0;
+      return result;
+    } catch (err) {
+      result.error = `CON-08_EXCEPTION: ${err.message}`;
+      return result;
+    }
+  }
+};
+
+function getPhase1Season() {
+  return '2025-26';
+}
+
+function inferGameSidesForRow(row, identity) {
+  const teamAbbr = normalizeTeamAbbr(identity?.team_abbr || row?.team || '');
+  const oppAbbr = normalizeTeamAbbr(identity?.opponent_abbr || row?.opponent || '');
+  const raw = String(row?.rawText || row?.lineText || '').toUpperCase();
+  if (teamAbbr && oppAbbr) {
+    const awayRx = new RegExp(`@\\s*${oppAbbr}\\b`, 'i');
+    const homeRx = new RegExp(`VS\\.?\\s*${oppAbbr}\\b`, 'i');
+    if (awayRx.test(raw)) return { home: oppAbbr, away: teamAbbr };
+    if (homeRx.test(raw)) return { home: teamAbbr, away: oppAbbr };
+  }
+  return { home: teamAbbr, away: oppAbbr };
+}
+
+function getOddsApiKey() {
+  return window.PICKCALC_ODDS_API_KEY || localStorage.getItem('PICKCALC_ODDS_API_KEY') || '';
+}
+
+function connectorConfidenceScore(confidence) {
+  if (confidence === 'HIGH') return 90;
+  if (confidence === 'MEDIUM') return 72;
+  if (confidence === 'LOW') return 45;
+  return 18;
+}
+
+function applyConnectorCard(card, patch) {
+  Object.assign(card, patch);
+  return card;
+}
+
+function markPhasePending(card, label, detail) {
+  return applyConnectorCard(card, {
+    status: 'warning',
+    phase: 'PENDING',
+    statusLabel: label,
+    parsedResult: detail,
+    evidence: detail,
+    extractionProof: 'Connector family not included in Phase 1 deployment.',
+    extractionMethod: 'Phase Gate',
+    sourceWinner: 'PHASE 2+',
+    sourcesLabel: card.sourcesLabel,
+    confidence: 35,
+    derived: false,
+    numericValue: null,
+    hardData: false,
+    scoreDelta: 0
+  });
+}
+
+function patchCardFromConnector(card, row, fields) {
+  applyConnectorCard(card, fields);
+  card.scoreDelta = computeScoreDelta(card, row, {});
+}
+
+function buildPhase1Shield(card, row, connectorData, cards) {
+  const identity = connectorData.identity;
+  const historical = connectorData.historical;
+  const market = connectorData.market;
+  const pace = connectorData.pace;
+  const readyCount = Object.values(cards).filter(c => c.status === 'ready').length;
+  const warningCount = Object.values(cards).filter(c => c.status === 'warning').length;
+  return applyConnectorCard(card, {
+    status: warningCount ? 'warning' : 'ready',
+    phase: 'PHASE 1 CONNECTORS',
+    statusLabel: `PHASE 1 ${readyCount}/14 CARDS WIRED`,
+    parsedResult: `Identity ${identity?.ok ? 'OK' : 'FAIL'} • Historical ${historical?.ok ? 'OK' : 'FAIL'} • Market ${market?.ok ? 'OK' : 'PARTIAL'} • Pace ${pace?.ok ? 'OK' : 'FAIL'}`,
+    evidence: `Ready ${readyCount} • Warning ${warningCount} • Market stale ${market?.stale ? 'YES' : 'NO'}`,
+    extractionProof: 'Phase 1 connector family merged into ensureNbaMining().',
+    extractionMethod: 'Connector Sequence',
+    sourceWinner: 'CON-01 • CON-02 • CON-07 • CON-08',
+    sourcesLabel: 'Phase 1 Connector Family',
+    confidence: 82,
+    derived: false,
+    numericValue: null,
+    hardData: true,
+    scoreDelta: 0,
+    alphaShield: {
+      purityScore: readyCount,
+      confidenceAvg: Math.round(Object.values(cards).reduce((sum, c) => sum + Number(c.confidence || 0), 0) / Math.max(1, Object.values(cards).length)),
+      unknownCount: Object.values(cards).filter(c => String(c.parsedResult || '').includes('[UNKNOWN]')).length,
+      derivedCount: Object.values(cards).filter(c => c.derived).length,
+      warningCount,
+      hitProb: 0,
+      qualified: 0,
+      underJuiceDrag: 0,
+      whistleBump: 0
+    }
+  });
+}
+
+const SYSTEM_VERSION = "v6.5.1 (Phase 1 Connectors • Anchor Lock & JSON-First Retrieval)";
 const STORAGE_KEY = "pickcalc-nba-8-8-reference-lock";
-const APP_BUILD_LABEL = "Phase 1 Connectors / BDL + ESPN + Odds";
+const APP_BUILD_LABEL = "Phase 1 Connectors / Anchor Lock / JSON-First Retrieval";
 const TYPE_META = {
   REGULAR: {icon:'⚪', label:'Regular'},
   GOBLIN: {icon:'🟢', label:'Goblin'},
@@ -417,587 +1152,6 @@ const REF_NAMES = [
   'Scott Foster','Tony Brothers','Zach Zarba','James Capers','Bill Kennedy','Ben Taylor','Marc Davis',
   'John Goble','Tyler Ford','Sean Wright','David Guthrie','Eric Lewis','Tre Maddox','Brian Forte'
 ];
-
-const NBA_TEAM_BY_ABBR = {
-  ATL:'ATL', BOS:'BOS', BKN:'BKN', CHA:'CHA', CHI:'CHI', CLE:'CLE', DAL:'DAL', DEN:'DEN', DET:'DET',
-  GSW:'GSW', HOU:'HOU', IND:'IND', LAC:'LAC', LAL:'LAL', MEM:'MEM', MIA:'MIA', MIL:'MIL', MIN:'MIN',
-  NOP:'NOP', NYK:'NYK', OKC:'OKC', ORL:'ORL', PHI:'PHI', PHX:'PHX', POR:'POR', SAC:'SAC', SAS:'SAS',
-  TOR:'TOR', UTA:'UTA', WAS:'WAS'
-};
-const NBA_TEAM_ALIASES = {
-  GS:'GSW', GSW:'GSW', WARRIORS:'GSW', GOLDENSTATEWARRIORS:'GSW',
-  PHO:'PHX', PHX:'PHX', SUNS:'PHX',
-  SA:'SAS', SAS:'SAS', SPURS:'SAS', SANANTONIOSPURS:'SAS',
-  NO:'NOP', NOP:'NOP', PELS:'NOP', PELICANS:'NOP', NEWORLEANSPelicans:'NOP',
-  NY:'NYK', NYK:'NYK', KNICKS:'NYK',
-  BK:'BKN', BRK:'BKN', BKN:'BKN', NETS:'BKN',
-  CLIPS:'LAC', CLIPPERS:'LAC', LAC:'LAC',
-  LAKERS:'LAL', LAL:'LAL',
-  HAWKS:'ATL', CELTICS:'BOS', HORNETS:'CHA', BULLS:'CHI', CAVS:'CLE', CAVALIERS:'CLE',
-  MAVS:'DAL', MAVERICKS:'DAL', NUGGETS:'DEN', PISTONS:'DET', ROCKETS:'HOU', PACERS:'IND',
-  GRIZZLIES:'MEM', HEAT:'MIA', BUCKS:'MIL', WOLVES:'MIN', TIMBERWOLVES:'MIN',
-  MAGIC:'ORL', SIXERS:'PHI', '76ERS':'PHI', BLAZERS:'POR', TRAILBLAZERS:'POR',
-  KINGS:'SAC', RAPTORS:'TOR', JAZZ:'UTA', WIZARDS:'WAS', THUNDER:'OKC'
-};
-const PHASE1_PROP_FAMILY_ALIASES = {
-  POINTS:'POINTS', PTS:'POINTS', REBOUNDS:'REBOUNDS', REB:'REBOUNDS', ASSISTS:'ASSISTS', AST:'ASSISTS',
-  PRA:'PRA', PTSREBSASTS:'PRA', POINTSREBOUNDSASSISTS:'PRA',
-  PTSREBS:'POINTS+REBOUNDS', PTSREB:'POINTS+REBOUNDS', POINTSREBOUNDS:'POINTS+REBOUNDS',
-  PTSASTS:'POINTS+ASSISTS', PTSAST:'POINTS+ASSISTS', POINTSASSISTS:'POINTS+ASSISTS',
-  REBASTS:'REBOUNDS+ASSISTS', REBAST:'REBOUNDS+ASSISTS', REBOUNDSASSISTS:'REBOUNDS+ASSISTS',
-  '3PM':'3PM', '3PTM':'3PM', '3PTMADE':'3PM', THREES:'3PM'
-};
-const BALLDONTLIE_ENDPOINTS = {
-  PLAYERS: 'https://api.balldontlie.io/v1/players?search={query}&per_page=10'
-};
-const ESPN_ENDPOINTS = {
-  ATHLETE_SEARCH: 'https://site.web.api.espn.com/apis/search/v2?query={query}&limit=5',
-  ATHLETE_GAMELOG: 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/{athleteId}/gamelog',
-  ATHLETE_SPLITS: 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/{athleteId}/splits',
-  ATHLETE_OVERVIEW: 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/{athleteId}/overview',
-  TEAM_STATISTICS: 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/statistics/teams'
-};
-const MARKET_CONFIG = {
-  BASE_URL: 'https://api.the-odds-api.com/v4/sports/basketball_nba/odds/',
-  REGIONS: 'us',
-  MARKETS: 'spreads,totals',
-  ODDS_FORMAT: 'american'
-};
-function normalizeTeamAbbr(input) {
-  if (!input) return null;
-  const clean = String(input).trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  return NBA_TEAM_BY_ABBR[clean] || NBA_TEAM_ALIASES[clean] || NBA_TEAM_BY_ABBR[String(input).trim().toUpperCase()] || null;
-}
-function getTeamDisplayName(input) {
-  const abbr = normalizeTeamAbbr(input) || String(input || '').trim().toUpperCase();
-  return expandTeamName(abbr);
-}
-function normalizePhase1PropFamily(input) {
-  const clean = String(input || '').toUpperCase().replace(/[^A-Z0-9+]/g, '');
-  return PHASE1_PROP_FAMILY_ALIASES[clean] || null;
-}
-const PHASE1_PROXY_BASE = 'https://nbaproxy.rodolfoaamattos.workers.dev/?url=';
-function maybeProxyUrl(url) {
-  const raw = String(url || '');
-  if (!raw) return raw;
-  if (/site\.web\.api\.espn\.com|site\.api\.espn\.com|sports\.core\.api\.espn\.com/i.test(raw)) {
-    return `${PHASE1_PROXY_BASE}${encodeURIComponent(raw)}`;
-  }
-  return raw;
-}
-async function safeFetchJson(url, timeout = 12000, headers = {}) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeout);
-  try {
-    const response = await fetch(maybeProxyUrl(url), {
-      method:'GET',
-      signal: controller.signal,
-      headers: Object.assign({ 'Accept':'application/json, text/plain, */*' }, headers)
-    });
-    clearTimeout(timer);
-    if (!response.ok) return null;
-    return await response.json();
-  } catch (err) {
-    clearTimeout(timer);
-    return null;
-  }
-}
-const Phase1AdapterUtils = {
-  formatUrl(template, params = {}) {
-    let url = template;
-    Object.entries(params).forEach(([key, value]) => {
-      url = url.replace(`{${key}}`, encodeURIComponent(value == null ? '' : value));
-    });
-    return url;
-  },
-  statValue(node) {
-    if (node == null) return null;
-    if (typeof node === 'number') return node;
-    if (typeof node === 'string') {
-      const m = node.match(/-?\d+(?:\.\d+)?/);
-      return m ? Number(m[0]) : null;
-    }
-    if (typeof node === 'object') {
-      for (const key of ['value','displayValue','perGameDisplayValue','average','stat','amount']) {
-        if (node[key] != null) {
-          const m = String(node[key]).match(/-?\d+(?:\.\d+)?/);
-          if (m) return Number(m[0]);
-        }
-      }
-    }
-    return null;
-  },
-  findStat(collection, aliases = []) {
-    if (!Array.isArray(collection)) return null;
-    const checks = aliases.map(a => canon(a).replace(/[^a-z0-9]/g, ''));
-    for (const item of collection) {
-      const keys = [item?.name, item?.displayName, item?.shortDisplayName, item?.abbreviation, item?.label, item?.key]
-        .map(v => canon(v || '').replace(/[^a-z0-9]/g, ''));
-      if (checks.some(check => keys.includes(check))) {
-        const value = Phase1AdapterUtils.statValue(item);
-        if (value != null) return value;
-      }
-    }
-    return null;
-  }
-};
-const BallDontLieAdapter = {
-  async searchPlayers(query) {
-    const url = Phase1AdapterUtils.formatUrl(BALLDONTLIE_ENDPOINTS.PLAYERS, { query });
-    const data = await safeFetchJson(url);
-    const rows = Array.isArray(data?.data) ? data.data : [];
-    return rows.map(player => ({
-      id: player.id || null,
-      fullName: [player.first_name, player.last_name].filter(Boolean).join(' ').trim(),
-      firstName: player.first_name || '',
-      lastName: player.last_name || '',
-      teamAbbr: normalizeTeamAbbr(player.team?.abbreviation),
-      active: player.team != null,
-      raw: player
-    }));
-  }
-};
-const EspnNorm = {
-  search(payload) {
-    if (!payload || !Array.isArray(payload.results)) return [];
-    const out = [];
-    payload.results.forEach(bucket => {
-      const type = canon(bucket?.type || bucket?.displayName || '');
-      const list = Array.isArray(bucket?.data) ? bucket.data : [];
-      if (type.includes('athlete')) {
-        list.forEach(item => {
-          out.push({
-            id: item?.id || null,
-            fullName: item?.fullName || item?.displayName || '',
-            teamAbbr: normalizeTeamAbbr(item?.team?.abbreviation || item?.team?.shortDisplayName),
-            active: item?.active !== false,
-            raw: item
-          });
-        });
-      }
-    });
-    return out;
-  },
-  gameLog(payload) {
-    return {
-      entries: Array.isArray(payload?.entries) ? payload.entries : Array.isArray(payload?.events) ? payload.events : [],
-      labels: Array.isArray(payload?.labels) ? payload.labels : Array.isArray(payload?.statistics?.labels) ? payload.statistics.labels : [],
-      raw: payload || null
-    };
-  },
-  splits(payload) {
-    return {
-      groups: Array.isArray(payload?.groups) ? payload.groups : Array.isArray(payload?.splits?.groups) ? payload.splits.groups : [],
-      labels: Array.isArray(payload?.labels) ? payload.labels : Array.isArray(payload?.splits?.labels) ? payload.splits.labels : [],
-      raw: payload || null
-    };
-  },
-  overview(payload) {
-    return payload ? { athlete: payload.athlete || {}, statistics: payload.statistics || [], careerTotals: payload.careerTotals || null, raw: payload } : null;
-  },
-  teamStats(payload) {
-    const rows = Array.isArray(payload?.teams) ? payload.teams : Array.isArray(payload?.sports?.[0]?.leagues?.[0]?.teams) ? payload.sports[0].leagues[0].teams : [];
-    return rows.map(team => ({
-      id: team?.team?.id || team?.id || null,
-      abbr: normalizeTeamAbbr(team?.team?.abbreviation || team?.abbreviation),
-      stats: Array.isArray(team?.statistics) ? team.statistics : Array.isArray(team?.stats) ? team.stats : [],
-      raw: team
-    }));
-  }
-};
-const ESPNDataAdapter = {
-  async _request(url) {
-    return await safeFetchJson(url);
-  },
-  async searchAthletes(query) {
-    const url = Phase1AdapterUtils.formatUrl(ESPN_ENDPOINTS.ATHLETE_SEARCH, { query });
-    return EspnNorm.search(await this._request(url));
-  },
-  async fetchAthleteGameLog(athleteId) {
-    const url = Phase1AdapterUtils.formatUrl(ESPN_ENDPOINTS.ATHLETE_GAMELOG, { athleteId });
-    return EspnNorm.gameLog(await this._request(url));
-  },
-  async fetchAthleteSplits(athleteId) {
-    const url = Phase1AdapterUtils.formatUrl(ESPN_ENDPOINTS.ATHLETE_SPLITS, { athleteId });
-    return EspnNorm.splits(await this._request(url));
-  },
-  async fetchAthleteOverview(athleteId) {
-    const url = Phase1AdapterUtils.formatUrl(ESPN_ENDPOINTS.ATHLETE_OVERVIEW, { athleteId });
-    return EspnNorm.overview(await this._request(url));
-  },
-  async fetchTeamStats() {
-    return EspnNorm.teamStats(await this._request(ESPN_ENDPOINTS.TEAM_STATISTICS));
-  }
-};
-function normalizeEspnEntryToStatMap(entry, labels = []) {
-  const out = {};
-  const rawStats = Array.isArray(entry?.stats) ? entry.stats : Array.isArray(entry?.statistics) ? entry.statistics : [];
-  if (Array.isArray(labels) && labels.length === rawStats.length) {
-    labels.forEach((label, index) => {
-      out[canon(label).replace(/[^a-z0-9]/g, '')] = Phase1AdapterUtils.statValue(rawStats[index]);
-    });
-  }
-  if (Array.isArray(rawStats)) {
-    rawStats.forEach(stat => {
-      if (stat && typeof stat === 'object') {
-        const key = canon(stat.name || stat.displayName || stat.abbreviation || stat.label || '').replace(/[^a-z0-9]/g, '');
-        if (key) out[key] = Phase1AdapterUtils.statValue(stat);
-      }
-    });
-  }
-  return out;
-}
-function getEspnEntryOpponentAbbr(entry) {
-  return normalizeTeamAbbr(entry?.opponent?.abbreviation || entry?.opponent?.shortDisplayName || entry?.opponent?.displayName || '');
-}
-function getEspnEntryHomeAway(entry) {
-  const value = canon(entry?.homeAway || entry?.location || entry?.gameLocation || '');
-  if (value.includes('home')) return 'HOME';
-  if (value.includes('away')) return 'AWAY';
-  const summary = canon(entry?.displayValue || entry?.shortDisplayValue || entry?.summary || '');
-  if (summary.includes(' vs ')) return 'HOME';
-  if (summary.includes(' @ ')) return 'AWAY';
-  return null;
-}
-function getEspnEntryResult(entry) {
-  const value = canon(entry?.result?.abbreviation || entry?.result || entry?.outcome || '');
-  if (value === 'w' || value.includes('win')) return 'W';
-  if (value === 'l' || value.includes('loss')) return 'L';
-  return null;
-}
-function getEspnSplitStat(group, aliases = [], labels = []) {
-  const stats = Array.isArray(group?.stats) ? group.stats : Array.isArray(group?.statistics) ? group.statistics : [];
-  const direct = Phase1AdapterUtils.findStat(stats, aliases);
-  if (direct != null) return direct;
-  if (Array.isArray(labels) && labels.length === stats.length) {
-    for (let i = 0; i < labels.length; i += 1) {
-      const labelKey = canon(labels[i]).replace(/[^a-z0-9]/g, '');
-      if (aliases.map(a => canon(a).replace(/[^a-z0-9]/g, '')).includes(labelKey)) {
-        const value = Phase1AdapterUtils.statValue(stats[i]);
-        if (value != null) return value;
-      }
-    }
-  }
-  return null;
-}
-function getEspnTeamStatValue(teamRow, aliases = []) {
-  return Phase1AdapterUtils.findStat(teamRow?.stats || [], aliases);
-}
-function getOddsApiKey() {
-  return window.PICKCALC_ODDS_API_KEY || localStorage.getItem('PICKCALC_ODDS_API_KEY') || '7caa930f0cda5a1baaea0dad608f71a1';
-}
-function connectorConfidenceScore(confidence) {
-  if (confidence === 'HIGH') return 90;
-  if (confidence === 'MEDIUM') return 72;
-  if (confidence === 'LOW') return 45;
-  return 18;
-}
-function inferGameSidesForRow(row, identity) {
-  const teamAbbr = normalizeTeamAbbr(identity?.team_abbr || row?.team || '');
-  const oppAbbr = normalizeTeamAbbr(identity?.opponent_abbr || row?.opponent || '');
-  const raw = String(row?.rawText || row?.lineText || '').toUpperCase();
-  if (teamAbbr && oppAbbr) {
-    const awayRx = new RegExp(`@\s*${oppAbbr}\b`, 'i');
-    const homeRx = new RegExp(`VS\.?\s*${oppAbbr}\b`, 'i');
-    if (awayRx.test(raw)) return { home: oppAbbr, away: teamAbbr };
-    if (homeRx.test(raw)) return { home: teamAbbr, away: oppAbbr };
-  }
-  return { home: teamAbbr, away: oppAbbr };
-}
-function applyConnectorCard(card, patch) {
-  Object.assign(card, patch);
-  return card;
-}
-function patchCardFromConnector(card, row, fields) {
-  applyConnectorCard(card, fields);
-  card.scoreDelta = computeScoreDelta(card, row, {});
-}
-function markPhasePending(card, label, detail) {
-  return applyConnectorCard(card, {
-    status:'warning', phase:'PENDING', statusLabel:label, parsedResult:detail, evidence:detail,
-    extractionProof:'Connector family not included in Phase 1 deployment.', extractionMethod:'Phase Gate',
-    sourceWinner:'PHASE 2+', confidence:35, derived:false, numericValue:null, hardData:false, scoreDelta:0
-  });
-}
-const CON_01_Identity = {
-  _normalize(str) {
-    if (!str) return '';
-    return String(str).toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+(jr|sr|ii|iii|iv|v)$/g, '').trim();
-  },
-  async resolve({ playerName, teamInput, opponentInput }) {
-    const normalizedTeam = normalizeTeamAbbr(teamInput);
-    const normalizedOpponent = normalizeTeamAbbr(opponentInput);
-    const result = {
-      ok:false, player_id:null, espn_athlete_id:null, full_name:null, team_abbr:normalizedTeam, team_full:getTeamDisplayName(normalizedTeam),
-      opponent_abbr:normalizedOpponent, opponent_full:getTeamDisplayName(normalizedOpponent), source:'ESPN/BDL', confidence:'NONE', error:null
-    };
-    try {
-      const inputNorm = this._normalize(playerName);
-      const inputParts = String(playerName || '').trim().split(/\s+/).filter(Boolean);
-      const inputInitial = inputParts[0] ? inputParts[0][0].toLowerCase() : null;
-      const inputLast = inputParts.length > 1 ? this._normalize(inputParts[inputParts.length - 1]) : null;
-      const [espn, bdl] = await Promise.all([ESPNDataAdapter.searchAthletes(playerName), BallDontLieAdapter.searchPlayers(playerName)]);
-      const candidates = [];
-      const pushCandidate = (fullName, teamAbbr, source, playerId, espnId, active, firstName, lastName) => {
-        const full = fullName || '';
-        const normName = this._normalize(full);
-        let rank = 0;
-        if (full.toLowerCase() === String(playerName || '').toLowerCase()) rank = 1;
-        else if (normName === inputNorm) rank = 2;
-        else if (inputInitial && inputLast && this._normalize(lastName || full.split(' ').pop()) === inputLast && this._normalize(firstName || full.split(' ')[0]).startsWith(inputInitial)) rank = 3;
-        if (rank) candidates.push({ rank, team_abbr:normalizeTeamAbbr(teamAbbr), source, player_id:playerId || null, espn_athlete_id:espnId || null, full_name:full, active:active !== false });
-      };
-      bdl.forEach(player => pushCandidate(player.fullName, player.teamAbbr, 'BALLDONTLIE', player.id, null, player.active, player.firstName, player.lastName));
-      espn.forEach(player => pushCandidate(player.fullName, player.teamAbbr, 'ESPN', null, player.id, player.active));
-      let filtered = candidates.filter(candidate => !normalizedTeam || candidate.team_abbr === normalizedTeam);
-      if (!filtered.length) filtered = candidates;
-      filtered.sort((a,b) => (a.rank - b.rank) || ((b.active?1:0) - (a.active?1:0)));
-      if (!filtered.length) {
-        result.error = 'Identity mismatch or source unavailable';
-        return result;
-      }
-      if (filtered.length > 1 && filtered[0].rank === filtered[1].rank && filtered[0].team_abbr === filtered[1].team_abbr) {
-        result.error = 'Ambiguous identity; multiple candidates at same confidence';
-        return result;
-      }
-      const best = filtered[0];
-      if (normalizedTeam && best.team_abbr && best.team_abbr !== normalizedTeam) {
-        result.error = `Team mismatch: expected ${normalizedTeam}, got ${best.team_abbr}`;
-        return result;
-      }
-      result.ok = true;
-      result.player_id = best.player_id;
-      result.espn_athlete_id = best.espn_athlete_id;
-      result.full_name = best.full_name;
-      result.team_abbr = best.team_abbr || normalizedTeam;
-      result.team_full = getTeamDisplayName(result.team_abbr);
-      result.confidence = best.rank <= 2 && result.team_abbr ? 'HIGH' : 'MEDIUM';
-      result.source = best.source;
-      return result;
-    } catch (err) {
-      result.error = `CON-01_ERR: ${err.message}`;
-      return result;
-    }
-  }
-};
-const CON_02_StatResolver = {
-  SUPPORTED_FAMILIES:['POINTS','REBOUNDS','ASSISTS','3PM','PRA','POINTS+REBOUNDS','POINTS+ASSISTS','REBOUNDS+ASSISTS'],
-  normalizeFamily(family) { return normalizePhase1PropFamily(family); },
-  isValid(family) { const normalized = this.normalizeFamily(family); return Boolean(normalized && this.SUPPORTED_FAMILIES.includes(normalized)); }
-};
-const CON_02_Helpers = {
-  entryValue(entry, labels, family) {
-    const normalized = CON_02_StatResolver.normalizeFamily(family);
-    const statMap = normalizeEspnEntryToStatMap(entry, labels);
-    const pts = statMap.points ?? statMap.pts ?? null;
-    const reb = statMap.rebounds ?? statMap.reb ?? null;
-    const ast = statMap.assists ?? statMap.ast ?? null;
-    const threes = statMap.fg3m ?? statMap['3pm'] ?? statMap.threepointfieldgoalsmade ?? null;
-    if (normalized === 'POINTS') return pts;
-    if (normalized === 'REBOUNDS') return reb;
-    if (normalized === 'ASSISTS') return ast;
-    if (normalized === '3PM') return threes;
-    if (normalized === 'PRA' && pts != null && reb != null && ast != null) return round1(pts + reb + ast);
-    if (normalized === 'POINTS+REBOUNDS' && pts != null && reb != null) return round1(pts + reb);
-    if (normalized === 'POINTS+ASSISTS' && pts != null && ast != null) return round1(pts + ast);
-    if (normalized === 'REBOUNDS+ASSISTS' && reb != null && ast != null) return round1(reb + ast);
-    return null;
-  },
-  average(entries, labels, family) {
-    const vals = (entries || []).map(entry => this.entryValue(entry, labels, family)).filter(v => v != null && Number.isFinite(Number(v)));
-    if (!vals.length) return null;
-    return round1(vals.reduce((sum, value) => sum + Number(value), 0) / vals.length);
-  },
-  splitValue(groups, labels, splitName, family) {
-    const group = (groups || []).find(item => canon(item?.name || item?.displayName || '').includes(canon(splitName)));
-    if (!group) return null;
-    const pts = getEspnSplitStat(group, ['points','pts'], labels);
-    const reb = getEspnSplitStat(group, ['rebounds','reb'], labels);
-    const ast = getEspnSplitStat(group, ['assists','ast'], labels);
-    const threes = getEspnSplitStat(group, ['3pm','fg3m','threepointfieldgoalsmade'], labels);
-    const normalized = CON_02_StatResolver.normalizeFamily(family);
-    if (normalized === 'POINTS') return pts;
-    if (normalized === 'REBOUNDS') return reb;
-    if (normalized === 'ASSISTS') return ast;
-    if (normalized === '3PM') return threes;
-    if (normalized === 'PRA' && pts != null && reb != null && ast != null) return round1(pts + reb + ast);
-    if (normalized === 'POINTS+REBOUNDS' && pts != null && reb != null) return round1(pts + reb);
-    if (normalized === 'POINTS+ASSISTS' && pts != null && ast != null) return round1(pts + ast);
-    if (normalized === 'REBOUNDS+ASSISTS' && reb != null && ast != null) return round1(reb + ast);
-    return null;
-  },
-  overviewCareerValue(overview, family) {
-    const stats = Array.isArray(overview?.careerTotals?.stats) ? overview.careerTotals.stats : [];
-    if (!stats.length) return null;
-    return this.splitValue([{ stats }], [], 'career', family) || this.average([{ stats }], [], family);
-  }
-};
-const CON_02_Historical = {
-  async fetch({ espnAthleteId, opponentInput, propFamily }) {
-    const result = { ok:false, prop_family:normalizePhase1PropFamily(propFamily), season_baseline:null, career_baseline:null, last5:null, last10:null, last20:null, head_to_head:null, home_split:null, away_split:null, win_split:null, loss_split:null, source:'ESPN', confidence:'NONE', sample_counts:{ total_games:0,h2h_games:0,home_games:0,away_games:0,win_games:0,loss_games:0 }, error:null };
-    try {
-      if (!CON_02_StatResolver.isValid(propFamily)) { result.error = `Unsupported prop family: ${propFamily}`; return result; }
-      if (!espnAthleteId) { result.error = 'Missing ESPN athlete id'; return result; }
-      const [gameLog, splits, overview] = await Promise.all([ESPNDataAdapter.fetchAthleteGameLog(espnAthleteId), ESPNDataAdapter.fetchAthleteSplits(espnAthleteId), ESPNDataAdapter.fetchAthleteOverview(espnAthleteId)]);
-      const entries = Array.isArray(gameLog?.entries) ? gameLog.entries : [];
-      const labels = Array.isArray(gameLog?.labels) ? gameLog.labels : [];
-      if (!entries.length) { result.error = 'Empty ESPN game log'; return result; }
-      result.sample_counts.total_games = entries.length;
-      result.season_baseline = CON_02_Helpers.average(entries, labels, propFamily);
-      result.last5 = CON_02_Helpers.average(entries.slice(0,5), labels, propFamily);
-      result.last10 = CON_02_Helpers.average(entries.slice(0,10), labels, propFamily);
-      result.last20 = CON_02_Helpers.average(entries.slice(0,20), labels, propFamily);
-      const oppAbbr = normalizeTeamAbbr(opponentInput);
-      const h2h = entries.filter(entry => getEspnEntryOpponentAbbr(entry) === oppAbbr);
-      result.sample_counts.h2h_games = h2h.length;
-      result.head_to_head = CON_02_Helpers.average(h2h, labels, propFamily);
-      const home = entries.filter(entry => getEspnEntryHomeAway(entry) === 'HOME');
-      const away = entries.filter(entry => getEspnEntryHomeAway(entry) === 'AWAY');
-      const wins = entries.filter(entry => getEspnEntryResult(entry) === 'W');
-      const losses = entries.filter(entry => getEspnEntryResult(entry) === 'L');
-      result.sample_counts.home_games = home.length; result.sample_counts.away_games = away.length; result.sample_counts.win_games = wins.length; result.sample_counts.loss_games = losses.length;
-      const groups = Array.isArray(splits?.groups) ? splits.groups : [];
-      const splitLabels = Array.isArray(splits?.labels) ? splits.labels : [];
-      result.home_split = CON_02_Helpers.splitValue(groups, splitLabels, 'home', propFamily) ?? CON_02_Helpers.average(home, labels, propFamily);
-      result.away_split = CON_02_Helpers.splitValue(groups, splitLabels, 'away', propFamily) ?? CON_02_Helpers.average(away, labels, propFamily);
-      result.win_split = CON_02_Helpers.splitValue(groups, splitLabels, 'win', propFamily) ?? CON_02_Helpers.average(wins, labels, propFamily);
-      result.loss_split = CON_02_Helpers.splitValue(groups, splitLabels, 'loss', propFamily) ?? CON_02_Helpers.average(losses, labels, propFamily);
-      result.career_baseline = CON_02_Helpers.overviewCareerValue(overview, propFamily);
-      if (result.season_baseline != null && result.last5 != null && result.last10 != null) result.confidence = 'HIGH';
-      else if (result.season_baseline != null) result.confidence = 'MEDIUM';
-      else result.confidence = 'LOW';
-      result.ok = result.confidence !== 'LOW';
-      return result;
-    } catch (err) {
-      result.error = `CON-02_INTERNAL_ERR: ${err.message}`;
-      return result;
-    }
-  }
-};
-const CON_07_Helpers = {
-  toIsoDay(value) {
-    if (!value) return null;
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return null;
-    return d.toISOString().slice(0, 10);
-  },
-  findEvent(events, homeAbbr, awayAbbr, targetDate) {
-    if (!Array.isArray(events)) return null;
-    const targetIso = this.toIsoDay(targetDate);
-    const matches = events.filter(event => {
-      const h = normalizeTeamAbbr(event.home_team);
-      const a = normalizeTeamAbbr(event.away_team);
-      if (!(h === homeAbbr && a === awayAbbr)) return false;
-      if (!targetIso) return true;
-      return this.toIsoDay(event.commence_time) === targetIso;
-    });
-    return matches.length === 1 ? matches[0] : null;
-  },
-  getBestBookmaker(event, requiredMarkets = []) {
-    if (!event || !Array.isArray(event.bookmakers)) return null;
-    const validBooks = event.bookmakers.filter(book => Array.isArray(book.markets) && requiredMarkets.every(key => book.markets.some(m => m.key === key)));
-    return validBooks[0] || null;
-  },
-  calculateImpliedForContext(teamSpread, total) {
-    if (teamSpread == null || total == null) return { team:null, opponent:null };
-    return { team: round1((total / 2) - (teamSpread / 2)), opponent: round1((total / 2) + (teamSpread / 2)) };
-  }
-};
-const CON_07_Market = {
-  async fetch({ homeTeamInput, awayTeamInput, teamInput, targetDate, apiKey }) {
-    const resolvedApiKey = apiKey || getOddsApiKey();
-    const result = { ok:false, home_team_abbr:normalizeTeamAbbr(homeTeamInput), away_team_abbr:normalizeTeamAbbr(awayTeamInput), spread:null, spread_price_home:null, spread_price_away:null, game_total:null, over_price:null, under_price:null, market_line_family:{ book:null, last_update:null }, team_implied_total:null, opponent_implied_total:null, source:'ODDS_AGGREGATOR', confidence:'NONE', stale:false, timestamp:null, error:null };
-    if (!resolvedApiKey) { result.error = 'API_KEY_MISSING'; return result; }
-    try {
-      const url = `${MARKET_CONFIG.BASE_URL}?apiKey=${encodeURIComponent(resolvedApiKey)}&regions=${encodeURIComponent(MARKET_CONFIG.REGIONS)}&markets=${encodeURIComponent(MARKET_CONFIG.MARKETS)}&oddsFormat=${encodeURIComponent(MARKET_CONFIG.ODDS_FORMAT)}`;
-      const events = await safeFetchJson(url);
-      if (!events) { result.error = 'Source unreachable'; return result; }
-      const event = CON_07_Helpers.findEvent(events, result.home_team_abbr, result.away_team_abbr, targetDate);
-      if (!event) { result.error = 'Event match ambiguous or not found'; return result; }
-      result.timestamp = event.commence_time;
-      const book = CON_07_Helpers.getBestBookmaker(event, ['spreads','totals']);
-      if (!book) { result.error = 'No bookmaker with required markets'; return result; }
-      result.market_line_family = { book: book.title || book.key || 'Unknown', last_update: book.last_update || null };
-      const spreadMarket = book.markets.find(m => m.key === 'spreads');
-      const totalMarket = book.markets.find(m => m.key === 'totals');
-      const contextAbbr = normalizeTeamAbbr(teamInput);
-      if (spreadMarket && Array.isArray(spreadMarket.outcomes)) {
-        const homeOutcome = spreadMarket.outcomes.find(o => normalizeTeamAbbr(o.name) === result.home_team_abbr);
-        const awayOutcome = spreadMarket.outcomes.find(o => normalizeTeamAbbr(o.name) === result.away_team_abbr);
-        if (homeOutcome && awayOutcome) {
-          result.spread_price_home = homeOutcome.price ?? null;
-          result.spread_price_away = awayOutcome.price ?? null;
-          result.spread = contextAbbr === result.away_team_abbr ? awayOutcome.point ?? null : homeOutcome.point ?? null;
-        }
-      }
-      if (totalMarket && Array.isArray(totalMarket.outcomes)) {
-        const over = totalMarket.outcomes.find(o => String(o.name || '').toLowerCase() === 'over');
-        const under = totalMarket.outcomes.find(o => String(o.name || '').toLowerCase() === 'under');
-        if (over) { result.game_total = over.point ?? null; result.over_price = over.price ?? null; }
-        if (under) result.under_price = under.price ?? null;
-      }
-      if (result.spread != null && result.game_total != null) {
-        const implied = CON_07_Helpers.calculateImpliedForContext(result.spread, result.game_total);
-        result.team_implied_total = implied.team;
-        result.opponent_implied_total = implied.opponent;
-        result.ok = true;
-        result.confidence = 'HIGH';
-      } else if (result.spread != null || result.game_total != null) {
-        result.ok = true;
-        result.confidence = 'MEDIUM';
-        result.error = 'Partial lines: spread or total missing';
-      } else {
-        result.error = 'No usable lines found in matched event';
-      }
-      return result;
-    } catch (err) {
-      result.error = `CON-07_EXCEPTION: ${err.message}`;
-      return result;
-    }
-  }
-};
-const CON_08_Pace = {
-  async fetch({ teamInput, opponentInput }) {
-    const result = { ok:false, team_abbr:normalizeTeamAbbr(teamInput), opponent_abbr:normalizeTeamAbbr(opponentInput), pace:0, opponent_recent_pace:0, pace_delta:0, source:'ESPN_TEAM_STATS', confidence:'NONE', error:null };
-    if (!result.team_abbr || !result.opponent_abbr) { result.error = 'INVALID_TEAM_OR_OPPONENT_INPUT'; return result; }
-    try {
-      const rows = await ESPNDataAdapter.fetchTeamStats();
-      if (!rows || !rows.length) { result.error = 'FAILED_TO_RETRIEVE_TEAM_STATS'; return result; }
-      const teamRow = rows.find(r => r.abbr === result.team_abbr);
-      const oppRow = rows.find(r => r.abbr === result.opponent_abbr);
-      if (!teamRow || !oppRow) { result.error = 'TEAM_DATA_MISSING_IN_SOURCE'; return result; }
-      const aliases = ['pace','possessionspergame','possessions'];
-      result.pace = getEspnTeamStatValue(teamRow, aliases) || 0;
-      result.opponent_recent_pace = getEspnTeamStatValue(oppRow, aliases) || 0;
-      const paces = rows.map(r => getEspnTeamStatValue(r, aliases)).filter(v => v != null);
-      const leagueAvg = paces.length ? paces.reduce((sum, value) => sum + value, 0) / paces.length : 99.1;
-      result.pace_delta = round1(((result.pace + result.opponent_recent_pace) / 2) - leagueAvg);
-      result.confidence = result.pace && result.opponent_recent_pace ? 'HIGH' : 'MEDIUM';
-      result.ok = result.pace > 0 && result.opponent_recent_pace > 0;
-      if (!result.ok && !result.error) result.error = 'PACE_FIELDS_MISSING';
-      return result;
-    } catch (err) {
-      result.error = `CON-08_EXCEPTION: ${err.message}`;
-      return result;
-    }
-  }
-};
-function buildPhase1Shield(card, row, connectorData, cards) {
-  const identity = connectorData.identity;
-  const historical = connectorData.historical;
-  const market = connectorData.market;
-  const pace = connectorData.pace;
-  const readyCount = Object.values(cards).filter(c => c.status === 'ready').length;
-  const warningCount = Object.values(cards).filter(c => c.status === 'warning').length;
-  return applyConnectorCard(card, {
-    status: warningCount ? 'warning' : 'ready', phase:'PHASE 1 CONNECTORS', statusLabel:`PHASE 1 ${readyCount}/14 CARDS WIRED`,
-    parsedResult:`Identity ${identity?.ok ? 'OK' : 'FAIL'} • Historical ${historical?.ok ? 'OK' : 'FAIL'} • Market ${market?.ok ? 'OK' : 'PARTIAL'} • Pace ${pace?.ok ? 'OK' : 'FAIL'}`,
-    evidence:`Ready ${readyCount} • Warning ${warningCount} • Market stale ${market?.stale ? 'YES' : 'NO'}`,
-    extractionProof:'Phase 1 connector family merged into ensureNbaMining().', extractionMethod:'Connector Sequence', sourceWinner:'CON-01 • CON-02 • CON-07 • CON-08',
-    confidence:82, derived:false, numericValue:null, hardData:true, scoreDelta:0,
-    alphaShield:{ purityScore:readyCount, confidenceAvg:Math.round(Object.values(cards).reduce((sum,c)=>sum + Number(c.confidence || 0),0) / Math.max(1, Object.values(cards).length)), unknownCount:Object.values(cards).filter(c => String(c.parsedResult || '').includes('[UNKNOWN]')).length, derivedCount:Object.values(cards).filter(c => c.derived).length, warningCount, hitProb:0, qualified:0, underJuiceDrag:0, whistleBump:0 }
-  });
-}
 
 const GARBAGE_KEYWORDS = ['academy of music','museum','historic','highlight','jersey'];
 
@@ -2313,8 +2467,11 @@ async function ensureNbaMining(row) {
   if (!row || row.leagueId !== 'nba') return;
   const key = cacheKeyForRow(row);
   if (runtimeMiningCache[key]?.status === 'loading') return;
+
+  activeRunToken += 1;
+  const runToken = activeRunToken;
   const cards = initCards(row);
-  const connectorData = { identity:null, historical:null, market:null, pace:null };
+  const connectorData = { identity: null, historical: null, market: null, pace: null };
   runtimeMiningCache[key] = { status:'loading', cards, connectorData };
   render();
   showOverlay('Phase 1 connector sweep armed', 'Resolving identity, historical baselines, market pulse, and pace environment...');
@@ -2324,77 +2481,259 @@ async function ensureNbaMining(row) {
     render();
   };
 
+  const phase1Status = { propFamily: null };
+
   const markCardsWarning = (cardKeys, phase, label, detail, method, sourceWinner, confidence = 42) => {
     cardKeys.forEach(keyName => {
       if (!cards[keyName]) return;
       patchCardFromConnector(cards[keyName], row, {
-        status:'warning', phase, statusLabel:label, parsedResult:'[UNAVAILABLE]', evidence:detail,
-        extractionProof:detail, extractionMethod:method, sourceWinner, confidence, derived:false, numericValue:null, sourceUrl:'', hardData:false
+        status:'warning',
+        phase,
+        statusLabel:label,
+        parsedResult:'[UNAVAILABLE]',
+        evidence:detail,
+        extractionProof:detail,
+        extractionMethod:method,
+        sourceWinner:sourceWinner,
+        sourcesLabel:cards[keyName].sourcesLabel,
+        confidence,
+        derived:false,
+        numericValue:null,
+        sourceUrl:'',
+        hardData:false
       });
     });
   };
 
   try {
-    const propFamily = normalizePhase1PropFamily(row.propFamily || row.prop || '');
-    if (!propFamily) throw new Error(`Unsupported Phase 1 prop family: ${row.propFamily || row.prop || 'UNKNOWN'}`);
+    phase1Status.propFamily = normalizePhase1PropFamily(row.propFamily || row.prop || '');
+    if (!phase1Status.propFamily) {
+      throw new Error(`Unsupported Phase 1 prop family: ${row.propFamily || row.prop || 'UNKNOWN'}`);
+    }
 
-    patchCardFromConnector(cards.individualDefender, row, {
-      status:'loading', phase:'CON-01', statusLabel:'Resolving identity', parsedResult:'PROBING...', evidence:'BallDontLie and ESPN athlete lookup.', extractionProof:'CON-01 armed.', extractionMethod:'Identity Connector', sourceWinner:'', confidence:22, sourceUrl:'', hardData:false
+    const individualCard = cards.individualDefender;
+    patchCardFromConnector(individualCard, row, {
+      status:'loading', phase:'CON-01', statusLabel:'Resolving identity', parsedResult:'PROBING...', evidence:'NBA player universe lookup.', extractionProof:'CON-01 armed.', extractionMethod:'NBA Identity Connector', sourceWinner:'', confidence:22, sourceUrl:'', hardData:false
     });
     sync();
 
-    connectorData.identity = await CON_01_Identity.resolve({ playerName: row.entity, teamInput: row.team, opponentInput: row.opponent });
-    if (!connectorData.identity?.ok) {
-      patchCardFromConnector(cards.individualDefender, row, {
-        status:'warning', phase:'CON-01 FAIL', statusLabel:'IDENTITY UNAVAILABLE', parsedResult:'[UNAVAILABLE]', evidence:connectorData.identity?.error || 'Identity resolution failed.', extractionProof:'Identity connector failed. Downstream historical connector will be skipped, but game-level connectors will continue.', extractionMethod:'Identity Connector', sourceWinner:'CON-01 / BallDontLie + ESPN', confidence:connectorConfidenceScore(connectorData.identity?.confidence), derived:false, numericValue:null, sourceUrl:'', hardData:false
+    try {
+      connectorData.identity = await CON_01_Identity.resolve({
+        playerName: row.entity,
+        teamInput: row.team,
+        opponentInput: row.opponent,
+        season: getPhase1Season()
       });
-      markCardsWarning(['seasonBaseline','careerBaseline','recentForm','stabilityWindow','extendedForm','headToHead','matchupPhysicality'], 'CON-02 SKIPPED', 'HISTORICAL UNAVAILABLE', 'Historical connector skipped because identity did not lock cleanly.', 'Historical Connector', 'CON-02 / ESPN', 38);
+    } catch (err) {
+      connectorData.identity = { ok:false, error:String(err && err.message || err), team_abbr: normalizeTeamAbbr(row.team), opponent_abbr: normalizeTeamAbbr(row.opponent) };
+    }
+
+    if (!connectorData.identity?.ok) {
+      patchCardFromConnector(individualCard, row, {
+        status:'warning',
+        phase:'CON-01 FAIL',
+        statusLabel:'IDENTITY UNAVAILABLE',
+        parsedResult:'[UNAVAILABLE]',
+        evidence:connectorData.identity?.error || 'Identity resolution failed.',
+        extractionProof:'Identity connector failed. Downstream historical connector will be skipped, but game-level connectors will continue.',
+        extractionMethod:'NBA Identity Connector',
+        sourceWinner:'CON-01 / NBA API',
+        sourcesLabel:'CON-01 • NBA Players',
+        confidence:connectorConfidenceScore(connectorData.identity?.confidence),
+        derived:false,
+        numericValue:null,
+        sourceUrl:'',
+        hardData:false
+      });
+      logEvent(`CON-01 failed: ${connectorData.identity?.error || 'identity unavailable'}`, 'WARNING', row.rowId, 'individualDefender');
+      markCardsWarning(
+        ['seasonBaseline','careerBaseline','recentForm','stabilityWindow','extendedForm','headToHead','matchupPhysicality'],
+        'CON-02 SKIPPED',
+        'HISTORICAL UNAVAILABLE',
+        'Historical connector skipped because identity did not lock cleanly.',
+        'NBA Historical Connector',
+        'CON-02 / NBA API',
+        38
+      );
       connectorData.historical = { ok:false, error:'Skipped because CON-01 identity did not lock.' };
     } else {
-      patchCardFromConnector(cards.individualDefender, row, {
-        status:'ready', phase:'CON-01 LOCKED', statusLabel:'IDENTITY VERIFIED', parsedResult:`${connectorData.identity.full_name} • ${connectorData.identity.team_abbr}${connectorData.identity.opponent_abbr ? ` vs/@ ${connectorData.identity.opponent_abbr}` : ''}`,
-        evidence:`${connectorData.identity.source} • ${connectorData.identity.team_full}${connectorData.identity.opponent_full ? ` • Opponent ${connectorData.identity.opponent_full}` : ''}`,
-        extractionProof:'Player/team/opponent normalized through Phase 1 identity connector.', extractionMethod:'Identity Connector', sourceWinner:'CON-01 / BallDontLie + ESPN', confidence:connectorConfidenceScore(connectorData.identity.confidence), derived:false, numericValue:null, sourceUrl:'', hardData:true
+      patchCardFromConnector(individualCard, row, {
+        status:'ready',
+        phase:'CON-01 LOCKED',
+        statusLabel:'IDENTITY VERIFIED',
+        parsedResult:`${connectorData.identity.full_name} • ${connectorData.identity.team_abbr}${connectorData.identity.opponent_abbr ? ` vs/@ ${connectorData.identity.opponent_abbr}` : ''}`,
+        evidence:`Player ID ${connectorData.identity.player_id} • Team ${connectorData.identity.team_full}${connectorData.identity.opponent_full ? ` • Opponent ${connectorData.identity.opponent_full}` : ''}`,
+        extractionProof:'Player/team/opponent normalized through Phase 1 identity connector.',
+        extractionMethod:'NBA Identity Connector',
+        sourceWinner:'CON-01 / NBA API',
+        sourcesLabel:'CON-01 • NBA Players',
+        confidence: connectorConfidenceScore(connectorData.identity.confidence),
+        derived:false,
+        numericValue:null,
+        sourceUrl:'',
+        hardData:true
       });
+      logEvent('CON-01 identity verified.', 'SUCCESS', row.rowId, 'individualDefender');
 
       ['seasonBaseline','careerBaseline','recentForm','stabilityWindow','extendedForm','headToHead','matchupPhysicality'].forEach(keyName => {
-        patchCardFromConnector(cards[keyName], row, { status:'loading', phase:'CON-02', statusLabel:'Historical connector probing', parsedResult:'PROBING...', evidence:'Season, career, windows, and splits loading.', extractionProof:'CON-02 armed.', extractionMethod:'Historical Connector', sourceWinner:'', confidence:22, sourceUrl:'', hardData:false });
+        patchCardFromConnector(cards[keyName], row, {
+          status:'loading', phase:'CON-02', statusLabel:'Historical connector probing', parsedResult:'PROBING...', evidence:'Season, career, windows, and splits loading.', extractionProof:'CON-02 armed.', extractionMethod:'NBA Historical Connector', sourceWinner:'', confidence:22, sourceUrl:'', hardData:false
+        });
       });
       sync();
 
-      connectorData.historical = await CON_02_Historical.fetch({ espnAthleteId: connectorData.identity.espn_athlete_id, opponentInput: connectorData.identity.opponent_abbr || row.opponent, propFamily });
+      try {
+        connectorData.historical = await CON_02_Historical.fetch({
+          playerId: connectorData.identity.player_id,
+          opponentInput: connectorData.identity.opponent_abbr || row.opponent,
+          propFamily: phase1Status.propFamily,
+          season: getPhase1Season()
+        });
+      } catch (err) {
+        connectorData.historical = { ok:false, error:String(err && err.message || err), sample_counts:{ total_games:0, h2h_games:0, home_games:0, away_games:0, win_games:0, loss_games:0 } };
+      }
+
       if (!connectorData.historical?.ok) {
-        markCardsWarning(['seasonBaseline','careerBaseline','recentForm','stabilityWindow','extendedForm','headToHead','matchupPhysicality'], 'CON-02 FAIL', 'HISTORICAL UNAVAILABLE', connectorData.historical?.error || 'Historical connector failed after identity lock.', 'Historical Connector', 'CON-02 / ESPN', 42);
+        markCardsWarning(
+          ['seasonBaseline','careerBaseline','recentForm','stabilityWindow','extendedForm','headToHead','matchupPhysicality'],
+          'CON-02 FAIL',
+          'HISTORICAL UNAVAILABLE',
+          connectorData.historical?.error || 'Historical connector failed after identity lock.',
+          'NBA Historical Connector',
+          'CON-02 / NBA API',
+          42
+        );
+        logEvent(`CON-02 failed: ${connectorData.historical?.error || 'historical unavailable'}`, 'WARNING', row.rowId, 'seasonBaseline');
       } else {
-        patchCardFromConnector(cards.seasonBaseline, row, { status:'ready', phase:'CON-02 LOCKED', statusLabel:'SEASON BASELINE', parsedResult:String(connectorData.historical.season_baseline ?? '[UNKNOWN]'), evidence:`Total games ${connectorData.historical.sample_counts.total_games}`, extractionProof:'Season average computed from ESPN game log.', extractionMethod:'Historical Connector', sourceWinner:'CON-02 / ESPN Game Log', confidence:connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue:connectorData.historical.season_baseline, sourceUrl:'', hardData:true });
-        patchCardFromConnector(cards.careerBaseline, row, { status: connectorData.historical.career_baseline == null ? 'warning' : 'ready', phase:'CON-02 LOCKED', statusLabel: connectorData.historical.career_baseline == null ? 'CAREER PARTIAL' : 'CAREER BASELINE', parsedResult: connectorData.historical.career_baseline == null ? '[UNKNOWN]' : String(connectorData.historical.career_baseline), evidence:'Career totals from ESPN overview when available.', extractionProof:'Career baseline selected from ESPN overview payload.', extractionMethod:'Historical Connector', sourceWinner:'CON-02 / ESPN Overview', confidence: connectorData.historical.career_baseline == null ? 48 : connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.career_baseline, sourceUrl:'', hardData: connectorData.historical.career_baseline != null });
-        patchCardFromConnector(cards.recentForm, row, { status:'ready', phase:'CON-02 LOCKED', statusLabel:'LAST 5', parsedResult:String(connectorData.historical.last5 ?? '[UNKNOWN]'), evidence:`Sample count ${Math.min(5, connectorData.historical.sample_counts.total_games)}`, extractionProof:'Rolling active-game window from ESPN game log.', extractionMethod:'Historical Connector', sourceWinner:'CON-02 / ESPN Game Log', confidence:connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue:connectorData.historical.last5, sourceUrl:'', hardData:true });
-        patchCardFromConnector(cards.stabilityWindow, row, { status:'ready', phase:'CON-02 LOCKED', statusLabel:'LAST 10', parsedResult:String(connectorData.historical.last10 ?? '[UNKNOWN]'), evidence:`Sample count ${Math.min(10, connectorData.historical.sample_counts.total_games)}`, extractionProof:'Rolling active-game window from ESPN game log.', extractionMethod:'Historical Connector', sourceWinner:'CON-02 / ESPN Game Log', confidence:connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue:connectorData.historical.last10, sourceUrl:'', hardData:true });
-        patchCardFromConnector(cards.extendedForm, row, { status:'ready', phase:'CON-02 LOCKED', statusLabel:'LAST 20', parsedResult:String(connectorData.historical.last20 ?? '[UNKNOWN]'), evidence:`Sample count ${Math.min(20, connectorData.historical.sample_counts.total_games)}`, extractionProof:'Rolling active-game window from ESPN game log.', extractionMethod:'Historical Connector', sourceWinner:'CON-02 / ESPN Game Log', confidence:connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue:connectorData.historical.last20, sourceUrl:'', hardData:true });
-        patchCardFromConnector(cards.headToHead, row, { status: connectorData.historical.head_to_head == null ? 'warning' : 'ready', phase:'CON-02 LOCKED', statusLabel: connectorData.historical.head_to_head == null ? 'H2H UNAVAILABLE' : 'HEAD-TO-HEAD', parsedResult: connectorData.historical.head_to_head == null ? '[UNKNOWN]' : String(connectorData.historical.head_to_head), evidence:`H2H sample ${connectorData.historical.sample_counts.h2h_games}`, extractionProof:'Opponent-matched subset from ESPN game log.', extractionMethod:'Historical Connector', sourceWinner:'CON-02 / ESPN Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.head_to_head, sourceUrl:'', hardData: connectorData.historical.head_to_head != null });
-        patchCardFromConnector(cards.matchupPhysicality, row, { status:'ready', phase:'CON-02 SPLITS', statusLabel:'SPLITS LOCKED', parsedResult:`HOME ${connectorData.historical.home_split ?? '—'} • AWAY ${connectorData.historical.away_split ?? '—'}`, evidence:`WIN ${connectorData.historical.win_split ?? '—'} (${connectorData.historical.sample_counts.win_games}) • LOSS ${connectorData.historical.loss_split ?? '—'} (${connectorData.historical.sample_counts.loss_games})`, extractionProof:'Home/away and win/loss splits resolved from ESPN splits/game log.', extractionMethod:'Historical Connector', sourceWinner:'CON-02 / ESPN Splits', confidence:connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue:null, sourceUrl:'', hardData:true });
+        patchCardFromConnector(cards.seasonBaseline, row, {
+          status:'ready', phase:'CON-02 LOCKED', statusLabel:'SEASON BASELINE', parsedResult:String(connectorData.historical.season_baseline ?? '[UNKNOWN]'), evidence:`Total games ${connectorData.historical.sample_counts.total_games}`, extractionProof:'Season average computed from current-season game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.season_baseline, sourceUrl:'', hardData:true
+        });
+        patchCardFromConnector(cards.careerBaseline, row, {
+          status: connectorData.historical.career_baseline == null ? 'warning' : 'ready', phase:'CON-02 LOCKED', statusLabel: connectorData.historical.career_baseline == null ? 'CAREER PARTIAL' : 'CAREER BASELINE', parsedResult: connectorData.historical.career_baseline == null ? '[UNKNOWN]' : String(connectorData.historical.career_baseline), evidence:'Career totals regular season row when available.', extractionProof:'Career baseline selected from career stats payload.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Career Stats', confidence: connectorData.historical.career_baseline == null ? 48 : connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.career_baseline, sourceUrl:'', hardData: connectorData.historical.career_baseline != null
+        });
+        patchCardFromConnector(cards.recentForm, row, {
+          status:'ready', phase:'CON-02 LOCKED', statusLabel:'LAST 5', parsedResult:String(connectorData.historical.last5 ?? '[UNKNOWN]'), evidence:`Sample count ${Math.min(5, connectorData.historical.sample_counts.total_games)}`, extractionProof:'Rolling active-game window from game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.last5, sourceUrl:'', hardData:true
+        });
+        patchCardFromConnector(cards.stabilityWindow, row, {
+          status:'ready', phase:'CON-02 LOCKED', statusLabel:'LAST 10', parsedResult:String(connectorData.historical.last10 ?? '[UNKNOWN]'), evidence:`Sample count ${Math.min(10, connectorData.historical.sample_counts.total_games)}`, extractionProof:'Rolling active-game window from game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.last10, sourceUrl:'', hardData:true
+        });
+        patchCardFromConnector(cards.extendedForm, row, {
+          status:'ready', phase:'CON-02 LOCKED', statusLabel:'LAST 20', parsedResult:String(connectorData.historical.last20 ?? '[UNKNOWN]'), evidence:`Sample count ${Math.min(20, connectorData.historical.sample_counts.total_games)}`, extractionProof:'Rolling active-game window from game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.last20, sourceUrl:'', hardData:true
+        });
+        patchCardFromConnector(cards.headToHead, row, {
+          status: connectorData.historical.head_to_head == null ? 'warning' : 'ready', phase:'CON-02 LOCKED', statusLabel: connectorData.historical.head_to_head == null ? 'H2H UNAVAILABLE' : 'HEAD-TO-HEAD', parsedResult: connectorData.historical.head_to_head == null ? '[UNKNOWN]' : String(connectorData.historical.head_to_head), evidence:`H2H sample ${connectorData.historical.sample_counts.h2h_games}`, extractionProof:'Opponent-matched subset from current-season game log.', extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • NBA Game Log', confidence: connectorData.historical.head_to_head == null ? 50 : connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue: connectorData.historical.head_to_head, sourceUrl:'', hardData: connectorData.historical.head_to_head != null
+        });
+        patchCardFromConnector(cards.matchupPhysicality, row, {
+          status:'ready', phase:'CON-02 SPLITS', statusLabel:'SPLITS LOCKED', parsedResult:`HOME ${connectorData.historical.home_split ?? '—'} • AWAY ${connectorData.historical.away_split ?? '—'}`,
+          evidence:`WIN ${connectorData.historical.win_split ?? '—'} (${connectorData.historical.sample_counts.win_games}) • LOSS ${connectorData.historical.loss_split ?? '—'} (${connectorData.historical.sample_counts.loss_games})`,
+          extractionProof:'Home/away and win/loss splits derived from the same game-log set.',
+          extractionMethod:'NBA Historical Connector', sourceWinner:'CON-02 / NBA API', sourcesLabel:'CON-02 • Splits from Game Log', confidence: connectorConfidenceScore(connectorData.historical.confidence), derived:false, numericValue:null, sourceUrl:'', hardData:true
+        });
+        logEvent('CON-02 historical baselines locked.', 'SUCCESS', row.rowId, 'seasonBaseline');
       }
     }
     sync();
 
     ['rotationUsage','altitudeTravel'].forEach(keyName => {
-      patchCardFromConnector(cards[keyName], row, { status:'loading', phase:'CON-07', statusLabel:'Market connector probing', parsedResult:'PROBING...', evidence:'Spread, total, and implied totals loading.', extractionProof:'CON-07 armed.', extractionMethod:'Market Connector', sourceWinner:'', confidence:22, sourceUrl:'', hardData:false });
+      patchCardFromConnector(cards[keyName], row, {
+        status:'loading', phase:'CON-07', statusLabel:'Market connector probing', parsedResult:'PROBING...', evidence:'Spread, total, and implied totals loading.', extractionProof:'CON-07 armed.', extractionMethod:'Market Connector', sourceWinner:'', confidence:22, sourceUrl:'', hardData:false
+      });
     });
-    const inferredSides = inferGameSidesForRow(row, connectorData.identity || { team_abbr: row.team, opponent_abbr: row.opponent });
-    connectorData.market = await CON_07_Market.fetch({ homeTeamInput: inferredSides.home, awayTeamInput: inferredSides.away, teamInput: connectorData.identity?.team_abbr || row.team, targetDate: null, apiKey: getOddsApiKey() });
-    if (!connectorData.market.ok && inferredSides.home && inferredSides.away) {
-      connectorData.market = await CON_07_Market.fetch({ homeTeamInput: inferredSides.away, awayTeamInput: inferredSides.home, teamInput: connectorData.identity?.team_abbr || row.team, targetDate: null, apiKey: getOddsApiKey() });
-    }
-    patchCardFromConnector(cards.rotationUsage, row, { status: connectorData.market?.ok ? 'ready' : 'warning', phase:'CON-07 LOCKED', statusLabel: connectorData.market?.ok ? 'MARKET PULSE' : 'MARKET PARTIAL', parsedResult:`Spread ${connectorData.market?.spread ?? '—'} • Total ${connectorData.market?.game_total ?? '—'}`, evidence:`Book ${connectorData.market?.market_line_family?.book || '—'} • Home price ${connectorData.market?.spread_price_home ?? '—'} • Away price ${connectorData.market?.spread_price_away ?? '—'}`, extractionProof: connectorData.market?.error || 'Spread and total extracted from matched market event.', extractionMethod:'Market Connector', sourceWinner:'CON-07 / Odds Aggregator', confidence: connectorConfidenceScore(connectorData.market?.confidence), derived:false, numericValue: connectorData.market?.spread, sourceUrl:'', hardData:Boolean(connectorData.market?.ok) });
-    patchCardFromConnector(cards.altitudeTravel, row, { status: connectorData.market?.team_implied_total == null ? 'warning' : 'ready', phase:'CON-07 DERIVED', statusLabel: connectorData.market?.team_implied_total == null ? 'IMPLIED TOTALS MISSING' : 'IMPLIED TOTALS', parsedResult:`TEAM ${connectorData.market?.team_implied_total ?? '—'} • OPP ${connectorData.market?.opponent_implied_total ?? '—'}`, evidence:`Over ${connectorData.market?.over_price ?? '—'} • Under ${connectorData.market?.under_price ?? '—'}`, extractionProof:'Implied totals derived from spread and total when both are present.', extractionMethod:'Market Connector', sourceWinner:'CON-07 / Odds Aggregator', confidence: connectorConfidenceScore(connectorData.market?.confidence), derived: connectorData.market?.team_implied_total != null, numericValue: connectorData.market?.team_implied_total, sourceUrl:'', hardData: connectorData.market?.team_implied_total != null });
     sync();
 
-    patchCardFromConnector(cards.clutchPerformance, row, { status:'loading', phase:'CON-08', statusLabel:'Pace connector probing', parsedResult:'PROBING...', evidence:'Pace and opponent pace loading.', extractionProof:'CON-08 armed.', extractionMethod:'Pace Connector', sourceWinner:'', confidence:22, sourceUrl:'', hardData:false });
-    connectorData.pace = await CON_08_Pace.fetch({ teamInput: connectorData.identity?.team_abbr || row.team, opponentInput: connectorData.identity?.opponent_abbr || row.opponent });
-    patchCardFromConnector(cards.clutchPerformance, row, { status: connectorData.pace?.ok ? 'ready' : 'warning', phase:'CON-08 LOCKED', statusLabel: connectorData.pace?.ok ? 'PACE ENVIRONMENT' : 'PACE PARTIAL', parsedResult:`PACE ${connectorData.pace?.pace || '—'} • OPP RECENT ${connectorData.pace?.opponent_recent_pace || '—'}`, evidence:`PACE DELTA ${connectorData.pace?.pace_delta || 0}`, extractionProof: connectorData.pace?.error || 'Season pace and opponent pace resolved from ESPN team stats.', extractionMethod:'Pace Connector', sourceWinner:'CON-08 / ESPN Team Stats', confidence: connectorConfidenceScore(connectorData.pace?.confidence), derived: connectorData.pace?.confidence === 'MEDIUM', numericValue: connectorData.pace?.pace_delta, sourceUrl:'', hardData:Boolean(connectorData.pace?.ok) });
+    const inferredSides = inferGameSidesForRow(row, connectorData.identity || { team_abbr: row.team, opponent_abbr: row.opponent });
+    try {
+      connectorData.market = await CON_07_Market.fetch({
+        homeTeamInput: inferredSides.home,
+        awayTeamInput: inferredSides.away,
+        teamInput: connectorData.identity?.team_abbr || row.team,
+        targetDate: null,
+        apiKey: getOddsApiKey()
+      });
+      if (!connectorData.market.ok && inferredSides.home && inferredSides.away) {
+        connectorData.market = await CON_07_Market.fetch({
+          homeTeamInput: inferredSides.away,
+          awayTeamInput: inferredSides.home,
+          teamInput: connectorData.identity?.team_abbr || row.team,
+          targetDate: null,
+          apiKey: getOddsApiKey()
+        });
+      }
+    } catch (err) {
+      connectorData.market = { ok:false, error:String(err && err.message || err), market_line_family:{} };
+    }
+
+    patchCardFromConnector(cards.rotationUsage, row, {
+      status: connectorData.market?.ok ? 'ready' : 'warning',
+      phase:'CON-07 LOCKED',
+      statusLabel: connectorData.market?.ok ? 'MARKET PULSE' : 'MARKET PARTIAL',
+      parsedResult:`Spread ${connectorData.market?.spread ?? '—'} • Total ${connectorData.market?.game_total ?? '—'}`,
+      evidence:`Book ${connectorData.market?.market_line_family?.book || '—'} • Home price ${connectorData.market?.spread_price_home ?? '—'} • Away price ${connectorData.market?.spread_price_away ?? '—'}`,
+      extractionProof: connectorData.market?.error || 'Spread and total extracted from matched market event.',
+      extractionMethod:'Odds Aggregator Connector',
+      sourceWinner:'CON-07 / Odds Aggregator',
+      sourcesLabel:'CON-07 • Spread • Total • Market Family',
+      confidence: connectorConfidenceScore(connectorData.market?.confidence),
+      derived:false,
+      numericValue: connectorData.market?.spread,
+      sourceUrl:'',
+      hardData:Boolean(connectorData.market?.ok)
+    });
+    patchCardFromConnector(cards.altitudeTravel, row, {
+      status: connectorData.market?.team_implied_total == null ? 'warning' : 'ready',
+      phase:'CON-07 DERIVED',
+      statusLabel: connectorData.market?.team_implied_total == null ? 'IMPLIED TOTALS MISSING' : 'IMPLIED TOTALS',
+      parsedResult:`TEAM ${connectorData.market?.team_implied_total ?? '—'} • OPP ${connectorData.market?.opponent_implied_total ?? '—'}`,
+      evidence:`Over ${connectorData.market?.over_price ?? '—'} • Under ${connectorData.market?.under_price ?? '—'}${connectorData.market?.stale ? ' • STALE' : ''}`,
+      extractionProof:'Implied totals derived from spread and total when both are present.',
+      extractionMethod:'Market Connector',
+      sourceWinner:'CON-07 / Odds Aggregator',
+      sourcesLabel:'CON-07 • Implied Totals',
+      confidence: connectorConfidenceScore(connectorData.market?.confidence),
+      derived: connectorData.market?.team_implied_total != null,
+      numericValue: connectorData.market?.team_implied_total,
+      sourceUrl:'',
+      hardData: connectorData.market?.team_implied_total != null
+    });
+    logEvent(connectorData.market?.ok ? 'CON-07 market pulse locked.' : `CON-07 partial: ${connectorData.market?.error || 'market unavailable'}`, connectorData.market?.ok ? 'SUCCESS' : 'WARNING', row.rowId, 'rotationUsage');
+    sync();
+
+    patchCardFromConnector(cards.clutchPerformance, row, {
+      status:'loading', phase:'CON-08', statusLabel:'Pace connector probing', parsedResult:'PROBING...', evidence:'Pace and opponent recent pace loading.', extractionProof:'CON-08 armed.', extractionMethod:'Pace Connector', sourceWinner:'', confidence:22, sourceUrl:'', hardData:false
+    });
+    sync();
+
+    try {
+      connectorData.pace = await CON_08_Pace.fetch({
+        teamInput: connectorData.identity?.team_abbr || row.team,
+        opponentInput: connectorData.identity?.opponent_abbr || row.opponent,
+        season: getPhase1Season()
+      });
+    } catch (err) {
+      connectorData.pace = { ok:false, error:String(err && err.message || err) };
+    }
+
+    patchCardFromConnector(cards.clutchPerformance, row, {
+      status: connectorData.pace?.ok ? 'ready' : 'warning',
+      phase:'CON-08 LOCKED',
+      statusLabel: connectorData.pace?.ok ? 'PACE ENVIRONMENT' : 'PACE PARTIAL',
+      parsedResult:`PACE ${connectorData.pace?.pace || '—'} • OPP RECENT ${connectorData.pace?.opponent_recent_pace || '—'}`,
+      evidence:`PACE DELTA ${connectorData.pace?.pace_delta || 0}`,
+      extractionProof: connectorData.pace?.error || 'Season pace and opponent recent pace resolved.',
+      extractionMethod:'Pace Connector',
+      sourceWinner:'CON-08 / NBA Advanced Team Stats',
+      sourcesLabel:'CON-08 • Pace • Pace Delta • Opp Recent Pace',
+      confidence: connectorConfidenceScore(connectorData.pace?.confidence),
+      derived: connectorData.pace?.confidence === 'MEDIUM',
+      numericValue: connectorData.pace?.pace_delta,
+      sourceUrl:'',
+      hardData:Boolean(connectorData.pace?.ok)
+    });
+    logEvent(connectorData.pace?.ok ? 'CON-08 pace environment locked.' : `CON-08 partial: ${connectorData.pace?.error || 'pace unavailable'}`, connectorData.pace?.ok ? 'SUCCESS' : 'WARNING', row.rowId, 'clutchPerformance');
 
     markPhasePending(cards.motivation, 'PHASE 2 PENDING', 'Motivation / incentives connector not included in Phase 1 deployment.');
     markPhasePending(cards.officialRef, 'PHASE 4 PENDING', 'Referee crew and foul environment connectors not included in Phase 1 deployment.');
+
     buildPhase1Shield(cards.survivabilityShield, row, connectorData, cards);
     runtimeMiningCache[key] = { status:'done', cards, connectorData };
     hideOverlay();
@@ -2402,12 +2741,21 @@ async function ensureNbaMining(row) {
   } catch (err) {
     const reason = String(err && err.message || err);
     logEvent(reason, 'ERROR', row.rowId, 'system');
+    markCardsWarning(
+      ['recentForm','stabilityWindow','extendedForm','seasonBaseline','careerBaseline','headToHead','matchupPhysicality','rotationUsage','clutchPerformance','altitudeTravel','motivation','officialRef'],
+      'PHASE 1 ABORTED',
+      'CONNECTOR SWEEP FAILED',
+      reason,
+      'Connector Sequence',
+      'PHASE 1 CONNECTORS',
+      32
+    );
+    buildPhase1Shield(cards.survivabilityShield, row, connectorData, cards);
     runtimeMiningCache[key] = { status:'done', cards, connectorData };
     hideOverlay();
     render();
   }
 }
-
 
 /* =============================== RENDERING =============================== */
 function renderDayScope() {
@@ -2608,32 +2956,34 @@ function bindActions() {
     render();
   };
   document.getElementById('copyBtn').onclick = async () => {
-    const text = buildAnalysisCopyText(activeRow());
+    const textToCopy = buildAnalysisCopyText(activeRow());
+    const hintEl = document.getElementById('analysisHint');
     try {
       if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-        document.getElementById('analysisHint').textContent = 'Copied.';
+        await navigator.clipboard.writeText(textToCopy);
+        hintEl.textContent = 'Copied.';
         return;
       }
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.setAttribute('readonly', 'readonly');
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      ta.style.left = '-9999px';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      ta.setSelectionRange(0, ta.value.length);
-      const ok = document.execCommand('copy');
-      document.body.removeChild(ta);
-      if (ok) {
-        document.getElementById('analysisHint').textContent = 'Copied.';
-        return;
+      throw new Error('Clipboard API unavailable');
+    } catch (err) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = textToCopy;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-9999px';
+        ta.style.left = '-9999px';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, ta.value.length);
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        hintEl.textContent = ok ? 'Copied.' : 'Copy failed.';
+      } catch {
+        hintEl.textContent = 'Copy failed.';
       }
-      throw new Error('execCommand copy failed');
-    } catch {
-      document.getElementById('analysisHint').textContent = 'Copy failed.';
     }
   };
   window.addEventListener('hashchange', applyScreen);
